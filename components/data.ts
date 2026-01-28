@@ -2,7 +2,7 @@ import { SystemData } from '../types';
 
 export const SYSTEM_DB: SystemData = {
   "sistema": "Hunter x Hunter 5e v2.0",
-  "versao_database": "1.0.1",
+  "versao_database": "1.0.0",
   "data_compilacao": "2026-01-23",
   
   "inclinacoes_gerais_basicas": {
