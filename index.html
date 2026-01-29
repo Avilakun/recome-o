@@ -166,299 +166,87 @@
             xpTable: [50, 150, 350, 500, 800, 1000, 1500, 2500, 3200, 4000, 5000, 6500],
             racas: [
                 // Humanos e Tribos
-                {
-                    nome: "Humano Comum",
-                    descricao: "Raça mais comum no mundo, com variações de aparências e características físicas.",
-                    aumento_atributo: { "FOR": 1, "DES": 1, "CON": 1, "INT": 1, "SAB": 1, "CAR": 1 },
-                    fonte: "[3, 4]",
-                    categoria: "Humanos e Tribos"
-                },
-                {
-                    nome: "Fanalis",
-                    descricao: "Composição física descomunal e cabelos vermelhos.",
-                    aumento_atributo: { "FOR": 4, "CON": 2, "DES": -2, "INT": -2, "SAB": -2, "CAR": -2 },
-                    fonte: "[3, 4]",
-                    categoria: "Humanos e Tribos"
-                },
-                {
-                    nome: "Gyudondond",
-                    descricao: "Conhecidos como 'Homens Flauta'.",
-                    aumento_atributo: "Distribua 3 pontos em qualquer atributo",
-                    caracteristicas: [
-                        { nome: "Alarido de Guerra", efeito: "Pode utilizar Intimidação como ação de movimento ao performar uma dança." }
-                    ],
-                    fonte: "[3, 4]",
-                    categoria: "Humanos e Tribos"
-                },
-                {
-                    nome: "Imuchack",
-                    descricao: "Guerreiros de até 4 metros que vivem em áreas gélidas.",
-                    aumento_atributo: { "FOR": 2, "CON": 1, "INT": -2 },
-                    opcoes_caracteristica: [
-                        { nome: "Imunidade ao Frio", efeito: "Imune a baixas temperaturas e dano de gelo/frio." },
-                        { nome: "Caça Aquática", efeito: "Sem penalidade de movimento para nadar; prende respiração por mais tempo." }
-                    ],
-                    fonte: "[3, 4]",
-                    categoria: "Humanos e Tribos"
-                },
+                { nome: "Humano Comum", descricao: "Raça mais comum no mundo.", aumento_atributo: { "FOR": 1, "DES": 1, "CON": 1, "INT": 1, "SAB": 1, "CAR": 1 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
+                { nome: "Fanalis", descricao: "Composição física descomunal.", aumento_atributo: { "FOR": 4, "CON": 2, "DES": -2, "INT": -2, "SAB": -2, "CAR": -2 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
+                { nome: "Gyudondond", descricao: "Homens Flauta.", aumento_atributo: "Distribua 3 pontos em qualquer atributo", caracteristicas: [{ nome: "Alarido de Guerra", efeito: "Intimidação com dança." }], fonte: "[3, 4]", categoria: "Humanos e Tribos" },
+                { nome: "Imuchack", descricao: "Guerreiros gélidos.", aumento_atributo: { "FOR": 2, "CON": 1, "INT": -2 }, opcoes_caracteristica: [{ nome: "Imunidade ao Frio", efeito: "Imune frio/gelo." }, { nome: "Caça Aquática", efeito: "Nadar e respirar melhor." }], fonte: "[3, 4]", categoria: "Humanos e Tribos" },
                 // Clãs Especiais
-                {
-                    nome: "Kurta",
-                    descricao: "Aldeões conhecidos pelos Olhos Escarlates.",
-                    aumento_atributo: { "INT_ou_SAB": 2 },
-                    caracteristicas: [
-                        { nome: "Mudança Escarlate", efeito: "+1 em todos os atributos enquanto os olhos estiverem vermelhos." },
-                        { nome: "Caça Fascinante", efeito: "Pode ser procurado e caçado caso descubram sua origem." },
-                        { nome: "Sofrimento Profundo", efeito: "Gatilhos emocionais ativam os olhos." }
-                    ],
-                    fonte: "[5, 6]",
-                    categoria: "Clãs Especiais"
-                },
+                { nome: "Kurta", descricao: "Olhos Escarlates.", aumento_atributo: { "INT_ou_SAB": 2 }, caracteristicas: [{ nome: "Mudança Escarlate", efeito: "+1 atributos com olhos vermelhos." }, { nome: "Caça Fascinante", efeito: "Procurado." }, { nome: "Sofrimento Profundo", efeito: "Gatilhos emocionais." }], fonte: "[5, 6]", categoria: "Clãs Especiais" },
                 // Formigas Quimera
-                {
-                    nome: "Formiga Quimera",
-                    descricao: "Iniciam sem Antecedentes. Não recebem aumento de atributo direto.",
-                    aumento_atributo: "Nenhum (Ver Regra Especial)",
-                    hierarquia_config: [
-                        "Peões/Soldados: 1 slot traço",
-                        "Oficiais: 2 slots traços",
-                        "Líderes de Esquadrão: 3 slots traços",
-                        "Guardas Reais: 5 slots traços"
-                    ],
-                    caracteristicas: [
-                            { nome: "Arma natural", efeito: "Bico, Cauda, Chifres, Garras, Ferrão ou Tentáculos." },
-                            { nome: "Corpo Adaptável", efeito: "Mudança corporal ou resistência a impacto." },
-                            { nome: "Criatura de Cerco", efeito: "Dano crítico em construções e Constructos." },
-                            { nome: "Destreza animal", efeito: "Vantagem em TR de Destreza." },
-                            { nome: "Escudo Natural", efeito: "Resistência a dano cortante, perfurante e/ou impacto." },
-                            { nome: "Evasão", efeito: "+2 na Reação de Esquiva." },
-                            { nome: "Investida", efeito: "Aumenta dano ou aplica condição com base no deslocamento." },
-                            { nome: "Rasante", efeito: "Ataque aéreo sem provocar AdO." },
-                            { nome: "Regeneração", efeito: "Recuperação gradual de vida." },
-                            { nome: "Telepatia", efeito: "Comunicação entre espécies." },
-                            { nome: "Veneno/Peçonha", efeito: "Aplicação de veneno no contato." }
-                    ],
-                    fonte: "[1, 2]",
-                    categoria: "Formigas Quimera"
-                },
+                { nome: "Formiga Quimera", descricao: "Sem Antecedentes. Ver Regra.", aumento_atributo: "Nenhum", caracteristicas: [{ nome: "Arma natural", efeito: "Dano variado." }, { nome: "Corpo Adaptável", efeito: "Resistência." }, { nome: "Criatura de Cerco", efeito: "Dano em construções." }, { nome: "Destreza animal", efeito: "Vantagem DES." }, { nome: "Escudo Natural", efeito: "Resistência dano físico." }, { nome: "Evasão", efeito: "+2 Esquiva." }, { nome: "Investida", efeito: "Dano com movimento." }, { nome: "Rasante", efeito: "Sem AdO voando." }, { nome: "Regeneração", efeito: "Recupera HP." }, { nome: "Telepatia", efeito: "Comunicação." }, { nome: "Veneno/Peçonha", efeito: "Aplica veneno." }], fonte: "[1, 2]", categoria: "Formigas Quimera" },
                 // Modificados e Fantasia
-                {
-                    nome: "Wormorfos",
-                    descricao: "Humanos modificados geneticamente ('povo verme').",
-                    aumento_atributo: "Não recebem aumento",
-                    caracteristicas: [
-                        { nome: "Visão", efeito: "Ecolocalização de 3m; não depende de visão/audição no solo." },
-                        { nome: "Corpo Malemolente", efeito: "Resistência a dano de impacto/concussão." },
-                        { nome: "Enterrada", efeito: "Agarre contra CA; ação bônus para submergir." }
-                    ],
-                    fonte: "[5, 6]",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Elfos e Meio-Elfos",
-                    descricao: "Seres com herança feérica.",
-                    aumento_atributo: "Escolha +2 em DES, SAB, INT ou CAR",
-                    caracteristicas: [
-                        { nome: "Ancestral Feérico", efeito: "Vantagem contra intimidação e persuasão." }
-                    ],
-                    fonte: "[5, 6]",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Meio-Orcs",
-                    descricao: "Guerreiros robustos com ancestralidade orc.",
-                    aumento_atributo: { "FOR": 1, "CON": 1 },
-                    caracteristicas: [
-                        { nome: "Resistência Implacável", efeito: "Se reduzido a 0 HP, volta para 1 HP (Proficiência/dia)." }
-                    ],
-                    fonte: "[5, 6]",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Anões",
-                    descricao: "Seres robustos habitantes das montanhas.",
-                    aumento_atributo: { "CON": 2 },
-                    caracteristicas: [
-                        { nome: "Resiliência Anã", efeito: "Vantagem contra venenos e resistência a dano de veneno." }
-                    ],
-                    fonte: "[7]",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Draconatos",
-                    descricao: "Humanoides com herança de dragões.",
-                    aumento_atributo: "Escolha +2 em FOR, DES ou CAR",
-                    caracteristicas: [
-                        { nome: "Arma de Sopro", efeito: "2d6 dano (escala no nv 6 e 11).", tabela_ancestral: "Tipo de dragão define elemento" }
-                    ],
-                    fonte: "[7]",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Halflings (Pequeninos)",
-                    descricao: "Pequenos e ágeis, conhecidos pela sorte.",
-                    aumento_atributo: { "DES": 1, "INT": 2 },
-                    opcoes_caracteristica: [
-                        { nome: "Sortudo", efeito: "Rerolar 1 natural em ataques/testes." },
-                        { nome: "Bravura", efeito: "Vantagem contra medo/intimidação." },
-                        { nome: "Agilidade Halfling", efeito: "Mover-se pelo espaço de criaturas maiores." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Gnomos",
-                    descricao: "Pequenos inventores e ilusionistas.",
-                    aumento_atributo: "Escolha +2 em DES ou INT",
-                    caracteristicas: [
-                        { nome: "Esperteza Gnômica", efeito: "Vantagem em INT, SAB e CAR contra magia." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Modificados e Fantasia"
-                },
-                {
-                    nome: "Golias",
-                    descricao: "Gigantes das montanhas com pele de pedra.",
-                    aumento_atributo: "Escolha +2 em FOR ou CON",
-                    caracteristicas: [
-                        { nome: "Resistência de Pedra", efeito: "Reação para reduzir dano físico pela metade." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Modificados e Fantasia"
-                },
+                { nome: "Wormorfos", descricao: "Povo verme.", aumento_atributo: "Nenhum", caracteristicas: [{ nome: "Visão", efeito: "Ecolocalização." }, { nome: "Corpo Malemolente", efeito: "Resistência concussão." }, { nome: "Enterrada", efeito: "Submergir." }], fonte: "[5, 6]", categoria: "Modificados e Fantasia" },
+                { nome: "Elfos e Meio-Elfos", descricao: "Herança feérica.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Ancestral Feérico", efeito: "Vantagem social." }], fonte: "[5, 6]", categoria: "Modificados e Fantasia" },
+                { nome: "Meio-Orcs", descricao: "Guerreiros robustos.", aumento_atributo: { "FOR": 1, "CON": 1 }, caracteristicas: [{ nome: "Resistência Implacável", efeito: "Volta a 1 HP." }], fonte: "[5, 6]", categoria: "Modificados e Fantasia" },
+                { nome: "Anões", descricao: "Robustos.", aumento_atributo: { "CON": 2 }, caracteristicas: [{ nome: "Resiliência Anã", efeito: "Vantagem veneno." }], fonte: "[7]", categoria: "Modificados e Fantasia" },
+                { nome: "Draconatos", descricao: "Herança dragão.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Arma de Sopro", efeito: "2d6 dano." }], fonte: "[7]", categoria: "Modificados e Fantasia" },
+                { nome: "Halflings", descricao: "Pequenos e sortudos.", aumento_atributo: { "DES": 1, "INT": 2 }, opcoes_caracteristica: [{ nome: "Sortudo", efeito: "Rerolar 1." }, { nome: "Bravura", efeito: "Vantagem medo." }, { nome: "Agilidade", efeito: "Passar por maiores." }], fonte: "Extra", categoria: "Modificados e Fantasia" },
+                { nome: "Gnomos", descricao: "Inventores.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Esperteza Gnômica", efeito: "Vantagem mental magia." }], fonte: "Extra", categoria: "Modificados e Fantasia" },
+                { nome: "Golias", descricao: "Gigantes de pedra.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Resistência de Pedra", efeito: "Reduz dano." }], fonte: "Extra", categoria: "Modificados e Fantasia" },
                 // Tecnológicos e Sobrenaturais
-                {
-                    nome: "Neans (Andróides)",
-                    descricao: "Constructos quase indistinguíveis de humanos.",
-                    aumento_atributo: "Varia (Atualização de Disco)",
-                    caracteristicas: [
-                        { nome: "Atualização de Disco Rígido", efeito: "Altera todos os pontos de atributo no início de cada dia." },
-                        { nome: "Curto Circuito", efeito: "Dano elétrico causa curto; sem exaustão biológica." }
-                    ],
-                    fonte: "[8, 9]",
-                    categoria: "Tecnológicos e Sobrenaturais"
-                },
-                {
-                    nome: "Vampiros",
-                    descricao: "Seres noturnos que se alimentam de aura e sangue.",
-                    aumento_atributo: { "INT": 2, "Físico": 1 },
-                    caracteristicas: [
-                        { nome: "Sugar Aura", efeito: "Ação Bônus, Mordida, Rouba 10% da aura." },
-                        { nome: "Exposição Solar", efeito: "-CA quando exposto ao sol." }
-                    ],
-                    fonte: "[8, 9]",
-                    categoria: "Tecnológicos e Sobrenaturais"
-                },
-                {
-                    nome: "Djins",
-                    descricao: "Criaturas de Nen Post-Mortem.",
-                    aumento_atributo: "Escolha +2 em SAB ou CAR",
-                    caracteristicas: [
-                        { nome: "Interpretação Travessa", efeito: "Rolar dado aleatório com Restrições para ignorar sorte (1x/dia)." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Tecnológicos e Sobrenaturais"
-                },
+                { nome: "Neans", descricao: "Andróides.", aumento_atributo: "Varia", caracteristicas: [{ nome: "Atualização", efeito: "Muda atributos." }, { nome: "Curto Circuito", efeito: "Dano elétrico." }], fonte: "[8, 9]", categoria: "Tecnológicos e Sobrenaturais" },
+                { nome: "Vampiros", descricao: "Seres noturnos.", aumento_atributo: { "INT": 2, "Físico": 1 }, caracteristicas: [{ nome: "Sugar Aura", efeito: "Rouba aura." }, { nome: "Sol", efeito: "-CA." }], fonte: "[8, 9]", categoria: "Tecnológicos e Sobrenaturais" },
+                { nome: "Djins", descricao: "Nen Post-Mortem.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Interpretação Travessa", efeito: "Ignora sorte." }], fonte: "Extra", categoria: "Tecnológicos e Sobrenaturais" },
                 // Raças Incomuns
-                {
-                    nome: "Bugbears",
-                    descricao: "Humanoides peludos e brutais.",
-                    aumento_atributo: { "FOR": 2, "DES": 1 },
-                    caracteristicas: [
-                        { nome: "Ataque Surpresa", efeito: "+2d6 de dano no primeiro ataque contra alvo surpreso." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Raças Incomuns"
-                },
-                {
-                    nome: "Dahllans (Meio-Dríades)",
-                    descricao: "Seres ligados à natureza com pele de casca.",
-                    aumento_atributo: { "SAB": 4, "INT": -1, "CAR": -1 },
-                    caracteristicas: [
-                        { nome: "Herança Natural", efeito: "Visão na penumbra 18m." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Raças Incomuns"
-                },
-                {
-                    nome: "Firbolgs",
-                    descricao: "Guardiões da natureza gentis e gigantes.",
-                    aumento_atributo: { "SAB": 2, "FOR": 1 },
-                    caracteristicas: [
-                        { nome: "Passo Oculto", efeito: "Ação bônus para ficar invisível até o próximo turno." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Raças Incomuns"
-                },
-                {
-                    nome: "Goblins",
-                    descricao: "Pequenos, maliciosos e adaptáveis.",
-                    aumento_atributo: "Escolha +2 em FOR, DES ou CAR",
-                    caracteristicas: [
-                        { nome: "Fúria do Pequeno Nanico", efeito: "Bônus de dano contra alvos maiores (1x/descanso)." }
-                    ],
-                    fonte: "Extra",
-                    categoria: "Raças Incomuns"
-                }
+                { nome: "Bugbears", descricao: "Brutais.", aumento_atributo: { "FOR": 2, "DES": 1 }, caracteristicas: [{ nome: "Ataque Surpresa", efeito: "Dano extra." }], fonte: "Extra", categoria: "Raças Incomuns" },
+                { nome: "Dahllans", descricao: "Meio-Dríades.", aumento_atributo: { "SAB": 4, "INT": -1, "CAR": -1 }, caracteristicas: [{ nome: "Herança Natural", efeito: "Visão penumbra." }], fonte: "Extra", categoria: "Raças Incomuns" },
+                { nome: "Firbolgs", descricao: "Guardiões.", aumento_atributo: { "SAB": 2, "FOR": 1 }, caracteristicas: [{ nome: "Passo Oculto", efeito: "Invisibilidade." }], fonte: "Extra", categoria: "Raças Incomuns" },
+                { nome: "Goblins", descricao: "Maliciosos.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Fúria do Pequeno", efeito: "Dano extra." }], fonte: "Extra", categoria: "Raças Incomuns" }
             ],
             antecedentes: [
-              { nome: "Amigo dos Animais", descricao: "Pessoas que se importam com o equilíbrio da natureza...", proficiencias: "Adestrar Animais e Natureza", equipamento: ["Qualquer arma simples", "Qualquer arma simples", "Kit de Caça ou Kit Médico"], caracteristicas: [{nome: "Habitat Natural", efeito: "Animais te consideram não hostil."}, {nome: "Tarzan/Jane", efeito: "Entende linguagem animal básica."}, {nome: "Companheiro Inabalável", efeito: "Possui um pet auxiliar."}] },
-              { nome: "Aristocrata", descricao: "Pessoas que entendem de riqueza, poder e privilégios...", proficiencias: "História e Religião", equipamento: ["Celular/Câmera", "Computador", "Mala", "Arma Simples"], caracteristicas: [{nome: "Posição Privilegiada", efeito: "Bem-vindo na alta sociedade."}, {nome: "Mauricinho / Patricinha", efeito: "Recebe mesada semanal."}] },
-              { nome: "Artista", descricao: "Pessoas com as mais variadas capacidades de entretenimento...", proficiencias: "Kit Ofício e escolha 3 (Acrobacia, Atuação, Intuição, Prestidigitação)", equipamento: ["Mala/Mochila", "Câmera/Celular", "Kit Ofício"], caracteristicas: [{nome: "Tudo no @", efeito: "Pagar com merchandising."}, {nome: "Fascinar Espectadores", efeito: "Vantagem em CAR após performance."}] },
-              { nome: "Assassino (Marcial)", descricao: "A arte de matar de forma rápida.", proficiencias: "Acrobacia e Furtividade", equipamento: ["Adaga", "Veneno", "Pochete", "Kit Disfarce/Falsificação"], caracteristicas: [{nome: "Eco do Ritmo", efeito: "Desvantagem para te atacar."}, {nome: "Sumidão", efeito: "Vantagem furtividade."}, {nome: "Máquina de Matar", efeito: "Dano dobrado furtivo."}] },
-              { nome: "Caçador de Feras", descricao: "Busca criaturas desconhecidas e hostis.", proficiencias: "Natureza e Sobrevivência", equipamento: ["Espingarda/Tazer", "Kit Caça/Antídoto", "Arma Simples/Marcial", "Rede"], caracteristicas: [{nome: "Temos que Pegar!", efeito: "Vantagem rastrear feras."}, {nome: "Desbravador", efeito: "+2 Sobrevivência, sem penalidade terreno."}] },
-              { nome: "Cientista/Técnico", descricao: "Estudo e dedicação experimental.", proficiencias: "Escolha 3 (História, Invest, Med, Nat, Prest, Rel, Sob)", equipamento: ["Arma Simples", "Mochila", "Kit Médico/Antídoto", "Kit Armas/Forense/Hacker"], caracteristicas: [{nome: "Explorar Fraqueza", efeito: "Vantagem após análise."}, {nome: "Mestre do Planejamento", efeito: "Ganha 1d6 em testes com itens 3x/dia."}] },
-              { nome: "Criminoso", descricao: "Vivem à margem da lei.", proficiencias: "Enganação e Furtividade", equipamento: ["Arma Simples/Marcial", "Pochete", "Item variante (Celular/Kit)"], caracteristicas: [{nome: "Cleptomaníaco", efeito: "Inicia com celular roubado."}, {nome: "Estelionatário", efeito: "Kits de golpe."}, {nome: "Político Corrupto", efeito: "Infos privilegiadas."}, {nome: "Traficante", efeito: "Recursos financeiros ilícitos."}] },
-              { nome: "Discípulo", descricao: "Orientado por um mestre.", proficiencias: "Kit Ofício e escolha 3 quaisquer", equipamento: ["Celular mestre", "Arma Simples/Marcial", "Kit Ofício"], caracteristicas: [{nome: "Abre-te Sésamo", efeito: "Acesso por influência do mestre."}, {nome: "Mateus 28.18-20", efeito: "Herança do mestre falecido."}] },
-              { nome: "Guarda Costas", descricao: "Treinados para proteção.", proficiencias: "Atletismo e Intimidação", equipamento: ["Pistola", "Arma Simples/Marcial"], caracteristicas: [{nome: "Artista Marcial", efeito: "Dano desarmado 1d6."}, {nome: "Horário de Trabalho", efeito: "Foco em proteger alvo (+2 Percepção)."}] },
-              { nome: "Líder", descricao: "Muda a sociedade e lidera aliados.", proficiencias: "Escolha 3 (Enganação, História, Invest, Persuasão)", equipamento: ["Pílulas", "Arma Simples", "Kit"], caracteristicas: [{nome: "Presença de Liderança", efeito: "Concede 1d4 a aliados."}] },
-              { nome: "Marinheiro", descricao: "Navegou mares e tormentas.", proficiencias: "Atletismo e Percepção", equipamento: ["Corrente/Rede", "Arma Simples/Marcial"], caracteristicas: [{nome: "Grande Herói", efeito: "Transporte grátis, patente."}, {nome: "Imperador do Mar", efeito: "Equipamento extra e busca por NEN."}] },
-              { nome: "Mentalista", descricao: "Conhecedores da mente.", proficiencias: "Intuição e (Enganação ou Persuasão)", equipamento: ["Arma Simples", "Kit Falsificação/Ofício"], caracteristicas: [{nome: "Perceptivo", efeito: "+2 Percepção."}, {nome: "Referência Bibliográfica", efeito: "Vantagem em CAR contra humanoides inteligentes."}] },
-              { nome: "Negociante", descricao: "Lidar com público e oratória.", proficiencias: "Atuação, Persuasão, Prestidigitação", equipamento: ["Equipamento $2000", "Mala"], caracteristicas: [{nome: "Camelô", efeito: "Venda por valor total."}, {nome: "Pechincheiro", efeito: "Compra com 30% desconto."}] },
-              { nome: "Ninja", descricao: "Esgueirando-se na noite.", proficiencias: "Furtividade e (Acrobacia ou Atletismo)", equipamento: ["Kit Ninja", "Kit Disfarce/Falsificação", "Explosivos", "Arma Simples/Marcial"], caracteristicas: [{nome: "Furtividade Superior", efeito: "Vantagem furtividade."}, {nome: "Clone das Sombras", efeito: "Cria clone sólido."}, {nome: "Substituição", efeito: "Reação para fuga."}] },
-              { nome: "Órfão", descricao: "Cresceu nas ruas.", proficiencias: "Furtividade e (Intuição ou Prestidigitação)", equipamento: ["Kit Disfarce", "Kit Ofício/Armas", "Arma Simples"], caracteristicas: [{nome: "Segredos da Cidade", efeito: "Viagem rápida na cidade."}, {nome: "Zé-Pequeno", efeito: "Vantagem CAR com submundo."}, {nome: "Insignificante", efeito: "Ignorado por inimigos."}] },
-              { nome: "Recluso", descricao: "Viveu isolado.", proficiencias: "Intuição, Medicina, Religião", equipamento: ["Arma Simples/Marcial", "Kit Armas/Caça"], caracteristicas: [{nome: "Monge", efeito: "Vantagem CON, dano 1d6."}, {nome: "Escravo", efeito: "Resistente a intimidação."}] },
-              { nome: "Soldado", descricao: "A guerra na vida.", proficiencias: "Atletismo e (Intimidação ou Sobrevivência)", equipamento: ["Arma Simples/Marcial", "Kit Armas/Caça", "Mala"], caracteristicas: [{nome: "Batedor", efeito: "Vantagem Invest/Furt sozinho."}, {nome: "Médico de Combate", efeito: "Anula efeito colateral pílula."}, {nome: "Atirador de Elite", efeito: "Ignora cobertura, sharpshooter."}] },
-              { nome: "Agente de Saúde", descricao: "Compromisso com a vida.", proficiencias: "Medicina e Percepção", equipamento: ["Arma Simples", "Kit Médico", "Kit Antídoto/Pílulas"], caracteristicas: [{nome: "Técnica Medicinal", efeito: "Cura + INTx2."}, {nome: "Primeiros Socorros", efeito: "+3 estabilizar, kit rende mais."}, {nome: "Médico Experimental", efeito: "Cria antídoto com natureza."}] },
-              { nome: "Atleta", descricao: "Físico primoroso.", proficiencias: "Atletismo e (Acrobacia ou Intuição ou Percepção)", equipamento: ["Arma Simples", "Pílula"], caracteristicas: [{nome: "Bolt", efeito: "Movimento extra ou salto."}, {nome: "Implacável", efeito: "Rerolar TR falho."}] },
-              { nome: "Chef", descricao: "Ótimo cozinheiro.", proficiencias: "Sobrevivência, Percepção, História", equipamento: ["Arma Simples", "Kit Cozinha", "Kit Caça"], caracteristicas: [{nome: "Sabor Único", efeito: "Bônus CAR com quem comeu."}, {nome: "Sabor de Casa", efeito: "Comida vale descanso curto."}] },
-              { nome: "Circense", descricao: "Sobrevivia com performances.", proficiencias: "Acrobacia, Atuação, (Persuasão ou Enganação)", equipamento: ["Arma Simples", "Kit Disfarce", "Roupa Chique"], caracteristicas: [{nome: "Performance", efeito: "+5 Acrobacia/Prestidigitação show."}, {nome: "Mimetismo", efeito: "Imita sons e vozes."}] },
-              { nome: "Gamer", descricao: "Telas eram o mundo.", proficiencias: "História, Intuição", equipamento: ["Arma Simples", "PEM", "Eletrônicos", "Kit Hacker"], caracteristicas: [{nome: "Dormir não dá XP", efeito: "Energético substitui descanso."}, {nome: "Procrastinador", efeito: "Faz tudo na metade do tempo."}] },
-              { nome: "Investigador", descricao: "Detetive.", proficiencias: "Investigação e (Atuação/Intuição/Percepção/Enganação)", equipamento: ["Pistola", "Kit Forense", "Rádio"], caracteristicas: [{nome: "Detetive", efeito: "Info extra automática."}, {nome: "Rede de Contatos", efeito: "5 infos grátis/campanha."}] },
-              { nome: "Piloto", descricao: "Manda bem no volante.", proficiencias: "Percepção, Intuição, Prestidigitação (Pilotar)", equipamento: ["Arma Simples", "Moto"], caracteristicas: [{nome: "Manobras Maníacas", efeito: "Desvia auto de menores."}, {nome: "Piloto de Fuga", efeito: "Dobra velocidade."}, {nome: "Experiência no Volante", efeito: "+3 pilotar."}] },
-              { nome: "Religioso", descricao: "Procura fiéis.", proficiencias: "Religião, História", equipamento: ["Arma Simples", "Livro Sagrado"], caracteristicas: [{nome: "Pregar", efeito: "+3 Religião acalmar."}, {nome: "Orador Público", efeito: "Dobro proficiência discursando."}, {nome: "Benção Divina", efeito: "+1 Mod SAB temp."}] },
-              { nome: "Mestre de RPG", descricao: "Narrador épico.", proficiencias: "Atuação, História, Enganação", equipamento: ["Celular/Dados", "Computador", "Casaco"], caracteristicas: [{nome: "Mestre do Improviso", efeito: "Imune surpresa, vantagem convencer improviso."}, {nome: "Sombra do Verdadeiro Mestre", efeito: "Uma fala vira verdade (Mestre decide)."}] }
+                { nome: "Amigo dos Animais", descricao: "Pessoas que se importam com o equilíbrio da natureza, mas que também adoram um desafio, andam pelas florestas e pântanos buscando encontrar criaturas fantásticas e desconhecidas. Por outro lado, muitos amigos dos animais são simplesmente amados pela natureza como se fizessem parte dela.", proficiencias: "Escolha um Kit dentre os recebidos e Adestrar Animais e Natureza", equipamento: ["Qualquer arma simples", "Qualquer arma simples", "Kit de Caça e Rastreio de Criaturas ou Kit Médico"], caracteristicas: [{nome: "Habitat Natural", efeito: "Animais e Feras (inclusive hostis) normalmente o consideram outra criatura não hostil. Seus companheiros são tratados como membros aliados do seu bando, desde que não atuem de forma hostil."}, {nome: "Tarzan/Jane", efeito: "De alguma forma você se acostumou com a linguagem de animais e feras. Ao passar um minuto interagindo com uma criatura não hostil você pode identificar alguma informação que ela já tenha conhecimento sobre o ambiente ou uma outra criatura."}, {nome: "Companheiro Inabalável", efeito: "Você tem um companheiro que te concede a Ação 'Ajuda' no turno dele. Ele te entende e obedece comandos simples."}] },
+                { nome: "Aristocrata", descricao: "Pessoas que entendem de riqueza, poder e privilégios. Mas não só entendem, elas desfrutam e estão acostumadas a isso. Através de algum título de nobreza, sua família exerce algum tipo de influência política significativa.", proficiencias: "História e Religião", equipamento: ["Celular ou Câmera", "Computador", "Mochila 3 (Mala)", "Qualquer arma simples"], caracteristicas: [{nome: "Posição Privilegiada", efeito: "Você é bem-vindo na alta sociedade e as pessoas assumem que você tem o direito de estar onde está. As pessoas comuns fazem todos os esforços para acomodá-lo e evitar seu desprazer."}, {nome: "Mauricinho / Patricinha", efeito: "Você recebe toda semana uma quantia correspondente aos recursos financeiros de sua família de acordo com a tabela ao rolar 1d4."}] },
+                { nome: "Artista", descricao: "Pessoas com as mais variadas capacidades de entretenimento se aventuram no mundo artístico para realizar seus sonhos vivendo daquilo que amam ou buscando alcançar fama e dinheiro.", proficiencias: "Kit de Ferramenta de Ofício e escolha 3 dentre: Acrobacia, Atuação, Intuição ou Prestidigitação", equipamento: ["Mala de Roupas ou Mochila Comum/Maleta", "Câmera ou Celular", "Kit de Ferramentas de Ofício"], caracteristicas: [{nome: "Tudo no @", efeito: "Comerciantes que negociam com você reconhecem seu trabalho como artista, você tem chance (50%) de pagar suas compras com merchandising."}, {nome: "Virando a Cadeira", efeito: "Apresentar sua arte às pessoas antes de conversar ou negociar, faz com que fiquem fascinadas por você e tenham uma inclinação a concordar com sua opinião. Vantagem em testes de Carisma."}] },
+                { nome: "Assassino", descricao: "Assassinos famosos como a família Zoldyck e ainda outros, desenvolvem habilidades próprias para sua profissão e, com isso, se tornam peritos naquilo que fazem. A arte de matar de forma rápida.", proficiencias: "Escolha um Kit dentre os recebidos e Acrobacia e Furtividade", equipamento: ["Adaga/Faca", "Veneno Variante: 1 frasco", "Pochete de Perna", "Kit de disfarce ou Kit de Falsificação"], caracteristicas: [{nome: "Eco do Ritmo", efeito: "Se concentrar em seu turno completo projeta um padrão hipnótico, fazendo com que todas as criaturas hostis tenham desvantagem em jogadas de ataque direcionadas a você."}, {nome: "Sumidão", efeito: "Vantagem em testes de furtividade de qualquer natureza e não é descoberto ao realizar um ataque enquanto se está furtivo."}, {nome: "Máquina de Matar", efeito: "Dano dobrado (nos dados) em ataques realizados enquanto se está oculto/furtivo."}] },
+                { nome: "Caçador de Feras", descricao: "Nesse mundo existem diversas criaturas desconhecidas e hostis que se reproduzem nas sombras enquanto sobrepujam habitat naturais de outras criaturas.", proficiencias: "Escolha um Kit dentre os recebidos e Natureza e Sobrevivência", equipamento: ["Espingarda Carregada ou Tazer", "Kit de Caça e Rastreio de Criaturas ou Kit Antídoto", "Qualquer arma simples ou Marcial e Rede"], caracteristicas: [{nome: "Temos que Pegar!", efeito: "Vantagem em todos os testes relacionados a rastrear feras naturais e bestas mágicas (inclusive bestas de NEN)."}, {nome: "Desbravador", efeito: "Você recebe +2 em sobrevivência e anula qualquer penalidade de sobrevivência não causadas por Hatsus."}] },
+                { nome: "Cientista", descricao: "Após muito estudo e dedicação, começam a arriscar a vida também no campo experimental para comprovar suas teorias e hipóteses.", proficiencias: "Escolha 2 perícias com Kits e 3 dentre: História, Investigação, Medicina, Natureza, Prestidigitação, Religião ou Sobrevivência.", equipamento: ["Qualquer arma simples", "1 Mochila Comum/Maleta", "Kit Antídoto ou Kit Médico", "Kit de Armas ou Kit Forense ou Kit de Hacker"], caracteristicas: [{nome: "Explorar Fraqueza", efeito: "O personagem pode utilizar sua ação principal para analisar o oponente ou situação tendo vantagem no próximo ataque contra um inimigo ou teste baseado em inteligência."}, {nome: "Mestre do Planejamento", efeito: "Ao utilizar um item / kit escolhido no antecedente, você ganha um 1d6 para rolar em qualquer jogada ou teste cabível 3 vezes por dia."}] },
+                { nome: "Criminoso", descricao: "Essas pessoas normalmente vivem à margem da lei, desprezando e quebrando os regulamentos da sociedade.", proficiencias: "Escolha um Kit dentre os recebidos e Enganação e Furtividade", equipamento: ["Qualquer arma simples ou Marcial", "1 Pochete", "Item do Tipo de Criminoso (Cleptomaníaco, Estelionatário, etc)"], caracteristicas: [{nome: "Cleptomaníaco", efeito: "Inicia com celular roubado e kit de ferramentas de ofício."}, {nome: "Estelionatário", efeito: "Acesso a kits de falsificação ou disfarce para golpes."}, {nome: "Político Corrupto", efeito: "Possui informações privilegiadas (Pen-Drive) para manipular poder e influência."}, {nome: "Traficante", efeito: "Inicia com recursos financeiros de vendas ilícitas e contatos de fornecedores."}] },
+                { nome: "Discípulo", descricao: "Uma pessoa que é orientada por um mestre e normalmente continua seguindo suas orientações. Dependendo do mestre o discípulo pode se desenvolver em áreas diferentes a partir de suas aptidões.", proficiencias: "Kit de Ferramenta de Ofício e Escolha 3 perícias quaisquer", equipamento: ["Celular com contato ou anotações de seu mestre", "Qualquer arma simples ou Marcial", "Kit de Ferramentas de Ofício"], caracteristicas: [{nome: "Abre-te Sésamo", efeito: "Você consegue acessar alguns lugares ou pessoas e informações a partir da fama do seu mestre e da credibilidade que o nome lhe confere."}, {nome: "Mateus 28.18-20", efeito: "Seu mestre supostamente morreu ou desapareceu, porém ele lhe concedeu um ensinamento, poder, item, equipamento ou marca que te permite continuar sua história."}] },
+                { nome: "Guarda Costas", descricao: "Arduamente treinados para trabalhos físicos, guarda-costas podem ser pessoas dispostas a fazer um trabalho perigoso por dinheiro.", proficiencias: "Atletismo e Intimidação", equipamento: ["Pistola", "Qualquer arma simples ou Marcial"], caracteristicas: [{nome: "Artista Marcial", efeito: "Você treinou técnicas e desenvolveu seu corpo ao máximo para o combate corpo-a-corpo. Seus golpes desarmados causam 1d6 no lugar de 1d4."}, {nome: "Horário de Trabalho", efeito: "Você consegue escolher uma pessoa para manter sua atenção de forma constante. Você tem vantagem e +2 em jogadas de percepção para encontrar essa pessoa."}] },
+                { nome: "Líder", descricao: "Você é uma pessoa que procura mudar a sociedade ao seu redor jogando na arena da política, pessoas e personalidades.", proficiencias: "Escolha três entre Enganação, História, Investigação ou Persuasão", equipamento: ["1 pílula de Hemoglobina", "1 pílula de Hemoglobina variante", "Qualquer arma simples", "Qualquer outro Kit"], caracteristicas: [{nome: "Presença de Liderança", efeito: "Sua presença notável e inspiradora concede 1d4 (grau básico) que pode ser utilizado em qualquer jogada de seus aliados (cada um) até o fim do dia."}] },
+                { nome: "Marinheiro", descricao: "Você navegou em um navio pelo mar durante anos, enfrentando poderosas tormentas e monstros abissais.", proficiencias: "Atletismo e Percepção", equipamento: ["Corrente Pesada ou Rede", "Qualquer arma simples ou Marcial"], caracteristicas: [{nome: "Grande Herói da Marinha", efeito: "Você não gasta passagem em navios, jatos, aviões e dirigíveis. Possui Documento de patente e Experiência de Convés."}, {nome: "Imperador do Mar", efeito: "Buscando mais poder você ouviu falar de NEN. Possui Experiência de Convés, Pistola ou Mosquete, Arma simples ou Marcial e Relógio à prova d’água."}] },
+                { nome: "Mentalista", descricao: "Conhecedores do funcionamento da mente, mentalistas são profissionais que trabalham com a realidade do pensamento ou com a ilusão.", proficiencias: "Escolha um Kit dentre os recebidos e Enganação ou Persuasão e Intuição", equipamento: ["Qualquer arma simples", "Kit de Falsificação ou Kit de Ferramenta de Ofício"], caracteristicas: [{nome: "Perceptivo", efeito: "+2 em testes de Percepção."}, {nome: "Referência Bibliográfica", efeito: "Possui vantagem em todos os testes de Carisma contra humanoides com inteligência igual ou superior a Modificador 0."}] },
+                { nome: "Negociante", descricao: "Indivíduos acostumados a lidar com o público e, por isso, possuem facilidade na oratória e na persuasão.", proficiencias: "Atuação, Persuasão e Prestidigitação", equipamento: ["Qualquer equipamento dentro do orçamento de 2.000 $", "1 Mala de Roupas"], caracteristicas: [{nome: "Camelô", efeito: "Quando vender qualquer item seu usado, você consegue vendê-lo com o custo oficial, desde que esteja funcional."}, {nome: "Pechincheiro", efeito: "Você consegue comprar qualquer item com desconto de 30% do valor de mercado (exceto armas de fogo e itens místicos)."}] },
+                { nome: "Ninja", descricao: "Esgueirando-se na noite ou no meio da multidão, submetendo seus corpos à torturas para acostumarem-se com a dor e aplicando técnicas nunca antes vistas.", proficiencias: "Escolha um Kit dentre os recebidos e Acrobacia ou Atletismo e Furtividade", equipamento: ["Armas Ninja Variadas", "Kit de disfarce ou Kit de Falsificação", "Explosivos Ninja", "Qualquer arma simples ou Marcial"], caracteristicas: [{nome: "Furtividade Superior", efeito: "Vantagem em testes de furtividade de qualquer natureza."}, {nome: "Jutsu: Clone das Sombras", efeito: "Cria um clone sólido. 5/5 PV, mesmas características sem NEN. Pode usar ação bônus para comandar clones."}, {nome: "Jutsu: Substituição", efeito: "Reação para fuga rápida com CA +5 e chance de aparecer em até 3m de onde estava."}] },
+                { nome: "Órfão", descricao: "Você cresceu nas ruas, sozinho, órfão e pobre. Você não tinha ninguém para cuidar de você ou te alimentar, então, aprendeu a se virar sozinho.", proficiencias: "Escolha 2 perícias com Kits recebidos. Recebe ainda Furtividade e Intuição ou Prestidigitação", equipamento: ["Kit de Disfarce", "Kit de Ferramentas de Ofício ou Kit de Armas", "Qualquer arma simples"], caracteristicas: [{nome: "Segredos da Cidade", efeito: "Você conhece os padrões secretos e o fluxo das cidades. Quando não em combate, você e companheiros podem viajar com o dobro da velocidade."}, {nome: "Zé-Pequeno", efeito: "Vantagem em todos os testes de Carisma quando se tratam de assuntos, pessoas e temas relacionados à máfia e ao conhecimento do submundo."}, {nome: "Insignificante", efeito: "Os inimigos tendem a te ignorar se você não fizer nada que os ameace e nem for o foco inicial de um conflito."}] },
+                { nome: "Recluso", descricao: "Você viveu em reclusão – ou em uma comunidade isolada como um monastério ou completamente sozinho – por um período importante da sua vida.", proficiencias: "Escolha 1 perícia com Kit recebido e Intuição, Medicina e Religião", equipamento: ["Qualquer arma simples ou Marcial", "Kit de Armas ou Kit de Caça e Rastreio de Criaturas"], caracteristicas: [{nome: "Monge", efeito: "Vantagem em qualquer teste de constituição. Treinou técnicas corporais para o combate desarmado. Seus golpes desarmados causam 1d6 no lugar de 1d4."}, {nome: "Escravo", efeito: "Resistente a intimidação com ou sem aura. Pessoas com posição de autoridade alheias a você tem desvantagem em qualquer teste de carisma que não lhe beneficie."}] },
+                { nome: "Soldado", descricao: "A guerra sempre esteve na vida de soldados. Treinando desde jovem, estudando o uso das armas e armaduras, aprendendo técnicas básicas de sobrevivência.", proficiencias: "Escolha 1 perícia com Kit recebido e Atletismo e Intimidação ou Sobrevivência", equipamento: ["Qualquer arma simples ou Marcial", "Kit de Armas ou Kit de Caça e Rastreio de Criaturas", "1 Mala de Roupas ou Mochila Comum/Maleta"], caracteristicas: [{nome: "Batedor", efeito: "Acostumado a abrir caminho para investigar planos do inimigo (Vantagem em Investigação e Furtividade quando estiver sozinho ou 20 metros separado do grupo)."}, {nome: "Médico de Combate", efeito: "Conhece procedimento que impede malefícios das pílulas de hemoglobina e suas variações e consegue aplicar em uma pessoa por dia."}, {nome: "Atirador de Elite", efeito: "Atacar alvos além da distância normal não impõe desvantagem. Ataques ignoram meia cobertura e três-quartos."}] },
+                { nome: "Agente de Saúde", descricao: "Um amor pela saúde dos outros, ou ainda um compromisso com a vida (seja por promessa ou dinheiro) domina todos dessa origem.", proficiencias: "Kit Médico ou Antídoto e Medicina e Percepção", equipamento: ["Qualquer arma simples", "Kit Médico", "Kit Antídoto ou 3 pílulas de Hemoglobina variante"], caracteristicas: [{nome: "Técnica Medicinal", efeito: "Sempre que cura um personagem, você adiciona seu INTx2 no total de PV curados."}, {nome: "Primeiros Socorros", efeito: "+3 em testes para estabilizar outros personagens. Aumenta o proveito do Kit de primeiros socorros."}, {nome: "Médico Experimental", efeito: "Pode fazer qualquer antídoto com kit de primeiros socorros e algum item da natureza ao redor."}] },
+                { nome: "Atleta", descricao: "Você tem um físico primoroso e bem trabalhado, você competia/compete em algum tipo de esporte, individual ou coletivo.", proficiencias: "Atletismo e Acrobacia ou Intuição ou Percepção", equipamento: ["Qualquer arma simples", "1 pílula de Hemoglobina variante: (Morfina)"], caracteristicas: [{nome: "Bolt", efeito: "Seu físico primoroso lhe permite fazer uma ação de movimento extra ou saltar em distância metade de seu deslocamento."}, {nome: "Implacável", efeito: "Se falhar em um teste de resistência, você pode rolar novamente para o teste, mas é obrigado a manter o novo resultado."}] },
+                { nome: "Chef", descricao: "Um ótimo cozinheiro, com habilidades de impressionar qualquer um.", proficiencias: "Com todos os kits recebidos e Sobrevivência, Percepção e História", equipamento: ["Qualquer arma simples", "Kit de Cozinha", "Kit de Caça e Rastreio de Criaturas"], caracteristicas: [{nome: "Sabor Único", efeito: "Com os ingredientes você pode fazer qualquer um dos tipos de pratos, além de você ter um bônus de 1d6 em testes de CAR 'contra' pessoas que comeram sua comida."}, {nome: "Sabor de Casa", efeito: "Com os ingredientes certos, você pode fazer uma comida que vale por um descanso curto."}] },
+                { nome: "Circense", descricao: "Você sobrevivia com base em seu corpo e suas performances, fazendo malabares, piruetas e o que mais estivesse em seu arsenal.", proficiencias: "Kit de Disfarce, Acrobacia, Atuação e Persuasão ou Enganação", equipamento: ["Qualquer arma simples", "Kit de Disfarce", "Roupa Chique"], caracteristicas: [{nome: "Performance", efeito: "Você tem +5 em acrobacia ou prestidigitação para seus números."}, {nome: "Mimetismo", efeito: "Você consegue imitar sons que já tenha escutado, incluindo vozes."}] },
+                { nome: "Gamer", descricao: "Alguém que vivia em casa jogando os mais diversos jogos, talvez um famoso pro-player, talvez apenas alguém que fugia da realidade nos games.", proficiencias: "Kit de Hacker, História e Intuição", equipamento: ["Qualquer arma simples", "Dispositivo de PEM", "Computador, Celular e Pen Drive", "Kit de Hacker"], caracteristicas: [{nome: "Dormir não dá XP", efeito: "Ao invés de descansar, algumas latas de enérgico te fazem passar por um descanso normal, porém da próxima vez você precisará descansar."}, {nome: "Procrastinador", efeito: "Você é acostumado a deixar tudo para a última hora, você consegue fazer tudo na metade do tempo, mas nem sempre ficará bom."}] },
+                { nome: "Investigador", descricao: "Um detetive, de renome ou não, trabalhando em busca de saber os mistérios do mundo, de casos policiais, ou daquilo que pegar mais.", proficiencias: "Kit Forense, Investigação e Atuação ou Intuição ou Percepção ou Enganação", equipamento: ["Pistola", "Kit Forense", "Ponto de rádio"], caracteristicas: [{nome: "Detetive", efeito: "O mestre sempre irá te falar uma coisa extra, sem precisar jogar investigação em toda cena de investigação."}, {nome: "Rede de Contatos", efeito: "Graças à influência da sua agência, você pode obter cinco informações por campanha sem custo."}] },
+                { nome: "Piloto", descricao: "Alguém que manda muito bem no volante, um piloto de fuga, um corredor de Fórmula 1. Pra que frear se eu posso acelerar e dar um drift?", proficiencias: "Percepção, Intuição e Prestidigitação (Pilotar)", equipamento: ["Qualquer arma simples", "Moto (pode pagar a diferença para ter um carro)"], caracteristicas: [{nome: "Manobras Maníacas", efeito: "Com uma ação bônus, e desde que esteja dentro de um veículo, o jogador desvia de qualquer coisa menor que seu veículo automaticamente."}, {nome: "Piloto de Fuga", efeito: "Com uma ação normal você pressiona o acelerador como nunca, dobrando sua velocidade atual enquanto em um veículo."}, {nome: "Experiência no Volante", efeito: "Você recebe +3 em testes para pilotar."}] },
+                { nome: "Religioso", descricao: "Talvez um padre, um pastor, talvez um fanático de uma religião pouco conhecida. Mas com certeza alguém a procura de mais pessoas para o seu 'culto'.", proficiencias: "Religião e História", equipamento: ["Qualquer arma simples", "Bíblia, ou qualquer outro livro sagrado"], caracteristicas: [{nome: "Pregar", efeito: "Você recebe +3 em teste de Religião para acalmar. E quando acalmar alguém, a pessoa acalmada receberá uma ação protagonista para gastar no próximo turno."}, {nome: "Orador Público", efeito: "Sempre que realizar um teste de Carisma (Persuasão) enquanto estiver falando para um grupo grande de pessoas, você adiciona o dobro do seu bônus de proficiência."}, {nome: "Benção Divina", efeito: "Após fazer uma oração a seu deus você se sente momentaneamente motivado e revigorado (seu modificador de SAB sobe um ponto)."}] },
+                { nome: "Mestre de RPG", descricao: "Você viveu sua vida narrando feitos incríveis, mas cansou de contar a história dos outros e resolveu começar sua própria aventura épica.", proficiencias: "Atuação, História e Enganação", equipamento: ["Celular e Um kit de dados", "Computador", "Casaco reforçado"], caracteristicas: [{nome: "Mestre do Improviso", efeito: "Seus jogadores já botaram você em tanta enrascada que nada mais te surpreende, você se torna imune a condição 'surpreso' e tem vantagem em testes de carisma para convencer alguém de algo que você acabou de pensar."}, {nome: "Sombra do Verdadeiro Mestre", efeito: "Uma vez por missão casualmente seu personagem diz algo que vai virar verdade, você não escolhe o que será isso, tudo que seu personagem falar poderá ser escolhido pelo mestre."}] }
             ],
             inclinacoes: {
                 positivas: [
-                    { nome: "Aliado", custo: 1, desc: "Possui velho amigo para ajuda." },
-                    { nome: "Contatos (Info Rápida)", custo: 1, desc: "Info em 24h por $500." },
-                    { nome: "Contatos (Info Confiança)", custo: 2, desc: "Infos completas e confiáveis." },
-                    { nome: "Contatos (Info Barata)", custo: 1, desc: "Desconto na info rápida." },
-                    { nome: "Corpo de Gigante", custo: 5, desc: "+5 HP inicial, +3/nível. Grande." },
-                    { nome: "Empatia com Animais", custo: 1, desc: "Entende estado emocional animal." },
-                    { nome: "Fôlego", custo: 2, desc: "Prende respiração 5-15 min." },
-                    { nome: "Inventor", custo: 1, desc: "Modifica itens (Dano/Alvos/Peso/CA)." },
-                    { nome: "Ligação com Máfia", custo: 3, desc: "Influência e favores mafiosos." },
-                    { nome: "Sentidos Aguçados", custo: 1, desc: "+2 em um sentido específico." },
-                    { nome: "Sorte Grande", custo: 3, desc: "Rerolar 1 dado por sessão." },
-                    { nome: "Vida Estendida", custo: 3, desc: "Ciclo de vida +20 anos por fase." },
-                    { nome: "Visão no Escuro", custo: 2, desc: "Vê 9m no escuro." }
+                    { nome: "Aliado", custo: 1, desc: "O personagem possui um velho amigo que pode lhe oferecer ajuda, informações e abrigo caso esteja próximo de sua residência." },
+                    { nome: "Contatos (Informação Rápida)", custo: 1, desc: "Você recebe uma informação sobre a dúvida em até 24 horas por $500. VOCÊ pode ser O CONTATO de alguém, tendo vantagem em testes de negociação na busca de informações cabíveis ao que solicitam." },
+                    { nome: "Corpo de Gigante", custo: 5, desc: "Você é enorme e por isso tem um nível a mais de vitalidade. +5 HP inicial e +3 por nível. O usuário tem que ficar com altura acima de 2,10m e não consegue utilizar armas leves e pequenas sem depender de uma técnica." },
+                    { nome: "Empatia com Animais", custo: 1, desc: "Você é talentoso em entender o comportamento dos animais. Superando um teste de INT = 10 você compreende o estado emocional do animal - amigável, assustado, hostil, faminto, etc." },
+                    { nome: "Fôlego", custo: 2, desc: "Dificilmente alguém terá sucesso te asfixiando ou afogando. Você consegue prender a respiração por 5-7 minutos fazendo esforço e 10-15 apenas nadando de forma despretensiosa ou se concentrando." },
+                    { nome: "Inventor", custo: 1, desc: "Você é um inventor natural, podendo modificar equipamentos existentes e, com tempo e dinheiro suficientes, inventar aparelhos inteiramente novos concedendo benefícios variados." },
+                    { nome: "Ligação com a Máfia", custo: 3, desc: "O personagem tem certa influência com alguma família mafiosa e poderá pedir alguns favores, mas cuidado, é bom não exagerar, pois eles normalmente pedem favores em troca." },
+                    { nome: "Sentidos Aguçados", custo: 1, desc: "Seus sentidos são mais desenvolvidos que o normal. Cada Sentido Aguçado concede +2 para uma das opções: Audição, Paladar/Olfato, Tato ou Visão." },
+                    { nome: "Sorte Grande", custo: 3, desc: "Você pode re-rolar 1 dado por sessão ficando com o maior resultado." },
+                    { nome: "Tempo de Vida Estendido (Anomalia)", custo: 3, desc: "Independente de que raça pertença, você é uma anomalia. Seu ciclo de vida se estende em uma margem de 20 anos a mais em todos os períodos de desenvolvimento após a infância." },
+                    { nome: "Visão no Escuro", custo: 2, desc: "Você pode ver 9m no escuro como se fosse dia e não sofre penalidades de escuridão que não conte como bloqueio ou aplique cegueira." }
                 ],
                 negativas: [
-                    { nome: "Avareza", valor: 2, desc: "Dificuldade em gastar dinheiro." },
-                    { nome: "Azar Grande", valor: 3, desc: "Rerolar primeiro crítico da sessão." },
-                    { nome: "Desatencioso", valor: 1, desc: "-1 em testes de Influência." },
-                    { nome: "Dívida", valor: 3, desc: "Deve favor perigoso a alguém." },
-                    { nome: "Esquecido", valor: 1, desc: "Esquece nomes/lugares sem item." },
-                    { nome: "Honestidade", valor: 2, desc: "Obrigado a seguir a lei." },
-                    { nome: "Indeciso", valor: 5, desc: "-3 Inic. Teste para agir." },
-                    { nome: "Inimigo (Fraco)", valor: 1, desc: "Inimigo atrapalha." },
-                    { nome: "Inimigo (Rival)", valor: 2, desc: "Rival tenta te vencer." },
-                    { nome: "Inimigo (Poderoso)", valor: 5, desc: "Vilão quer te matar/recrutar." },
-                    { nome: "Inveja", valor: 1, desc: "Reação ruim a quem é melhor." },
-                    { nome: "Perda Auditiva", valor: 1, desc: "-3 testes de Audição." },
-                    { nome: "Veracidade", valor: 2, desc: "Passa mal ao mentir." }
+                    { nome: "Avareza", valor: 2, desc: "Você fica preocupado demais em conservar sua riqueza. Você deverá procurar sempre o melhor negócio. Faça um teste de autocontrole (SAB/INT ou CAR) toda vez que tiver que gastar algum dinheiro." },
+                    { nome: "Azar Grande", valor: 3, desc: "Você DEVE re-rolar seu primeiro acerto crítico no d20 da sessão." },
+                    { nome: "Desatencioso", valor: 1, desc: "Você consegue entender as emoções dos outros, mas não as suas intenções. Isto faz de você desajeitado em situações envolvendo manipulação social. Você é o clássico 'nerd' e sofre -1 para usar ou resistir a Testes de Influência." },
+                    { nome: "Dívida", valor: 3, desc: "Você deve um favor a alguém que te ajudou em um momento de dificuldade. Essa pessoa poderá te cobrar esse favor a qualquer momento e poderá ser qualquer coisa." },
+                    { nome: "Esquecido", valor: 1, desc: "Você tem dificuldade de se recordar de nomes, lugares, aparências e informações. É bem comum causar confusão por isso." },
+                    { nome: "Honestidade", valor: 2, desc: "Você precisa obedecer a lei sempre e dar o melhor de si para que os outros também o façam. Você assumirá também que os outros são honestos até saber o contrário." },
+                    { nome: "Indeciso", valor: 5, desc: "Você tem muita dificuldade para se decidir, recebendo -3 em rolagens de iniciativa. Além disso, sempre que se deparar com uma escolha, faça um teste simples de INT ou CAR CD 15." },
+                    { nome: "Inimigo (Fraco)", valor: 1, desc: "Seria um inimigo mais chato do que um desafio por assim dizer, ele sempre aparece para te atrapalhar e seus objetivos são estúpidos. (Valor varia de 1 a 5 dependendo do poder do inimigo)." },
+                    { nome: "Inveja", valor: 1, desc: "Você tem uma reação muito ruim frente a qualquer um que pareça mais inteligente, mais atraente, poderoso ou em melhor situação do que a sua!" },
+                    { nome: "Perda Auditiva", valor: 1, desc: "Você não é surdo, mas perdeu uma parte da audição e sofrerá um redutor de -3 em qualquer teste de Audição." },
+                    { nome: "Veracidade", valor: 2, desc: "Você odeia dizer uma mentira ou o faz muito mal. Ter que mentir pode fazer literalmente você ficar enjoado ou com peso na consciência (Condição Envenenado ou -5 Sanidade)." }
                 ]
             },
             skills: [
@@ -469,19 +257,11 @@
                 'Prestidigitação', 'Religião', 'Sobrevivência'
             ],
             otherSkills: [
-                'Armas de Cerco',
-                'Equipamentos de Proteção e Armaduras Médias',
-                'Equipamentos de Proteção e Armaduras Pesadas',
-                'Equipamentos Improvisados/Manufaturados (Bugigangas e Armas de Hatsus Criativos)',
-                'Científicas/Explosivas',
-                'Etiqueta', 'Pilotagem', 'Tecnologia', 'Ocultismo', 'Falsificação', 'Jogos', 'Instrumentos',
-                'Linguagem: Hunter Antigo', 'Linguagem: Inglês', 'Linguagem: Japonês'
+                'Armas de Cerco', 'Armaduras Médias', 'Armaduras Pesadas', 'Bugigangas/Hatsus',
+                'Científicas/Explosivas', 'Etiqueta', 'Pilotagem', 'Tecnologia', 'Ocultismo',
+                'Falsificação', 'Jogos', 'Instrumentos', 'Linguagem: Hunter', 'Linguagem: Inglês', 'Linguagem: Japonês'
             ],
-            pointBuyCosts: {
-                30: 50, 29: 47, 28: 44, 27: 41, 26: 38, 25: 35, 24: 32, 23: 29, 22: 26, 21: 23,
-                20: 20, 19: 17, 18: 14, 17: 11, 16: 8, 15: 6, 14: 4, 13: 3, 12: 2, 11: 1,
-                10: 0, 9: -1, 8: -2, 7: -4, 6: -6, 5: -8, 4: -11, 3: -14, 2: -17, 1: -20
-            }
+            pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 }
         };
 
         const SKILL_MAP = {
@@ -510,7 +290,8 @@
             openAttrPopup: null, // Popup de atributo na ficha
             skillSelectionModal: null, // Modal de decisão de proficiência
             clickTimer: null, // Para diferenciar clique unico e duplo
-            bgSelected: null // Para controle de UI do antecedente
+            bgSelected: null, // Para controle de UI do antecedente
+            rollMode: 'NORMAL' // NORMAL, VANTAGEM, DESVANTAGEM, ENFASE
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -1008,40 +789,37 @@
                     const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`;
                     
                     return `
-                    <div class="relative group select-none">
-                        <div class="bg-gray-900 border border-gray-800 rounded-3xl p-4 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)]" onclick="handleAttributeClick('${key}')">
+                    <div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')">
+                        
+                        <!-- Header Container -->
+                        <div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]">
                             
-                            <!-- Top Row: Icon/Name + Shield -->
-                            <div class="flex justify-between items-start mb-2">
-                                <div class="flex flex-col">
-                                    <div class="flex items-center gap-2 text-[${themeColor}] mb-0.5 opacity-80">
-                                        <i data-lucide="${icons[0]}" size="14"></i>
-                                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${fullName}</span>
-                                        <i data-lucide="${icons[1]}" size="14" class="text-gray-600"></i>
-                                    </div>
+                            <!-- Name & Icons (Centered) -->
+                            <div class="flex items-center gap-1.5 text-[${themeColor}] bg-black/40 px-2 py-0.5 rounded-full border border-white/5 backdrop-blur-sm z-10">
+                                <i data-lucide="${icons[0]}" size="10"></i>
+                                <span class="text-[8px] font-black text-gray-300 uppercase tracking-[0.15em]">${fullName}</span>
+                                <i data-lucide="${icons[1]}" size="10" class="text-gray-600"></i>
+                            </div>
+
+                            <!-- Shield (Absolute Right) -->
+                            <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}">
+                                <i data-lucide="shield" size="20" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10' : `text-[${themeColor}] fill-[${themeColor}]/10`) : 'text-gray-800 fill-gray-900'} transition-colors"></i>
+                                <span class="absolute text-[8px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span>
+                            </div>
+                        </div>
+
+                        <!-- Value (Center) -->
+                        <div class="flex items-center justify-center my-0 relative flex-1">
+                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="minus" size="14"></i></button>
+                                <span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span>
+                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="plus" size="14"></i></button>
+                        </div>
+
+                        <!-- Mod (Bottom) -->
+                        <div class="flex justify-center mt-1">
+                                <div class="px-3 py-px rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]">
+                                ${mod >= 0 ? '+'+mod : mod}
                                 </div>
-                                
-                                <!-- Shield TR -->
-                                <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="relative cursor-pointer hover:scale-110 transition-transform" title="TR de ${fullName}: ${saveBonusStr}">
-                                    <i data-lucide="shield" size="24" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10' : `text-[${themeColor}] fill-[${themeColor}]/10`) : 'text-gray-800'} transition-colors"></i>
-                                    <span class="absolute inset-0 flex items-center justify-center text-[9px] font-bold ${isTrained ? 'text-white' : 'text-gray-600'}" style="padding-top: 2px;">${saveBonusStr}</span>
-                                </div>
-                            </div>
-
-                            <!-- Center: Value -->
-                            <div class="flex items-center justify-center my-2 relative">
-                                 <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-700 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="minus" size="18"></i></button>
-                                 <span class="text-5xl font-display font-bold text-white tracking-tighter drop-shadow-[0_4px_4px_rgba(0,0,0,0.5)]">${attr.value}</span>
-                                 <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-700 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="plus" size="18"></i></button>
-                            </div>
-
-                            <!-- Bottom: Mod -->
-                            <div class="flex justify-center">
-                                 <div class="px-4 py-0.5 rounded-full border border-[${themeColor}] bg-[${themeColor}]/10 text-[${themeColor}] text-sm font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">
-                                    ${mod >= 0 ? '+'+mod : mod}
-                                 </div>
-                            </div>
-
                         </div>
                     </div>`;
                 }).join('')}
@@ -1186,11 +964,66 @@
                 tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map(h => `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1"><div class="flex justify-between text-[10px] text-gray-500"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`).join('')}</div></div>`;
             } else { tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`; }
 
-            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="relative pt-8 pb-4 px-6 bg-gradient-to-b from-gray-900 to-transparent"><button onclick="state.view='LIST'; render()" class="absolute top-4 left-4 text-gray-500 hover:text-white bg-black/30 p-2 rounded-full backdrop-blur-sm"><i data-lucide="arrow-left" size="20"></i></button><div class="mt-4"><h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1><div class="flex items-center gap-3 mt-2"><div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div><div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div></div></div></div><div class="grid grid-cols-5 gap-1 px-2 py-2 border-t border-b border-gray-800 bg-[#0e0e14]">${renderVitalBlock('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red')}${renderVitalBlock('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`)}${renderVitalBlock('SAN', char.vitals.san, char.vitals.sanMax, 'text-white')}${renderVitalBlock('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white')}${renderVitalBlock('CA', char.vitals.ca, null, 'text-white')}</div><div class="flex-1 overflow-y-auto custom-scrollbar relative">${tabContent}</div><div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}</div></div>`;
+            const renderNeonVital = (label, val, max, colorClass, borderClass, showBtns = true) => `
+                <div class="flex flex-col items-center justify-center w-full">
+                    <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
+                    <div class="flex items-center justify-center gap-1 w-full">
+                         ${showBtns && max ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                        <span class="font-display font-bold text-lg text-white tracking-wider">${val}</span>
+                         ${showBtns && max ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                    </div>
+                    <div class="w-8 h-0.5 rounded-full mt-0.5 ${borderClass} opacity-80"></div>
+                </div>
+            `;
+            
+            const rollModeBtn = (mode) => {
+                const isActive = state.rollMode === mode;
+                return `<button onclick="setRollMode('${mode}')" class="flex-1 py-3 text-[9px] font-bold uppercase tracking-widest transition-all rounded-lg ${isActive ? `bg-[${themeColor}] text-black shadow-[0_0_15px_${themeColor}80]` : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}">${mode}</button>`;
+            };
+
+            container.innerHTML = `
+            <div class="flex flex-col h-full bg-gray-950">
+                <div class="relative pt-8 pb-4 px-6 bg-gradient-to-b from-gray-900 to-transparent">
+                    <button onclick="state.view='LIST'; render()" class="absolute top-4 left-4 text-gray-500 hover:text-white bg-black/30 p-2 rounded-full backdrop-blur-sm"><i data-lucide="arrow-left" size="20"></i></button>
+                    <div class="mt-4">
+                        <h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1>
+                        <div class="flex items-center gap-3 mt-2">
+                            <div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div>
+                            <div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vitals Row -->
+                <div class="grid grid-cols-6 gap-1 px-2 py-4 border-t border-b border-gray-800 bg-[#0b0c10]">
+                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
+                    ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`)}
+                    ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
+                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', false)}
+                    ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
+                    ${renderNeonVital('DESL', char.vitals.desl || 9, null, 'text-white', 'bg-white text-white', false)}
+                </div>
+
+                <!-- Roll Mode Selector -->
+                <div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mt-4 mb-2">
+                    ${rollModeBtn('NORMAL')}
+                    ${rollModeBtn('VANTAGEM')}
+                    ${rollModeBtn('DESVANTAGEM')}
+                    ${rollModeBtn('ÊNFASE')}
+                </div>
+
+                <div class="flex-1 overflow-y-auto custom-scrollbar relative">${tabContent}</div>
+                <div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">
+                    ${renderNavItem('FICHA', 'user', themeColor)}
+                    ${renderNavItem('NEN', 'flame', themeColor)}
+                    ${renderNavItem('TRACOS', 'dna', themeColor)}
+                    ${renderNavItem('INV', 'backpack', themeColor)}
+                    ${renderNavItem('DADOS', 'dices', themeColor)}
+                </div>
+            </div>`;
         }
 
         // Helpers de renderização
-        function renderVitalBlock(label, val, max, colorClass) { return `<div class="flex flex-col items-center justify-center py-1"><span class="text-[8px] font-bold text-gray-500 uppercase tracking-wider mb-1">${label}</span><div class="flex items-center gap-1 bg-gray-900/50 px-2 py-1 rounded border border-gray-800">${max ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-600 text-[10px] hover:text-white"><i data-lucide="chevron-left" size="10"></i></button>` : ''}<span class="font-display font-bold text-sm ${colorClass} w-6 text-center">${val}</span>${max ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-600 text-[10px] hover:text-white"><i data-lucide="chevron-right" size="10"></i></button>` : ''}</div></div>`; }
         function renderNavItem(id, icon, color) { const active = state.activeTab === id; return `<button onclick="setTab('${id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 group relative">${active ? `<div class="absolute top-0 w-8 h-0.5 bg-[${color}] shadow-[0_0_10px_${color}]"></div>` : ''}<i data-lucide="${icon}" size="${active ? 20 : 18}" class="${active ? `text-[${color}] drop-shadow-[0_0_5px_${color}]` : 'text-gray-600 group-hover:text-gray-400'} transition-all"></i><span class="text-[7px] font-bold tracking-widest ${active ? `text-[${color}]` : 'text-gray-600'}">${id}</span></button>`; }
 
         // --- CONTROLLERS ---
@@ -1467,7 +1300,8 @@
                     san: 10 + modInt, 
                     sanMax: 10 + modInt, 
                     ca: 10 + modCon, 
-                    rea: 7 + modSab 
+                    rea: 7 + modSab,
+                    desl: 9 
                 },
                 inventory: initialInv, 
                 history: []
@@ -1491,6 +1325,7 @@
         }
 
         function setTab(tab) { state.activeTab = tab; render(); }
+        function setRollMode(mode) { state.rollMode = mode; render(); }
         
         function updateSheetAttr(key, delta) { 
             state.currentChar.attributes[key].value += delta; 
@@ -1574,7 +1409,36 @@
         function addItem() { const name = document.getElementById('new-item-name').value; if (name) { state.currentChar.inventory.push({ name, qty: 1 }); saveCharacter(state.currentChar); render(); } }
         function updateItemQty(idx, delta) { const item = state.currentChar.inventory[idx]; item.qty += delta; if (item.qty <= 0) state.currentChar.inventory.splice(idx, 1); saveCharacter(state.currentChar); render(); }
         function updateMoney(val) { state.currentChar.money = parseInt(val) || 0; saveCharacter(state.currentChar); }
-        function rollDice(attrName, mod) { const d20 = Math.floor(Math.random() * 20) + 1; const total = d20 + mod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: attrName, dice: d20, mod: mod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); alert(`🎲 ${attrName}\n\n[${d20}] + ${mod} = ${total}`); state.activeTab = 'DADOS'; render(); }
+        
+        function getRollResult(mode) {
+             const r1 = Math.floor(Math.random() * 20) + 1;
+             const r2 = Math.floor(Math.random() * 20) + 1;
+             
+             if (mode === 'NORMAL') return { total: r1, dice: [r1], label: 'Normal' };
+             if (mode === 'VANTAGEM') return { total: Math.max(r1, r2), dice: [r1, r2], label: 'Vantagem' };
+             if (mode === 'DESVANTAGEM') return { total: Math.min(r1, r2), dice: [r1, r2], label: 'Desvantagem' };
+             if (mode === 'ÊNFASE') {
+                 // Valor mais afastado de 10.5
+                 const dist1 = Math.abs(r1 - 10.5);
+                 const dist2 = Math.abs(r2 - 10.5);
+                 return { total: dist1 > dist2 ? r1 : r2, dice: [r1, r2], label: 'Ênfase' };
+             }
+             return { total: r1, dice: [r1], label: 'Normal' };
+        }
+
+        function rollDice(attrName, mod) { 
+            const roll = getRollResult(state.rollMode);
+            const total = roll.total + mod; 
+            const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${attrName} (${roll.label})`, dice: roll.dice.join(', '), mod: mod, total: total }; 
+            state.currentChar.history.push(entry); 
+            if (state.currentChar.history.length > 50) state.currentChar.history.shift(); 
+            saveCharacter(state.currentChar); 
+            
+            const diceMsg = roll.dice.length > 1 ? `Dados: [${roll.dice.join(', ')}] -> Escolhido: ${roll.total}` : `Dado: [${roll.total}]`;
+            alert(`🎲 ${attrName} (${roll.label})\n\n${diceMsg}\n\n${roll.total} + ${mod} = ${total}`); 
+            state.activeTab = 'DADOS'; 
+            render(); 
+        }
         
         function rollSkill(skillName, attrKey) {
             const char = state.currentChar;
@@ -1587,11 +1451,16 @@
             if (isExpert) { totalMod += (pb * 2); proficiencyLabel = ` (Mod ${mod} + 2xPB ${pb*2})`; } 
             else if (isTrained) { totalMod += pb; proficiencyLabel = ` (Mod ${mod} + PB ${pb})`; } 
             else { proficiencyLabel = ` (Mod ${mod})`; }
-            const d20 = Math.floor(Math.random() * 20) + 1;
-            const total = d20 + totalMod;
-            const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: skillName + (isExpert ? " (Exp)" : ""), dice: d20, mod: totalMod, total: total };
+            
+            const roll = getRollResult(state.rollMode);
+            const total = roll.total + totalMod;
+            const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${skillName} ${isExpert ? "(Exp)" : ""} (${roll.label})`, dice: roll.dice.join(', '), mod: totalMod, total: total };
             state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar);
-            alert(`🎲 ${skillName}\n\n[${d20}] + ${totalMod}${proficiencyLabel} = ${total}`); state.activeTab = 'DADOS'; render();
+            
+            const diceMsg = roll.dice.length > 1 ? `Dados: [${roll.dice.join(', ')}] -> Escolhido: ${roll.total}` : `Dado: [${roll.total}]`;
+            alert(`🎲 ${skillName} (${roll.label})\n\n${diceMsg}\n\n${roll.total} + ${totalMod}${proficiencyLabel} = ${total}`); 
+            state.activeTab = 'DADOS'; 
+            render();
         }
 
         function clearHistory() { if(confirm('Limpar histórico?')) { state.currentChar.history = []; saveCharacter(state.currentChar); render(); } }
