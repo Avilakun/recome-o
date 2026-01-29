@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Hunter x Hunter RPG Sheet</title>
     
     <!-- Fontes Google -->
@@ -71,7 +71,8 @@
         
         /* Containers */
         #app {
-            height: 100vh;
+            height: 100vh; /* Fallback */
+            height: 100dvh; /* Mobile modern browsers */
             display: flex;
             flex-direction: column;
             max-width: 480px; /* Mobile width constraint on desktop */
@@ -81,6 +82,11 @@
             border-left: 1px solid #1f2937;
             border-right: 1px solid #1f2937;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Safe Area Padding */
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom, 20px);
         }
 
         /* Nen Hexagon Styles */
@@ -593,7 +599,7 @@
                 <div class="p-6 flex flex-col h-full fade-in">
                     <div class="text-center mb-8 mt-4">
                         <h1 class="font-display font-black text-3xl tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">HxH 5e RPG</h1>
-                        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Banco de Dados</p>
+                        <p class="text-xs text-gray-500 uppercase tracking-widest font-bold">Banco de Dados</p>
                     </div>
                     <div class="flex-1 overflow-y-auto custom-scrollbar space-y-8 pb-20">
             `;
@@ -613,7 +619,7 @@
                     html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-[${color}] transition-all cursor-pointer relative group mb-2" onclick="selectChar('${char.id}')" style="border-left: 3px solid ${color}"><div class="w-10 h-10 rounded bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500"><i data-lucide="shield" size="16"></i></div><div class="flex-1"><h3 class="font-display font-bold text-white text-base">${char.name}</h3><p class="text-[10px] text-gray-400 uppercase">LVL ${char.level} • <span style="color:${color}">${char.class}</span></p></div><button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button></div>`;
                 });
             }
-            html += `</div></div><div class="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
+            html += `</div></div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
             container.innerHTML = html;
         }
 
@@ -666,13 +672,13 @@
                     if (r.nome === 'Formiga Quimera') {
                          const selectedCount = (state.tempChar.raceTraits || []).length;
                          const maxTraits = 3;
-                         featuresHtml = `<div class="mb-4"><h4 class="text-[9px] font-black text-neon-theme uppercase tracking-widest mb-2 flex justify-between">Características da Espécie <span id="trait-counter" class="${selectedCount >= maxTraits ? 'text-neon-theme' : 'text-gray-500'}">(${selectedCount}/${maxTraits})</span></h4><div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50 grid grid-cols-1 gap-2">${r.caracteristicas.map(f => {
+                         featuresHtml = `<div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2 flex justify-between">Características da Espécie <span id="trait-counter" class="${selectedCount >= maxTraits ? 'text-neon-theme' : 'text-gray-500'}">(${selectedCount}/${maxTraits})</span></h4><div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50 grid grid-cols-1 gap-2">${r.caracteristicas.map(f => {
                                 const isTraitSelected = (state.tempChar.raceTraits || []).includes(f.nome);
                                 return `<div id="trait-btn-${f.nome.replace(/\s/g,'-')}" onclick="event.stopPropagation(); toggleRaceTrait('${f.nome}')" class="p-2 rounded border cursor-pointer transition-all flex items-start gap-2 ${isTraitSelected ? 'bg-neon-theme/10 border-neon-theme text-white' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800'}"><div class="mt-0.5 pointer-events-none">${isTraitSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}</div><div class="pointer-events-none"><span class="text-[10px] font-bold block">${f.nome}</span><span class="text-[9px] block leading-tight opacity-70">${f.efeito || f.mecanica || ''}</span></div></div>`;
                             }).join('')}</div></div>`;
                     } else {
                         const features = [...(r.caracteristicas || []), ...(r.opcoes_caracteristica || [])];
-                        if (features.length > 0) featuresHtml = `<div class="mb-4"><h4 class="text-[9px] font-black text-neon-theme uppercase tracking-widest mb-2">Características</h4><div class="bg-gray-950/50 rounded-lg p-3 border border-gray-800/50">${features.map(f => `<div class="mb-2 last:mb-0"><span class="text-[11px] font-bold text-gray-300 block">${f.nome}</span><span class="text-[10px] text-gray-500 block leading-tight">${f.efeito || f.mecanica || ''} ${f.tabela_ancestral ? '('+f.tabela_ancestral+')' : ''}</span></div>`).join('')}</div></div>`;
+                        if (features.length > 0) featuresHtml = `<div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2">Características</h4><div class="bg-gray-950/50 rounded-lg p-3 border border-gray-800/50">${features.map(f => `<div class="mb-2 last:mb-0"><span class="text-[11px] font-bold text-gray-300 block">${f.nome}</span><span class="text-[10px] text-gray-500 block leading-tight">${f.efeito || f.mecanica || ''} ${f.tabela_ancestral ? '('+f.tabela_ancestral+')' : ''}</span></div>`).join('')}</div></div>`;
                     }
                     
                     const checkIcon = `<span id="check-${r.nome.replace(/\s/g,'-')}" class="transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'} flex items-center"><i data-lucide="check" size="16"></i></span>`;
@@ -684,7 +690,7 @@
                             <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${r.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight">${r.descricao}</p></div>
                             <div id="chevron-${r.nome.replace(/\s/g,'-')}" class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
                         </div>
-                        <div id="race-content-${r.nome.replace(/\s/g,'-')}" class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}"><div class="h-px w-full bg-gray-800 mb-4"></div><div class="mb-4"><h4 class="text-[9px] font-black text-neon-theme uppercase tracking-widest mb-2">Bônus de Atributo</h4><div class="flex flex-wrap gap-2">${attrHtml}</div></div>${featuresHtml}<div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500"><div class="col-span-2 text-right italic text-gray-600">Fonte: ${r.fonte}</div></div></div>
+                        <div id="race-content-${r.nome.replace(/\s/g,'-')}" class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}"><div class="h-px w-full bg-gray-800 mb-4"></div><div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2">Bônus de Atributo</h4><div class="flex flex-wrap gap-2">${attrHtml}</div></div>${featuresHtml}<div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500"><div class="col-span-2 text-right italic text-gray-600">Fonte: ${r.fonte}</div></div></div>
                     </div>`;
                 });
                 contentHtml += `</div>`;
@@ -745,7 +751,7 @@
                                 <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
                                 <h4 class="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="graduation-cap" size="12"></i> Proficiências</h4>
                                 <p class="text-xs text-gray-300 font-bold">${bg.proficiencias}</p>
-                                <p class="text-[9px] text-gray-500 italic mt-1">Estas perícias serão adicionadas automaticamente.</p>
+                                <p class="text-[10px] text-gray-500 italic mt-1">Estas perícias serão adicionadas automaticamente.</p>
                             </div>
 
                             <!-- Equipamento -->
@@ -802,18 +808,18 @@
                     <!-- HUD -->
                     <div class="grid grid-cols-3 gap-2 bg-gray-900 border border-gray-800 rounded-xl p-3">
                         <div class="text-center border-r border-gray-800">
-                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Custo Positivo</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Custo Positivo</span>
                             <span class="text-xl font-display font-bold text-white">${posCost} <span class="text-[10px] text-gray-600">pts</span></span>
                         </div>
                         <div class="text-center border-r border-gray-800">
-                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Compensação</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Compensação</span>
                             <div class="flex items-center justify-center gap-2">
                                 <i data-lucide="scale" size="16" class="${isOk ? 'text-neon-green' : 'text-neon-red'}"></i>
                                 <span class="text-xl font-display font-bold ${isOk ? 'text-neon-green' : 'text-neon-red'}">${isOk ? 'OK' : balance}</span>
                             </div>
                         </div>
                         <div class="text-center">
-                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block">Pontos Neg.</span>
+                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Pontos Neg.</span>
                             <span class="text-xl font-display font-bold text-neon-red">${negVal} <span class="text-[10px] text-gray-600">/ 10</span></span>
                         </div>
                     </div>
@@ -822,7 +828,7 @@
                     <div>
                         <div class="flex items-center justify-between mb-2">
                             <h4 class="text-xs font-black text-neon-green uppercase tracking-widest flex items-center gap-2"><i data-lucide="thumbs-up" size="14"></i> Gerais Positivas</h4>
-                            <span class="text-[9px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">1ª Grátis (Maior Valor)</span>
+                            <span class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">1ª Grátis (Maior Valor)</span>
                         </div>
                         <div class="space-y-2">
                             ${SYSTEM_DB.inclinacoes.positivas.map(inc => {
@@ -832,7 +838,7 @@
                                     ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-green"></i></div>' : ''}
                                     <div class="flex justify-between items-start mb-1">
                                         <span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span>
-                                        <span class="text-[9px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
+                                        <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
                                     </div>
                                     <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
                                 </div>`;
@@ -851,7 +857,7 @@
                                     ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-red"></i></div>' : ''}
                                     <div class="flex justify-between items-start mb-1">
                                         <span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span>
-                                        <span class="text-[9px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
+                                        <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
                                     </div>
                                     <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
                                 </div>`;
@@ -906,7 +912,7 @@
                                 const isSelected = state.tempChar.skills.includes(skill);
                                 const isFromBg = bgSkillsText.includes(skill); // Simple check
                                 return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isFromBg ? '' : `toggleCreatorSkill('${skill}', 'main')`}" class="flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${isFromBg ? 'bg-gray-800 border-gray-700 opacity-70 cursor-not-allowed' : (isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700')} group">
-                                    <span class="text-xs font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected || isFromBg ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[8px] bg-gray-900 px-1 rounded ml-2 border border-gray-700 text-gray-400">ANTECEDENTE</span>' : ''}</span>
+                                    <span class="text-xs font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected || isFromBg ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[10px] bg-gray-900 px-1 rounded ml-2 border border-gray-700 text-gray-400">ANTECEDENTE</span>' : ''}</span>
                                     <div class="pointer-events-none ${isSelected || isFromBg ? 'text-neon-blue' : 'text-gray-700'}">
                                         ${isSelected || isFromBg ? '<i data-lucide="check-square" size="18"></i>' : '<i data-lucide="square" size="18"></i>'}
                                     </div>
@@ -917,7 +923,7 @@
 
                     ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', 'text-neon-yellow', 'text-neon-yellow')}
                     ${state.openSkillAccordion === 'OTHER' ? `<div class="pl-1 pr-1 pb-4 pt-1 animate-in fade-in slide-in-from-top-1 duration-200">
-                        <p class="text-[9px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p>
+                        <p class="text-[10px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p>
                         <div class="grid grid-cols-1 gap-2">
                             ${SYSTEM_DB.otherSkills.map(skill => {
                                 const isSelected = state.tempChar.otherSkills.includes(skill);
@@ -961,7 +967,7 @@
                 </div></div>`;
             }
 
-            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950 fade-in"><div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50"><button onclick="state.view='LIST'; render()" class="text-gray-500 hover:text-white flex items-center gap-1 text-[10px] uppercase font-bold"><i data-lucide="chevron-left" size="14"></i> Cancelar</button><div class="flex gap-1">${[0,1,2,3,4,5,6].map(i => `<div class="w-4 h-1 rounded-full ${i <= step ? 'bg-neon-theme shadow-[0_0_5px_var(--theme-color-hex)]' : 'bg-gray-800'} transition-all duration-300"></div>`).join('')}</div><div class="w-16"></div></div><div class="flex-1 p-6 overflow-y-auto custom-scrollbar relative"><h2 class="text-2xl font-display font-bold text-white text-center mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]">${title}</h2>${contentHtml}</div><div class="p-6 border-t border-gray-800 flex gap-4 bg-gray-900/50">${step > 0 ? `<button onclick="state.creatorStep--; render()" class="w-1/3 py-4 bg-transparent border border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-gray-500 transition-colors text-xs uppercase tracking-wider">Voltar</button>` : '<div class="w-1/3"></div>'}${step < 6 ? `<button onclick="nextCreatorStep()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl hover:brightness-110 transition-colors text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(var(--theme-rgb),0.4)]">PRÓXIMO <i data-lucide="chevron-right" size="14" class="inline mb-0.5"></i></button>` : `<button onclick="finishCreator()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl shadow-[0_0_20px_rgba(var(--theme-rgb),0.6)] hover:brightness-110 transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2"><i data-lucide="save" size="16"></i> FINALIZAR</button>`}</div></div>`;
+            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950 fade-in"><div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50"><button onclick="state.view='LIST'; render()" class="text-gray-500 hover:text-white flex items-center gap-1 text-[10px] uppercase font-bold"><i data-lucide="chevron-left" size="14"></i> Cancelar</button><div class="flex gap-1">${[0,1,2,3,4,5,6].map(i => `<div class="w-4 h-1 rounded-full ${i <= step ? 'bg-neon-theme shadow-[0_0_5px_var(--theme-color-hex)]' : 'bg-gray-800'} transition-all duration-300"></div>`).join('')}</div><div class="w-16"></div></div><div class="flex-1 p-6 overflow-y-auto custom-scrollbar relative"><h2 class="text-2xl font-display font-bold text-white text-center mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]">${title}</h2>${contentHtml}</div><div class="p-6 border-t border-gray-800 flex gap-4 bg-gray-900/50 pb-6 pb-safe">${step > 0 ? `<button onclick="state.creatorStep--; render()" class="w-1/3 py-4 bg-transparent border border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-gray-500 transition-colors text-xs uppercase tracking-wider">Voltar</button>` : '<div class="w-1/3"></div>'}${step < 6 ? `<button onclick="nextCreatorStep()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl hover:brightness-110 transition-colors text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(var(--theme-rgb),0.4)]">PRÓXIMO <i data-lucide="chevron-right" size="14" class="inline mb-0.5"></i></button>` : `<button onclick="finishCreator()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl shadow-[0_0_20px_rgba(var(--theme-rgb),0.6)] hover:brightness-110 transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2"><i data-lucide="save" size="16"></i> FINALIZAR</button>`}</div></div>`;
         }
 
         function renderSheet(container) {
@@ -1008,7 +1014,7 @@
                             
                             <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute top-2 right-2 transition-all ${shieldClass} hover:scale-110 active:scale-95 cursor-pointer p-2 -mr-2 -mt-2">
                                 <i data-lucide="shield" size="14" class="${shieldIconClass}"></i>
-                                ${isTrained ? `<span class="absolute bottom-0 right-0 text-[8px] font-bold ${isExpert ? 'text-neon-yellow' : ''}">+2</span>` : ''}
+                                ${isTrained ? `<span class="absolute bottom-0 right-0 text-[10px] font-bold ${isExpert ? 'text-neon-yellow' : ''}">+2</span>` : ''}
                             </div>
                         </div>
                     </div>`;
@@ -1130,7 +1136,7 @@
                 let bgHtml = '';
                 if (bgData && char.backgroundFeature) {
                     const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature);
-                    bgHtml = `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl border-l-4 border-l-neon-blue"><h4 class="font-bold text-neon-blue text-sm mb-1">${feature.nome} <span class="text-[9px] text-gray-500 uppercase">(Antecedente)</span></h4><p class="text-xs text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
+                    bgHtml = `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl border-l-4 border-l-neon-blue"><h4 class="font-bold text-neon-blue text-sm mb-1">${feature.nome} <span class="text-[10px] text-gray-500 uppercase">(Antecedente)</span></h4><p class="text-xs text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
                 }
 
                 // Inclinations
@@ -1162,7 +1168,7 @@
                 tabContent = `<div class="p-4 fade-in h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map(h => `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1"><div class="flex justify-between text-[10px] text-gray-500"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`).join('')}</div></div>`;
             } else { tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 fade-in gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`; }
 
-            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="relative pt-8 pb-4 px-6 bg-gradient-to-b from-gray-900 to-transparent"><button onclick="state.view='LIST'; render()" class="absolute top-4 left-4 text-gray-500 hover:text-white bg-black/30 p-2 rounded-full backdrop-blur-sm"><i data-lucide="arrow-left" size="20"></i></button><div class="mt-4"><h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1><div class="flex items-center gap-3 mt-2"><div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div><div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div></div></div></div><div class="grid grid-cols-5 gap-1 px-2 py-2 border-t border-b border-gray-800 bg-[#0e0e14]">${renderVitalBlock('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red')}${renderVitalBlock('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`)}${renderVitalBlock('SAN', char.vitals.san, char.vitals.sanMax, 'text-white')}${renderVitalBlock('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white')}${renderVitalBlock('CA', char.vitals.ca, null, 'text-white')}</div><div class="flex-1 overflow-y-auto custom-scrollbar relative">${tabContent}</div><div class="h-16 bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50">${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}</div></div>`;
+            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="relative pt-8 pb-4 px-6 bg-gradient-to-b from-gray-900 to-transparent"><button onclick="state.view='LIST'; render()" class="absolute top-4 left-4 text-gray-500 hover:text-white bg-black/30 p-2 rounded-full backdrop-blur-sm"><i data-lucide="arrow-left" size="20"></i></button><div class="mt-4"><h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1><div class="flex items-center gap-3 mt-2"><div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div><div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div></div></div></div><div class="grid grid-cols-5 gap-1 px-2 py-2 border-t border-b border-gray-800 bg-[#0e0e14]">${renderVitalBlock('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red')}${renderVitalBlock('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`)}${renderVitalBlock('SAN', char.vitals.san, char.vitals.sanMax, 'text-white')}${renderVitalBlock('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white')}${renderVitalBlock('CA', char.vitals.ca, null, 'text-white')}</div><div class="flex-1 overflow-y-auto custom-scrollbar relative">${tabContent}</div><div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}</div></div>`;
         }
 
         // Helpers de renderização
