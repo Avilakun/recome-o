@@ -1125,95 +1125,104 @@
 
             container.innerHTML = `
             <div class="flex flex-col h-full bg-gray-950">
-                <div onclick="document.getElementById('char-image-upload').click()" class="relative h-64 w-full overflow-hidden cursor-pointer group bg-gray-900 border-b border-gray-800">
-                    <input type="file" id="char-image-upload" accept="image/*" class="hidden" onchange="uploadCharacterImage(this)">
-                    
-                    <!-- Background Image -->
-                    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 group-hover:scale-105" style="${bgImage}"></div>
-                    
-                    <!-- Fallback Pattern -->
-                    ${!char.imageUrl ? `<div class="absolute inset-0 bg-[${themeColor}]/5 flex items-center justify-center"><i data-lucide="image-plus" size="48" class="text-[${themeColor}]/30"></i></div>` : ''}
-                    
-                    <!-- Gradient Overlay for Readability -->
-                    <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent"></div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar pb-20 relative">
+                    <div onclick="document.getElementById('char-image-upload').click()" class="relative h-64 w-full overflow-hidden cursor-pointer group bg-gray-900 border-b border-gray-800">
+                        <input type="file" id="char-image-upload" accept="image/*" class="hidden" onchange="uploadCharacterImage(this)">
+                        
+                        <!-- Background Image -->
+                        <div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 group-hover:scale-105" style="${bgImage}"></div>
+                        
+                        <!-- Fallback Pattern -->
+                        ${!char.imageUrl ? `<div class="absolute inset-0 bg-[${themeColor}]/5 flex items-center justify-center"><i data-lucide="image-plus" size="48" class="text-[${themeColor}]/30"></i></div>` : ''}
+                        
+                        <!-- Gradient Overlay for Readability -->
+                        <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent"></div>
 
-                    <!-- Navigation (Absolute Top) -->
-                    <button onclick="event.stopPropagation(); state.view='LIST'; render()" class="absolute top-6 left-6 text-white/80 hover:text-white bg-black/40 p-2 rounded-full backdrop-blur-md border border-white/10 z-20 transition-all hover:bg-black/60"><i data-lucide="arrow-left" size="20"></i></button>
+                        <!-- Navigation (Absolute Top) -->
+                        <button onclick="event.stopPropagation(); state.view='LIST'; render()" class="absolute top-6 left-6 text-white/80 hover:text-white bg-black/40 p-2 rounded-full backdrop-blur-md border border-white/10 z-20 transition-all hover:bg-black/60"><i data-lucide="arrow-left" size="20"></i></button>
 
-                    <!-- Header Content (Bottom Aligned) -->
-                    <div class="absolute bottom-0 left-0 w-full p-6 flex flex-col justify-end z-10">
-                        <h1 class="font-display font-black text-3xl text-white uppercase tracking-wider truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight mb-2">${char.name}</h1>
-                        <div class="flex items-center gap-4 w-full">
-                            <div class="h-2.5 flex-1 bg-gray-800/80 backdrop-blur rounded-full overflow-hidden border border-gray-600/50"><div class="h-full bg-[${themeColor}] shadow-[0_0_15px_${themeColor}]" style="width: ${xpPct}%"></div></div>
-                            <div class="flex items-center gap-2 bg-black/60 backdrop-blur rounded-lg px-2 py-1 border border-white/10" onclick="event.stopPropagation()">
-                                <button onclick="changeLevel(-1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="minus" size="12"></i></button>
-                                <div class="flex flex-col items-center leading-none px-1"><span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nível</span><span class="text-xl font-display font-bold text-white">${char.level}</span></div>
-                                <button onclick="changeLevel(1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="plus" size="12"></i></button>
+                        <!-- Header Content (Bottom Aligned) -->
+                        <div class="absolute bottom-0 left-0 w-full p-6 flex flex-col justify-end z-10" onclick="event.stopPropagation()">
+                            <h1 contenteditable="true" 
+                                onblur="updateCharProperty('name', this.innerText)"
+                                onkeydown="if(event.key === 'Enter'){event.preventDefault(); this.blur();}"
+                                class="font-display font-black text-3xl text-white uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight mb-2 break-words whitespace-normal outline-none border-b border-transparent focus:border-white/50 transition-colors"
+                                style="text-shadow: 0px 2px 4px rgba(0,0,0,0.9);">${char.name}</h1>
+                            <div class="flex items-center gap-4 w-full">
+                                <div class="h-2.5 flex-1 bg-gray-800/80 backdrop-blur rounded-full overflow-hidden border border-gray-600/50"><div class="h-full bg-[${themeColor}] shadow-[0_0_15px_${themeColor}]" style="width: ${xpPct}%"></div></div>
+                                <div class="flex items-center gap-2 bg-black/60 backdrop-blur rounded-lg px-2 py-1 border border-white/10">
+                                    <button onclick="changeLevel(-1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="minus" size="12"></i></button>
+                                    <div class="flex flex-col items-center leading-none px-1"><span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nível</span><span class="text-xl font-display font-bold text-white">${char.level}</span></div>
+                                    <button onclick="changeLevel(1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="plus" size="12"></i></button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Info Bar (4 Cols) -->
-                <div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
-                    <!-- Tendência -->
-                    <div class="p-2 flex flex-col items-center justify-center">
-                        <span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span>
-                        <select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full">
-                            <option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option>
-                            <option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option>
-                            <option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option>
-                            <option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option>
-                        </select>
-                    </div>
-                    <!-- Proficiência -->
-                    <div class="p-2 flex flex-col items-center justify-center">
-                        <span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span>
-                        <span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span>
-                    </div>
-                    <!-- DESL -->
-                    <div class="p-2 flex flex-col items-center justify-center">
-                        <span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span>
-                        <span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span>
-                    </div>
-                    <!-- Jogador -->
-                    <div class="p-2 flex flex-col items-center justify-center">
-                        <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span>
-                        <input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700">
-                    </div>
-                </div>
-
-                <!-- Vitals Row (3 Cols, 2 Rows logic) -->
-                <div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-t border-b border-gray-800 bg-[#0b0c10]">
-                    <!-- Row 1: SAN, REA, AURA -->
-                    ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
-                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
-                    ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}
-                    
-                    <!-- Row 2: CA, Armor Icon, PV -->
-                    ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
-                    
-                    <!-- Armor Icon -->
-                    <div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()">
-                        <span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span>
-                        <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all">
-                            <i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i>
+                    <!-- Info Bar (4 Cols) -->
+                    <div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
+                        <!-- Tendência -->
+                        <div class="p-2 flex flex-col items-center justify-center">
+                            <span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span>
+                            <select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full">
+                                <option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option>
+                                <option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option>
+                                <option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option>
+                                <option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option>
+                            </select>
                         </div>
-                        <div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div>
+                        <!-- Proficiência -->
+                        <div class="p-2 flex flex-col items-center justify-center">
+                            <span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span>
+                            <span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span>
+                        </div>
+                        <!-- DESL -->
+                        <div class="p-2 flex flex-col items-center justify-center">
+                            <span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span>
+                            <span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span>
+                        </div>
+                        <!-- Jogador -->
+                        <div class="p-2 flex flex-col items-center justify-center">
+                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span>
+                            <input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700">
+                        </div>
                     </div>
 
-                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
+                    <!-- Vitals Row (3 Cols, 2 Rows logic) -->
+                    <div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-t border-b border-gray-800 bg-[#0b0c10]">
+                        <!-- Row 1: SAN, REA, AURA -->
+                        ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
+                        ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
+                        ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}
+                        
+                        <!-- Row 2: CA, Armor Icon, PV -->
+                        ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
+                        
+                        <!-- Armor Icon -->
+                        <div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()">
+                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span>
+                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all">
+                                <i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i>
+                            </div>
+                            <div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div>
+                        </div>
+
+                        ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
+                    </div>
+
+                    <!-- Roll Mode Selector -->
+                    <div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mt-4 mb-2">
+                        ${rollModeBtn('NORMAL')}
+                        ${rollModeBtn('VANTAGEM')}
+                        ${rollModeBtn('DESVANTAGEM')}
+                        ${rollModeBtn('ÊNFASE')}
+                    </div>
+
+                    <!-- Content -->
+                    <div class="relative">${tabContent}</div>
                 </div>
 
-                <!-- Roll Mode Selector -->
-                <div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mt-4 mb-2">
-                    ${rollModeBtn('NORMAL')}
-                    ${rollModeBtn('VANTAGEM')}
-                    ${rollModeBtn('DESVANTAGEM')}
-                    ${rollModeBtn('ÊNFASE')}
-                </div>
-
-                <div class="flex-1 overflow-y-auto custom-scrollbar relative">${tabContent}</div>
+                <!-- Footer (Fixed) -->
                 <div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">
                     ${renderNavItem('FICHA', 'user', themeColor)}
                     ${renderNavItem('NEN', 'flame', themeColor)}
