@@ -889,7 +889,7 @@
                         </div>
                     </div>` : ''}
 
-                    ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', 'text-neon-theme', 'text-neon-theme')}
+                    ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', `text-[${tc}]`, `text-[${tc}]`)}
                     ${state.openSkillAccordion === 'OTHER' ? `<div class="pl-1 pr-1 pb-4 pt-1">
                         <p class="text-[10px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p>
                         <div class="grid grid-cols-1 gap-2">
@@ -898,12 +898,16 @@
                                 const isKitItem = skill === 'Kits';
                                 const isLocked = isKitItem && hasBgKit;
                                 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all ${isLocked ? `bg-[${tc}]/5 border-[${tc}]/50 text-white cursor-not-allowed` : (isSelected ? `bg-[${tc}]/10 border-[${tc}] text-white shadow-[0_0_10px_${tc}20] cursor-pointer` : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 cursor-pointer')} group">
+                                // FORCE inline style for colors to ensure theme color sticks
+                                const activeStyle = `color: ${tc}; border-color: ${tc}; background-color: rgba(var(--theme-rgb), 0.1);`;
+                                const inactiveStyle = `border-color: #1f2937; background-color: #111827;`;
+                                
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer group" style="${isSelected && !isLocked ? activeStyle : inactiveStyle}">
                                     <div class="flex items-center gap-3 pointer-events-none">
-                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" class="${isSelected ? `text-[${tc}]` : 'text-gray-600'}" style="${isSelected ? `color:${tc}` : ''}"></i>
-                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? `text-[${tc}]` : ''}" style="${isSelected ? `color:${tc}` : ''}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
+                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" style="${isSelected ? `color:${tc}` : 'color:#4b5563'}"></i>
+                                         <span class="text-[10px] font-bold uppercase tracking-wide transition-colors" style="${isSelected ? `color:${tc}` : 'color:#6b7280'}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
                                     </div>
-                                    <div class="pointer-events-none ${isSelected ? `text-[${tc}]` : 'text-gray-700'}" style="${isSelected ? `color:${tc}` : ''}">
+                                    <div class="pointer-events-none" style="${isSelected ? `color:${tc}` : 'color:#374151'}">
                                         ${isSelected ? (isLocked ? '<i data-lucide="lock" size="14"></i>' : '<i data-lucide="check-square" size="14"></i>') : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
@@ -1117,18 +1121,34 @@
                 return `<button onclick="setRollMode('${mode}')" class="flex-1 py-3 text-[9px] font-bold uppercase tracking-widest transition-all rounded-lg ${isActive ? `bg-[${themeColor}] text-black shadow-[0_0_15px_${themeColor}80]` : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}">${mode}</button>`;
             };
 
+            const bgImage = char.imageUrl ? `background-image: url('${char.imageUrl}');` : '';
+
             container.innerHTML = `
             <div class="flex flex-col h-full bg-gray-950">
-                <div class="relative pt-8 pb-4 px-6 bg-gradient-to-b from-gray-900 to-transparent">
-                    <button onclick="state.view='LIST'; render()" class="absolute top-4 left-4 text-gray-500 hover:text-white bg-black/30 p-2 rounded-full backdrop-blur-sm"><i data-lucide="arrow-left" size="20"></i></button>
-                    <div class="mt-4">
-                        <h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1>
-                        <div class="flex items-center gap-3 mt-2">
-                            <div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div>
-                            <div class="flex items-center gap-2">
-                                <button onclick="changeLevel(-1)" class="w-6 h-6 bg-gray-800 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700"><i data-lucide="minus" size="12"></i></button>
-                                <div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div>
-                                <button onclick="changeLevel(1)" class="w-6 h-6 bg-gray-800 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700"><i data-lucide="plus" size="12"></i></button>
+                <div onclick="document.getElementById('char-image-upload').click()" class="relative h-64 w-full overflow-hidden cursor-pointer group bg-gray-900 border-b border-gray-800">
+                    <input type="file" id="char-image-upload" accept="image/*" class="hidden" onchange="uploadCharacterImage(this)">
+                    
+                    <!-- Background Image -->
+                    <div class="absolute inset-0 bg-cover bg-center bg-no-repeat transition-all duration-700 group-hover:scale-105" style="${bgImage}"></div>
+                    
+                    <!-- Fallback Pattern -->
+                    ${!char.imageUrl ? `<div class="absolute inset-0 bg-[${themeColor}]/5 flex items-center justify-center"><i data-lucide="image-plus" size="48" class="text-[${themeColor}]/30"></i></div>` : ''}
+                    
+                    <!-- Gradient Overlay for Readability -->
+                    <div class="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/60 to-transparent"></div>
+
+                    <!-- Navigation (Absolute Top) -->
+                    <button onclick="event.stopPropagation(); state.view='LIST'; render()" class="absolute top-6 left-6 text-white/80 hover:text-white bg-black/40 p-2 rounded-full backdrop-blur-md border border-white/10 z-20 transition-all hover:bg-black/60"><i data-lucide="arrow-left" size="20"></i></button>
+
+                    <!-- Header Content (Bottom Aligned) -->
+                    <div class="absolute bottom-0 left-0 w-full p-6 flex flex-col justify-end z-10">
+                        <h1 class="font-display font-black text-3xl text-white uppercase tracking-wider truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight mb-2">${char.name}</h1>
+                        <div class="flex items-center gap-4 w-full">
+                            <div class="h-2.5 flex-1 bg-gray-800/80 backdrop-blur rounded-full overflow-hidden border border-gray-600/50"><div class="h-full bg-[${themeColor}] shadow-[0_0_15px_${themeColor}]" style="width: ${xpPct}%"></div></div>
+                            <div class="flex items-center gap-2 bg-black/60 backdrop-blur rounded-lg px-2 py-1 border border-white/10" onclick="event.stopPropagation()">
+                                <button onclick="changeLevel(-1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="minus" size="12"></i></button>
+                                <div class="flex flex-col items-center leading-none px-1"><span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nível</span><span class="text-xl font-display font-bold text-white">${char.level}</span></div>
+                                <button onclick="changeLevel(1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="plus" size="12"></i></button>
                             </div>
                         </div>
                     </div>
@@ -1547,7 +1567,8 @@
                     desl: 9 
                 },
                 inventory: initialInv, 
-                history: []
+                history: [],
+                imageUrl: null // Inicializa sem imagem
             };
 
             // Mapeia atributos finais para estrutura do objeto
@@ -1701,6 +1722,18 @@
 
         function handleArmorClick() {
             alert('Funcionalidade de Armadura em desenvolvimento.');
+        }
+
+        function uploadCharacterImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    state.currentChar.imageUrl = e.target.result;
+                    saveCharacter(state.currentChar);
+                    render();
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
         function addItem() { const name = document.getElementById('new-item-name').value; if (name) { state.currentChar.inventory.push({ name, qty: 1 }); saveCharacter(state.currentChar); render(); } }
