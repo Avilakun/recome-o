@@ -1021,40 +1021,84 @@
                 const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race);
                 const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background);
                 
+                // --- RACE TRAITS ---
                 let traitsHtml = '';
+                // Header for Race
+                traitsHtml += `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`;
+                
                 if (char.race === 'Formiga Quimera') {
                     if (char.raceTraits && char.raceTraits.length > 0) {
-                         traitsHtml = char.raceTraits.map(tName => {
+                            traitsHtml += char.raceTraits.map(tName => {
                             const tData = raceData.caracteristicas.find(c => c.nome === tName);
-                            return `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl"><h4 class="font-bold text-neon-theme text-sm mb-1">${tName}</h4><p class="text-xs text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`;
-                         }).join('');
+                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`;
+                            }).join('');
                     }
                 } else {
-                    const fixedFeatures = [...(raceData.caracteristicas || []), ...(raceData.opcoes_caracteristica || [])];
+                    const fixedFeatures = [...(raceData.caracteristicas || [])];
                     if (fixedFeatures.length > 0) {
-                        traitsHtml = fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl"><h4 class="font-bold text-neon-theme text-sm mb-1">${f.nome}</h4><p class="text-xs text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p>${f.tabela_ancestral ? `<p class="text-[10px] text-gray-500 mt-2 italic">${f.tabela_ancestral}</p>` : ''}</div>`).join('');
+                        traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p>${f.tabela_ancestral ? `<p class="text-[9px] text-gray-500 mt-1 italic">${f.tabela_ancestral}</p>` : ''}</div>`).join('');
+                    }
+                    // Also display attribute bonuses simply
+                    if (typeof raceData.aumento_atributo === 'object') {
+                         const attrs = Object.entries(raceData.aumento_atributo).map(([k,v]) => `${k} ${v>0?'+':''}${v}`).join(', ');
+                         traitsHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl"><h4 class="font-bold text-gray-500 text-[10px] uppercase mb-1">Bônus de Atributos</h4><p class="text-xs text-[${themeColor}] font-bold">${attrs}</p></div>`;
                     }
                 }
+                traitsHtml += `</div>`;
 
+                // --- BACKGROUND FEATURE ---
                 let bgHtml = '';
                 if (bgData && char.backgroundFeature) {
                     const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature);
-                    bgHtml = `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl border-l-4 border-l-neon-blue"><h4 class="font-bold text-neon-blue text-sm mb-1">${feature.nome} <span class="text-[10px] text-gray-500 uppercase">(Antecedente)</span></h4><p class="text-xs text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
+                    bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-neon-blue"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6">`;
+                    bgHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-neon-blue"><h4 class="font-bold text-neon-blue text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
+                    bgHtml += `</div>`;
                 }
 
+                // --- INCLINATIONS ---
                 let incHtml = '';
-                if (char.inclinations) {
-                    const pos = char.inclinations.positive.map(i => `<li class="text-neon-green">${i.nome} (${i.custo} pts)</li>`).join('');
-                    const neg = char.inclinations.negative.map(i => `<li class="text-neon-red">${i.nome} (+${i.valor} pts)</li>`).join('');
-                    if (pos || neg) {
-                        incHtml = `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl"><h4 class="font-bold text-white text-sm mb-2">Inclinações</h4><ul class="text-xs list-disc pl-4 space-y-1">${pos}${neg}</ul></div>`;
+                if (char.inclinations && (char.inclinations.positive.length > 0 || char.inclinations.negative.length > 0)) {
+                    incHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-white"><i data-lucide="scale" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Inclinações</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Positivas e Negativas</p></div></div><div class="space-y-2 mb-6">`;
+                    
+                    // Helper to find description
+                    const findIncDesc = (type, name) => {
+                        const list = SYSTEM_DB.inclinacoes[type]; // 'positivas' or 'negativas' (DB keys)
+                        if (name.includes(':')) {
+                            const [parentName, childName] = name.split(':').map(s=>s.trim());
+                            const parent = list.find(i => i.nome === parentName);
+                            if (parent && parent.options) {
+                                const child = parent.options.find(o => o.label === childName);
+                                if (child) return child.desc;
+                            }
+                        }
+                        const exact = list.find(i => i.nome === name);
+                        return exact ? exact.desc : 'Descrição não encontrada.';
+                    };
+
+                    // Positives
+                    if (char.inclinations.positive.length > 0) {
+                        incHtml += char.inclinations.positive.map(i => {
+                            const desc = findIncDesc('positivas', i.nome);
+                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-green"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-green text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">${i.custo} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`;
+                        }).join('');
                     }
+                    
+                    // Negatives
+                    if (char.inclinations.negative.length > 0) {
+                        incHtml += char.inclinations.negative.map(i => {
+                            const desc = findIncDesc('negativas', i.nome);
+                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-red"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-red text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">+${i.valor} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`;
+                        }).join('');
+                    }
+                    incHtml += `</div>`;
                 }
 
+                // --- OTHER SKILLS ---
+                // (Existing logic for other trainings)
                 const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s));
                 let otherSkillsHtml = '';
                 if (otherTrainings.length > 0) {
-                    otherSkillsHtml = `<div class="space-y-2 mt-6 border-t border-gray-800 pt-6">
+                    otherSkillsHtml = `<div class="space-y-2 mt-2 border-t border-gray-800 pt-4">
                         <div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-neon-yellow"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div>
                         <div class="grid grid-cols-1 gap-2">
                         ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl flex items-center gap-2"><i data-lucide="check-circle" size="14" class="text-neon-yellow"></i><span class="text-xs text-gray-300 font-bold">${s}</span></div>`).join('')}
@@ -1062,7 +1106,7 @@
                     </div>`;
                 }
 
-                tabContent = `<div class="p-4 space-y-4"><div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características</p></div></div><div class="space-y-3">${traitsHtml}${bgHtml}${incHtml}</div>${otherSkillsHtml}</div>`;
+                tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${incHtml}${otherSkillsHtml}</div>`;
             } else if (state.activeTab === 'INV') {
                 tabContent = `<div class="p-4 space-y-4"><div class="flex gap-2"><input type="text" id="new-item-name" placeholder="Nome do item..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[${themeColor}]"><button onclick="addItem()" class="bg-[${themeColor}] text-black px-4 rounded-lg font-bold hover:brightness-110"><i data-lucide="plus"></i></button></div><div class="space-y-2">${char.inventory.length === 0 ? '<div class="text-center text-gray-600 text-xs py-8 border border-dashed border-gray-800 rounded-xl">Mochila vazia.</div>' : ''}${char.inventory.map((item, idx) => `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex justify-between items-center"><span class="text-sm font-bold text-white">${item.name}</span><div class="flex items-center gap-3"><button onclick="updateItemQty(${idx}, -1)" class="text-gray-500 hover:text-white"><i data-lucide="minus" size="14"></i></button><span class="text-sm w-4 text-center">${item.qty}</span><button onclick="updateItemQty(${idx}, 1)" class="text-gray-500 hover:text-white"><i data-lucide="plus" size="14"></i></button></div></div>`).join('')}</div><div class="flex justify-between items-center pt-4 border-t border-gray-800 text-xs text-gray-400"><span class="uppercase font-bold tracking-widest">Jenny (Dinheiro)</span><div class="flex items-center gap-2 bg-gray-900 px-3 py-1 rounded border border-gray-700"><span class="text-[${themeColor}] font-bold">$</span><input type="number" value="${char.money}" onchange="updateMoney(this.value)" class="w-24 text-right bg-transparent text-white font-mono outline-none"></div></div></div>`;
             } else if (state.activeTab === 'DADOS') {
