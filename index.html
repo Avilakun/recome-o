@@ -299,9 +299,17 @@
                 'Prestidigitação', 'Religião', 'Sobrevivência'
             ],
             otherSkills: [
-                'Armas de Cerco', 'Armaduras Médias', 'Armaduras Pesadas', 'Bugigangas/Hatsus',
-                'Científicas/Explosivas', 'Etiqueta', 'Pilotagem', 'Tecnologia', 'Ocultismo',
-                'Falsificação', 'Jogos', 'Instrumentos', 'Linguagem: Hunter', 'Linguagem: Inglês', 'Linguagem: Japonês'
+                'Armas Marciais corpo-a-corpo',
+                'Armas Marciais à distância',
+                'Armas Simples corpo-a-corpo',
+                'Armas Simples à distância',
+                'Equipamentos de Proteção e Armaduras Médias',
+                'Equipamentos de Proteção e Armaduras Pesadas',
+                'Equipamentos Improvisados/Manufaturados (Bugigangas e Armas de Hatsus criativos)',
+                'Científicas/Explosivas',
+                'Linguas Antigas e Culturas',
+                'Armas de Cerco',
+                'Kits'
             ],
             pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 }
         };
@@ -800,14 +808,14 @@
 
                     ${renderAccordionHeader('MAIN', 'PERÍCIAS E RESISTÊNCIAS', mainCount, maxMain, state.openSkillAccordion === 'MAIN', 'text-neon-blue', 'text-neon-blue')}
                     ${state.openSkillAccordion === 'MAIN' ? `<div class="pl-1 pr-1 pb-4 pt-1">
-                        <div class="grid grid-cols-1 gap-2">
+                        <div class="grid grid-cols-2 gap-2">
                             ${SYSTEM_DB.skills.map(skill => {
                                 const isSelected = state.tempChar.skills.includes(skill);
                                 const isFromBg = bgSkillsText.includes(skill); 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isFromBg ? '' : `toggleCreatorSkill('${skill}', 'main')`}" class="flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${isFromBg ? 'bg-gray-800 border-gray-700 opacity-70 cursor-not-allowed' : (isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700')} group">
-                                    <span class="text-xs font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected || isFromBg ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[10px] bg-gray-900 px-1 rounded ml-2 border border-gray-700 text-gray-400">ANTECEDENTE</span>' : ''}</span>
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isFromBg ? '' : `toggleCreatorSkill('${skill}', 'main')`}" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isFromBg ? 'bg-gray-800 border-gray-700 opacity-70 cursor-not-allowed' : (isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700')} group">
+                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected || isFromBg ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">BG</span>' : ''}</span>
                                     <div class="pointer-events-none ${isSelected || isFromBg ? 'text-neon-blue' : 'text-gray-700'}">
-                                        ${isSelected || isFromBg ? '<i data-lucide="check-square" size="18"></i>' : '<i data-lucide="square" size="18"></i>'}
+                                        ${isSelected || isFromBg ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
                             }).join('')}
@@ -820,13 +828,13 @@
                         <div class="grid grid-cols-1 gap-2">
                             ${SYSTEM_DB.otherSkills.map(skill => {
                                 const isSelected = state.tempChar.otherSkills.includes(skill);
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'other')" class="flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'other')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
                                     <div class="flex items-center gap-3 pointer-events-none">
                                          <i data-lucide="hammer" size="14" class="${isSelected ? 'text-neon-yellow' : 'text-gray-600'}"></i>
-                                         <span class="text-xs font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-yellow' : ''}">${skill}</span>
+                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-yellow' : ''}">${skill}</span>
                                     </div>
                                     <div class="pointer-events-none ${isSelected ? 'text-neon-yellow' : 'text-gray-700'}">
-                                        ${isSelected ? '<i data-lucide="check-square" size="18"></i>' : '<i data-lucide="square" size="18"></i>'}
+                                        ${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
                             }).join('')}
@@ -1298,9 +1306,9 @@
             const maxColorClass = type === 'main' ? 'text-neon-blue' : 'text-neon-yellow';
             
             if (idx >= 0) {
-                btn.className = "flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 group";
+                btn.className = "flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 group";
                 const checkContainer = btn.querySelector('div:last-child');
-                checkContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
+                checkContainer.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-square"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>';
                 checkContainer.classList.remove(iconColor);
                 checkContainer.classList.add('text-gray-700');
                 
@@ -1313,9 +1321,9 @@
                 }
 
             } else { 
-                btn.className = `flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${baseClass} group`;
+                btn.className = `flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${baseClass} group`;
                 const checkContainer = btn.querySelector('div:last-child');
-                checkContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-square"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`;
+                checkContainer.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-square"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>`;
                 checkContainer.classList.remove('text-gray-700');
                 checkContainer.classList.add(iconColor);
                 
