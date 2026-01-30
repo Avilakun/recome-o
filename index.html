@@ -341,7 +341,8 @@
             skillSelectionModal: null, // Modal de decisão de proficiência
             clickTimer: null, // Para diferenciar clique unico e duplo
             bgSelected: null, // Para controle de UI do antecedente
-            rollMode: 'NORMAL' // NORMAL, VANTAGEM, DESVANTAGEM, ENFASE
+            rollMode: 'NORMAL', // NORMAL, VANTAGEM, DESVANTAGEM, ENFASE
+            allocations: {} // Alocações de bônus raciais
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -445,6 +446,51 @@
                 state.draggedPoolIdx = null;
             }
         };
+
+        // --- HELPER DE BÔNUS RACIAL ---
+        function getBonusRequirements(raceName) {
+            const r = SYSTEM_DB.racas.find(x => x.nome === raceName);
+            if (!r) return null;
+            
+            if (r.aumento_atributo === "Distribua 3 pontos em qualquer atributo") {
+                return { type: 'wildcard', amount: 3 };
+            }
+            if (r.aumento_atributo === "Escolha +2") {
+                return { type: 'wildcard', amount: 2 };
+            }
+            if (typeof r.aumento_atributo === 'object') {
+                if (r.aumento_atributo.INT_ou_SAB) {
+                    return { type: 'choice', keys: ['INT', 'SAB'], amount: r.aumento_atributo.INT_ou_SAB };
+                }
+                if (r.aumento_atributo.Físico) {
+                    // Caso específico para Vampiros ou similares
+                    return { type: 'choice', keys: ['FOR', 'DES', 'CON'], amount: r.aumento_atributo.Físico };
+                }
+            }
+            return null;
+        }
+
+        function getAllocatedTotal() {
+            return Object.values(state.allocations).reduce((a, b) => a + b, 0);
+        }
+
+        function updateAllocation(attr, delta, limit) {
+            const current = state.allocations[attr] || 0;
+            const total = getAllocatedTotal();
+            
+            // Check limits
+            if (delta > 0 && total >= limit) return;
+            if (delta < 0 && current <= 0) return;
+            
+            state.allocations[attr] = current + delta;
+            render();
+        }
+
+        function updateChoiceAllocation(attr, amount) {
+            // Reset other allocations for choice type
+            state.allocations = { [attr]: amount };
+            render();
+        }
 
         // --- RENDERIZADORES ---
         function render() {
@@ -860,15 +906,64 @@
             } else if (step === 6) {
                 title = 'REVISÃO';
                 const color = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class).color;
-                contentHtml = `<div class="space-y-6"><div class="text-center"><h2 class="text-3xl font-display font-bold text-white mb-1">${state.tempChar.name || 'Sem Nome'}</h2><span class="bg-[${color}]/20 text-[${color}] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-[${color}]/30">${state.tempChar.class}</span></div>
                 
+                // Bonus Logic
+                const bonusReq = getBonusRequirements(state.tempChar.race);
+                const allocatedTotal = getAllocatedTotal();
+                const isBonusReady = !bonusReq || (bonusReq.type === 'wildcard' && allocatedTotal === bonusReq.amount) || (bonusReq.type === 'choice' && allocatedTotal === bonusReq.amount);
+                
+                let bonusHtml = '';
+                if (bonusReq) {
+                    bonusHtml = `<div class="bg-gray-900 rounded-xl p-4 border border-neon-theme shadow-[0_0_15px_rgba(var(--theme-rgb),0.1)] mb-4 animate-in fade-in zoom-in duration-300">
+                        <div class="flex items-center gap-2 mb-3 text-neon-theme border-b border-neon-theme/30 pb-2">
+                            <i data-lucide="gift" size="18"></i>
+                            <h3 class="font-bold uppercase text-xs tracking-widest">Alocação de Bônus (${state.tempChar.race})</h3>
+                        </div>
+                        
+                        ${bonusReq.type === 'wildcard' ? `
+                            <p class="text-[10px] text-gray-400 mb-3">Distribua <span class="text-white font-bold">${bonusReq.amount}</span> pontos entre seus atributos.</p>
+                            <div class="grid grid-cols-3 gap-2">
+                                ${Object.keys(state.tempChar.attributes).map(attr => {
+                                    const current = state.allocations[attr] || 0;
+                                    return `<div class="flex flex-col items-center bg-black/30 rounded p-2 border border-gray-800">
+                                        <span class="text-[9px] text-gray-500 font-bold mb-1">${attr}</span>
+                                        <div class="flex items-center gap-2">
+                                            <button onclick="updateAllocation('${attr}', -1, ${bonusReq.amount})" class="text-gray-500 hover:text-white ${current <= 0 ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="minus" size="12"></i></button>
+                                            <span class="font-bold text-white text-sm w-3 text-center">${current}</span>
+                                            <button onclick="updateAllocation('${attr}', 1, ${bonusReq.amount})" class="text-neon-theme hover:brightness-125 ${allocatedTotal >= bonusReq.amount ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="plus" size="12"></i></button>
+                                        </div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            <div class="mt-2 text-right text-[10px] font-bold ${allocatedTotal === bonusReq.amount ? 'text-neon-green' : 'text-neon-yellow'}">
+                                ${allocatedTotal} / ${bonusReq.amount} Pontos
+                            </div>
+                        ` : ''}
+
+                        ${bonusReq.type === 'choice' ? `
+                            <p class="text-[10px] text-gray-400 mb-3">Escolha onde aplicar +${bonusReq.amount}.</p>
+                            <div class="flex gap-2">
+                                ${bonusReq.keys.map(attr => {
+                                    const isSelected = state.allocations[attr] === bonusReq.amount;
+                                    return `<button onclick="updateChoiceAllocation('${attr}', ${bonusReq.amount})" class="flex-1 py-2 rounded border font-bold text-xs transition-all ${isSelected ? 'bg-neon-theme text-black border-neon-theme' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}">${attr} +${bonusReq.amount}</button>`;
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                    </div>`;
+                }
+
+                contentHtml = `<div class="space-y-6">
+                <div class="text-center"><h2 class="text-3xl font-display font-bold text-white mb-1">${state.tempChar.name || 'Sem Nome'}</h2><span class="bg-[${color}]/20 text-[${color}] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-[${color}]/30">${state.tempChar.class}</span></div>
+                
+                ${bonusHtml}
+
                 <div class="bg-gray-900 rounded-xl p-4 border border-gray-800 space-y-4">
                     <div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Raça</span><span class="text-sm font-bold text-white">${state.tempChar.race}</span></div>
                     <div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Antecedente</span><span class="text-sm font-bold text-white">${state.tempChar.background || '-'}</span></div>
                     
                     ${state.tempChar.raceTraits && state.tempChar.raceTraits.length > 0 ? `<div><span class="text-xs text-gray-500 uppercase block mb-2">Traços Raciais Selecionados</span><div class="flex flex-wrap gap-1">${state.tempChar.raceTraits.map(t => `<span class="text-[10px] bg-gray-800 text-white px-2 py-1 rounded border border-gray-700">${t}</span>`).join('')}</div></div>` : ''}
                     
-                    <div><span class="text-xs text-gray-500 uppercase block mb-2">Atributos</span><div class="grid grid-cols-6 gap-1 text-center">${Object.entries(state.tempChar.attributes).map(([k,v]) => `<div class="bg-black rounded p-1"><div class="text-[8px] text-gray-500">${k}</div><div class="text-xs font-bold text-white">${v}</div></div>`).join('')}</div></div>
+                    <div><span class="text-xs text-gray-500 uppercase block mb-2">Atributos Base</span><div class="grid grid-cols-6 gap-1 text-center">${Object.entries(state.tempChar.attributes).map(([k,v]) => `<div class="bg-black rounded p-1"><div class="text-[8px] text-gray-500">${k}</div><div class="text-xs font-bold text-white">${v}</div></div>`).join('')}</div></div>
                     
                     <div><span class="text-xs text-gray-500 uppercase block mb-2">Treinamentos</span><div class="flex flex-wrap gap-1 mb-2">${state.tempChar.skills.length > 0 ? state.tempChar.skills.map(s => `<span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento principal</span>'}</div><div class="flex flex-wrap gap-1">${state.tempChar.otherSkills.length > 0 ? state.tempChar.otherSkills.map(s => `<span class="text-[10px] bg-gray-800 text-neon-blue/70 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento extra</span>'}</div></div>
                     
@@ -879,10 +974,24 @@
                             ${state.tempChar.inclinations.negative.map(i => `<div class="text-[10px] text-neon-red flex justify-between"><span>- ${i.nome}</span><span>${i.valor}</span></div>`).join('')}
                         </div>
                     </div>
-                </div></div>`;
+                </div>
+                
+                ${!isBonusReady ? `<div class="bg-red-500/10 border border-red-500/50 p-3 rounded-xl flex items-center gap-3 text-red-400 text-xs font-bold animate-pulse"><i data-lucide="alert-circle" size="20"></i> Aloque todos os pontos de bônus para finalizar.</div>` : ''}
+                
+                </div>`;
             }
 
-            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50"><button onclick="state.view='LIST'; render()" class="text-gray-500 hover:text-white flex items-center gap-1 text-[10px] uppercase font-bold"><i data-lucide="chevron-left" size="14"></i> Cancelar</button><div class="flex gap-1">${[0,1,2,3,4,5,6].map(i => `<div class="w-4 h-1 rounded-full ${i <= step ? 'bg-neon-theme shadow-[0_0_5px_var(--theme-color-hex)]' : 'bg-gray-800'} transition-all duration-300"></div>`).join('')}</div><div class="w-16"></div></div><div class="flex-1 p-6 overflow-y-auto custom-scrollbar relative"><h2 class="text-2xl font-display font-bold text-white text-center mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]">${title}</h2>${contentHtml}</div><div class="p-6 border-t border-gray-800 flex gap-4 bg-gray-900/50 pb-6 pb-safe">${step > 0 ? `<button onclick="state.creatorStep--; render()" class="w-1/3 py-4 bg-transparent border border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-gray-500 transition-colors text-xs uppercase tracking-wider">Voltar</button>` : '<div class="w-1/3"></div>'}${step < 6 ? `<button onclick="nextCreatorStep()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl hover:brightness-110 transition-colors text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(var(--theme-rgb),0.4)]">PRÓXIMO <i data-lucide="chevron-right" size="14" class="inline mb-0.5"></i></button>` : `<button onclick="finishCreator()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl shadow-[0_0_20px_rgba(var(--theme-rgb),0.6)] hover:brightness-110 transition-colors text-xs uppercase tracking-wider flex items-center justify-center gap-2"><i data-lucide="save" size="16"></i> FINALIZAR</button>`}</div></div>`;
+            const footerBtn = step < 6 
+                ? `<button onclick="nextCreatorStep()" class="flex-1 py-4 bg-neon-theme text-black font-bold rounded-xl hover:brightness-110 transition-colors text-xs uppercase tracking-wider shadow-[0_0_15px_rgba(var(--theme-rgb),0.4)]">PRÓXIMO <i data-lucide="chevron-right" size="14" class="inline mb-0.5"></i></button>`
+                : (() => {
+                    const bonusReq = getBonusRequirements(state.tempChar.race);
+                    const allocatedTotal = getAllocatedTotal();
+                    const isBonusReady = !bonusReq || (bonusReq.type === 'wildcard' && allocatedTotal === bonusReq.amount) || (bonusReq.type === 'choice' && allocatedTotal === bonusReq.amount);
+                    
+                    return `<button onclick="finishCreator()" ${!isBonusReady ? 'disabled' : ''} class="flex-1 py-4 ${isBonusReady ? 'bg-neon-theme text-black hover:brightness-110 shadow-[0_0_20px_rgba(var(--theme-rgb),0.6)]' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} font-bold rounded-xl transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"><i data-lucide="save" size="16"></i> FINALIZAR</button>`;
+                })();
+
+            container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50"><button onclick="state.view='LIST'; render()" class="text-gray-500 hover:text-white flex items-center gap-1 text-[10px] uppercase font-bold"><i data-lucide="chevron-left" size="14"></i> Cancelar</button><div class="flex gap-1">${[0,1,2,3,4,5,6].map(i => `<div class="w-4 h-1 rounded-full ${i <= step ? 'bg-neon-theme shadow-[0_0_5px_var(--theme-color-hex)]' : 'bg-gray-800'} transition-all duration-300"></div>`).join('')}</div><div class="w-16"></div></div><div class="flex-1 p-6 overflow-y-auto custom-scrollbar relative"><h2 class="text-2xl font-display font-bold text-white text-center mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]">${title}</h2>${contentHtml}</div><div class="p-6 border-t border-gray-800 flex gap-4 bg-gray-900/50 pb-6 pb-safe">${step > 0 ? `<button onclick="state.creatorStep--; render()" class="w-1/3 py-4 bg-transparent border border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-gray-500 transition-colors text-xs uppercase tracking-wider">Voltar</button>` : '<div class="w-1/3"></div>'}${footerBtn}</div></div>`;
         }
 
         function renderSheet(container) {
@@ -907,7 +1016,6 @@
                     const isOpen = state.openAttrPopup === key;
                     const fullName = ATTR_FULL_NAMES[key];
                     const icons = ATTR_ICONS_MAP[key];
-                    
                     const saveSkillName = `TR de ${key}`;
                     const isTrained = char.skills.includes(saveSkillName);
                     const isExpert = (char.expertise || []).includes(saveSkillName);
@@ -1123,9 +1231,9 @@
                 let otherSkillsHtml = '';
                 if (otherTrainings.length > 0) {
                     otherSkillsHtml = `<div class="space-y-2 mt-2 border-t border-gray-800 pt-4">
-                        <div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-neon-yellow"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div>
-                        <div class="grid grid-cols-1 gap-2">
-                        ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl flex items-center gap-2"><i data-lucide="check-circle" size="14" class="text-neon-yellow"></i><span class="text-xs text-gray-300 font-bold">${s}</span></div>`).join('')}
+                        <div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div>
+                        <div class="flex flex-wrap gap-2">
+                        ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" class="text-[${themeColor}] shrink-0"></i><span class="text-xs text-gray-300 font-bold whitespace-nowrap">${s}</span></div>`).join('')}
                         </div>
                     </div>`;
                 }
@@ -1137,13 +1245,13 @@
                 tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map(h => `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1"><div class="flex justify-between text-[10px] text-gray-500"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`).join('')}</div></div>`;
             } else { tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`; }
 
-            const renderNeonVital = (label, val, max, colorClass, borderClass, showBtns = true) => `
+            const renderNeonVital = (label, val, max, colorClass, borderClass, showBtns = true, step = 1) => `
                 <div class="flex flex-col items-center justify-center w-full">
                     <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
-                    <div class="flex items-center justify-center gap-1 w-full">
-                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="6"></i></button>` : '<div class="w-4"></div>'}
+                    <div class="flex items-center justify-between w-full max-w-[80%] gap-1">
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', ${-step})" class="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"><i data-lucide="minus" size="10"></i></button>` : '<div class="w-4"></div>'}
                         <span class="font-display font-bold text-lg text-white tracking-wider">${val}</span>
-                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="6"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', ${step})" class="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"><i data-lucide="plus" size="10"></i></button>` : '<div class="w-4"></div>'}
                     </div>
                     <div class="w-8 h-0.5 rounded-full mt-0.5 ${borderClass} opacity-80"></div>
                 </div>
@@ -1167,8 +1275,8 @@
                     </div>
                 </div>
 
-                <!-- Info Bar -->
-                <div class="grid grid-cols-3 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
+                <!-- Info Bar (4 Cols) -->
+                <div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
                     <!-- Tendência -->
                     <div class="p-2 flex flex-col items-center justify-center">
                         <span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span>
@@ -1184,6 +1292,11 @@
                         <span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span>
                         <span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span>
                     </div>
+                    <!-- DESL -->
+                    <div class="p-2 flex flex-col items-center justify-center">
+                        <span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span>
+                        <span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span>
+                    </div>
                     <!-- Jogador -->
                     <div class="p-2 flex flex-col items-center justify-center">
                         <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span>
@@ -1191,14 +1304,19 @@
                     </div>
                 </div>
 
-                <!-- Vitals Row -->
-                <div class="grid grid-cols-6 divide-x divide-gray-800 px-2 py-4 border-t border-b border-gray-800 bg-[#0b0c10]">
-                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
-                    ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`)}
+                <!-- Vitals Row (3 Cols, 2 Rows logic) -->
+                <div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-t border-b border-gray-800 bg-[#0b0c10]">
+                    <!-- Row 1: SAN, PV, AURA -->
                     ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
-                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
+                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
+                    ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}
+                    
+                    <!-- Row 2: CA, REA, Empty/Spacer -->
                     ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
-                    ${renderNeonVital('DESL', char.vitals.desl || 9, null, 'text-white', 'bg-white text-white', false)}
+                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
+                    <div class="flex items-center justify-center opacity-30 pointer-events-none">
+                       <i data-lucide="activity" size="20" class="text-gray-600"></i>
+                    </div>
                 </div>
 
                 <!-- Roll Mode Selector -->
@@ -1225,7 +1343,7 @@
 
         // --- CONTROLLERS ---
         function selectChar(id) { state.currentChar = state.characters.find(c => c.id === id); state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
-        function startCreator() { state.creatorStep = 0; state.tempChar = null; state.attrMethodLocked = false; state.view = 'CREATOR'; render(); }
+        function startCreator() { state.creatorStep = 0; state.tempChar = null; state.attrMethodLocked = false; state.allocations = {}; state.view = 'CREATOR'; render(); }
         function selectNenType(cls) { state.tempChar.class = cls; const clsData = SYSTEM_DB.classes.find(c => c.id === cls); if(clsData) setThemeColor(clsData.color); render(); }
         
         function selectBackground(bgName) {
@@ -1251,6 +1369,7 @@
 
         function selectRace(raceName) {
             state.tempChar.race = raceName;
+            state.allocations = {}; // Reset allocations on race change
             SYSTEM_DB.racas.forEach(r => {
                 const card = document.getElementById(`race-card-${r.nome.replace(/\s/g,'-')}`);
                 const content = document.getElementById(`race-content-${r.nome.replace(/\s/g,'-')}`);
@@ -1494,31 +1613,31 @@
         }
 
         function finishCreator() {
+            // Apply allocations first to the tempChar attributes
+            Object.entries(state.allocations).forEach(([key, val]) => {
+                state.tempChar.attributes[key] += val;
+            });
+
             // 1. Coleta Inventário do Antecedente
             const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background);
             const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : [];
 
-            // 2. Cálculo de Atributos Finais (Base + Racial)
+            // 2. Cálculo de Atributos Finais (Base + Racial Fixos que não eram Escolha)
             const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race);
             const finalAttrs = { ...state.tempChar.attributes };
-            let manualAlert = "";
-
-            if (raceData) {
-                if (typeof raceData.aumento_atributo === 'object') {
-                    // Aplica bônus fixos (Ex: Humano, Fanalis, Imuchack)
+            
+            // Only apply FIXED racial bonuses here if they weren't handled by the allocator
+            if (raceData && typeof raceData.aumento_atributo === 'object') {
+                const req = getBonusRequirements(state.tempChar.race);
+                if (!req) { 
+                    // Standard fixed bonuses (Human, Fanalis, etc)
                     Object.entries(raceData.aumento_atributo).forEach(([key, val]) => {
                         if (finalAttrs[key] !== undefined) {
                             finalAttrs[key] += val;
-                        } else {
-                            // Casos especiais como "INT_ou_SAB" ou "Físico"
-                            manualAlert = `Atenção: Sua raça (${state.tempChar.race}) possui bônus variáveis ou especiais (${key.replace(/_/g, " ")}: ${val}). Ajuste manualmente na ficha após a criação.`;
                         }
                     });
-                } else if (typeof raceData.aumento_atributo === 'string') {
-                    // Strings (Ex: Gyudondond, Formiga Quimera)
-                    if (!raceData.aumento_atributo.includes("Nenhum") && !raceData.aumento_atributo.includes("Não recebem")) {
-                         manualAlert = `Atenção: Sua raça (${state.tempChar.race}) instrui: "${raceData.aumento_atributo}". Realize esses ajustes manualmente na ficha.`;
-                    }
+                } else if (req.type === 'choice') {
+                    // Implicitly handled by allocator
                 }
             }
 
@@ -1571,10 +1690,6 @@
             state.view = 'SHEET'; 
             state.activeTab = 'FICHA'; 
             render();
-
-            if (manualAlert) {
-                setTimeout(() => alert(manualAlert), 500);
-            }
         }
 
         function setTab(tab) { state.activeTab = tab; render(); }
