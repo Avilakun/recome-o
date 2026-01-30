@@ -1073,9 +1073,9 @@
                 <div class="flex flex-col items-center justify-center w-full">
                     <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
                     <div class="flex items-center justify-center gap-1 w-full">
-                         ${showBtns && max ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="12"></i></button>` : '<div class="w-4"></div>'}
                         <span class="font-display font-bold text-lg text-white tracking-wider">${val}</span>
-                         ${showBtns && max ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="12"></i></button>` : '<div class="w-4"></div>'}
                     </div>
                     <div class="w-8 h-0.5 rounded-full mt-0.5 ${borderClass} opacity-80"></div>
                 </div>
@@ -1100,11 +1100,11 @@
                 </div>
 
                 <!-- Vitals Row -->
-                <div class="grid grid-cols-6 gap-1 px-2 py-4 border-t border-b border-gray-800 bg-[#0b0c10]">
+                <div class="grid grid-cols-6 divide-x divide-gray-800 px-2 py-4 border-t border-b border-gray-800 bg-[#0b0c10]">
                     ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
                     ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`)}
                     ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
-                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', false)}
+                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
                     ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
                     ${renderNeonVital('DESL', char.vitals.desl || 9, null, 'text-white', 'bg-white text-white', false)}
                 </div>
@@ -1510,7 +1510,19 @@
             saveCharacter(char); closeSkillModal();
         }
 
-        function updateVital(type, delta) { const v = state.currentChar.vitals; if (type === 'pv') v.hp += delta; if (type === 'aura') v.aura += delta; if (type === 'san') v.san += delta; saveCharacter(state.currentChar); render(); }
+        function updateVital(type, delta) { 
+            const v = state.currentChar.vitals; 
+            if (type === 'pv') v.hp += delta; 
+            if (type === 'aura') v.aura += delta; 
+            if (type === 'san') v.san += delta; 
+            if (type === 'rea') {
+                // Inicializa a reação no objeto de vitais caso não exista (baseado em SAB)
+                if (v.rea === undefined) v.rea = 7 + getMod(state.currentChar.attributes.SAB.value);
+                v.rea += delta;
+            }
+            saveCharacter(state.currentChar); 
+            render(); 
+        }
         function addItem() { const name = document.getElementById('new-item-name').value; if (name) { state.currentChar.inventory.push({ name, qty: 1 }); saveCharacter(state.currentChar); render(); } }
         function updateItemQty(idx, delta) { const item = state.currentChar.inventory[idx]; item.qty += delta; if (item.qty <= 0) state.currentChar.inventory.splice(idx, 1); saveCharacter(state.currentChar); render(); }
         function updateMoney(val) { state.currentChar.money = parseInt(val) || 0; saveCharacter(state.currentChar); }
