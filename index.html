@@ -872,7 +872,8 @@
             
             const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'CAR': 'CARISMA' };
             const ATTR_ICONS_MAP = {
-                'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'zap'], 'CON': ['heart', 'activity'],
+                'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 
+                'CON': ['heart', 'activity'],
                 'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'CAR': ['crown', 'message-circle']
             };
 
@@ -898,17 +899,11 @@
                         <!-- Header Container -->
                         <div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]">
                             
-                            <!-- Name & Icons (Centered) -->
-                            <div class="flex items-center gap-1.5 text-[${themeColor}] bg-black/40 px-2 py-0.5 rounded-full border border-white/5 backdrop-blur-sm z-10">
-                                <i data-lucide="${icons[0]}" size="10"></i>
-                                <span class="text-[8px] font-black text-gray-300 uppercase tracking-[0.15em]">${fullName}</span>
-                                <i data-lucide="${icons[1]}" size="10" class="text-gray-600"></i>
-                            </div>
-
-                            <!-- Shield (Absolute Right) -->
-                            <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-0 top-1/2 -translate-y-1/2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}">
-                                <i data-lucide="shield" size="20" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10' : `text-[${themeColor}] fill-[${themeColor}]/10`) : 'text-gray-800 fill-gray-900'} transition-colors"></i>
-                                <span class="absolute text-[8px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span>
+                            <!-- Name & Icons (Centered with Glow) -->
+                            <div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]">
+                                <i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
+                                <span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span>
+                                <i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
                             </div>
                         </div>
 
@@ -920,10 +915,16 @@
                         </div>
 
                         <!-- Mod (Bottom) -->
-                        <div class="flex justify-center mt-1">
-                                <div class="px-3 py-px rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]">
+                        <div class="flex justify-center mt-1 mb-1">
+                                <div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">
                                 ${mod >= 0 ? '+'+mod : mod}
                                 </div>
+                        </div>
+
+                        <!-- Shield (Absolute Bottom Right) -->
+                        <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}">
+                            <i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i>
+                            <span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span>
                         </div>
                     </div>`;
                 }).join('')}
