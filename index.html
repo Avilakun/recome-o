@@ -342,7 +342,8 @@
             clickTimer: null, // Para diferenciar clique unico e duplo
             bgSelected: null, // Para controle de UI do antecedente
             rollMode: 'NORMAL', // NORMAL, VANTAGEM, DESVANTAGEM, ENFASE
-            allocations: {} // Alocações de bônus raciais
+            allocations: {}, // Alocações de bônus raciais
+            sheetOtherSkillsOpen: null // Estado do acordeão de Outros Treinamentos na ficha
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -539,9 +540,13 @@
             const step = state.creatorStep;
             
             // GARANTIR TEMA (PERSISTÊNCIA DE COR)
+            let themeColorHex = '#00ff9d';
             if (state.tempChar && state.tempChar.class) {
                 const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class);
-                if (clsTheme) setThemeColor(clsTheme.color);
+                if (clsTheme) {
+                    setThemeColor(clsTheme.color);
+                    themeColorHex = clsTheme.color;
+                }
             }
 
             let contentHtml = '';
@@ -648,7 +653,7 @@
                     contentHtml += `
                     <div id="bg-card-${bg.nome.replace(/\s/g,'-')}" onclick="selectBackground('${bg.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2">
                         <div class="p-4 flex items-start justify-between">
-                            <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${bg.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight line-clamp-1">${bg.descricao}</p></div>
+                            <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${bg.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight line-clamp-2">${bg.descricao}</p></div>
                             <div class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
                         </div>
                         <div class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}">
@@ -860,6 +865,9 @@
                     </div>`;
                 };
 
+                // Use themeColorHex for Step 5 logic to ensure colors stick
+                const tc = themeColorHex;
+
                 contentHtml = `<div class="space-y-4 pt-2">
                     <div class="text-center mb-4"><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Defina suas competências de combate e perícias</p></div>
                     
@@ -881,7 +889,7 @@
                         </div>
                     </div>` : ''}
 
-                    ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', 'text-neon-yellow', 'text-neon-yellow')}
+                    ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', 'text-neon-theme', 'text-neon-theme')}
                     ${state.openSkillAccordion === 'OTHER' ? `<div class="pl-1 pr-1 pb-4 pt-1">
                         <p class="text-[10px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p>
                         <div class="grid grid-cols-1 gap-2">
@@ -890,12 +898,12 @@
                                 const isKitItem = skill === 'Kits';
                                 const isLocked = isKitItem && hasBgKit;
                                 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all ${isLocked ? 'bg-neon-yellow/5 border-neon-yellow/50 text-white cursor-not-allowed' : (isSelected ? 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)] cursor-pointer' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 cursor-pointer')} group">
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all ${isLocked ? `bg-[${tc}]/5 border-[${tc}]/50 text-white cursor-not-allowed` : (isSelected ? `bg-[${tc}]/10 border-[${tc}] text-white shadow-[0_0_10px_${tc}20] cursor-pointer` : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 cursor-pointer')} group">
                                     <div class="flex items-center gap-3 pointer-events-none">
-                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" class="${isSelected ? 'text-neon-yellow' : 'text-gray-600'}"></i>
-                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-yellow' : ''}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
+                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" class="${isSelected ? `text-[${tc}]` : 'text-gray-600'}" style="${isSelected ? `color:${tc}` : ''}"></i>
+                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? `text-[${tc}]` : ''}" style="${isSelected ? `color:${tc}` : ''}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
                                     </div>
-                                    <div class="pointer-events-none ${isSelected ? 'text-neon-yellow' : 'text-gray-700'}">
+                                    <div class="pointer-events-none ${isSelected ? `text-[${tc}]` : 'text-gray-700'}" style="${isSelected ? `color:${tc}` : ''}">
                                         ${isSelected ? (isLocked ? '<i data-lucide="lock" size="14"></i>' : '<i data-lucide="check-square" size="14"></i>') : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
@@ -1058,7 +1066,32 @@
                 if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { const tData = raceData.caracteristicas.find(c => c.nome === tName); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`; }).join(''); } } else { const fixedFeatures = [...(raceData.caracteristicas || [])]; if (fixedFeatures.length > 0) { traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p>${f.tabela_ancestral ? `<p class="text-[9px] text-gray-500 mt-1 italic">${f.tabela_ancestral}</p>` : ''}</div>`).join(''); } if (typeof raceData.aumento_atributo === 'object') { const attrs = Object.entries(raceData.aumento_atributo).map(([k,v]) => `${k} ${v>0?'+':''}${v}`).join(', '); traitsHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl"><h4 class="font-bold text-gray-500 text-[10px] uppercase mb-1">Bônus de Atributos</h4><p class="text-xs text-[${themeColor}] font-bold">${attrs}</p></div>`; } } traitsHtml += `</div>`;
                 let bgHtml = ''; if (bgData && char.backgroundFeature) { const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature); bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6"><div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div></div>`; }
                 let incHtml = ''; if (char.inclinations && (char.inclinations.positive.length > 0 || char.inclinations.negative.length > 0)) { incHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-white"><i data-lucide="scale" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Inclinações</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Positivas e Negativas</p></div></div><div class="space-y-2 mb-6">`; const findIncDesc = (type, name) => { const list = SYSTEM_DB.inclinacoes[type]; if (name.includes(':')) { const [parentName, childName] = name.split(':').map(s=>s.trim()); const parent = list.find(i => i.nome === parentName); if (parent && parent.options) { const child = parent.options.find(o => o.label === childName); if (child) return child.desc; } } const exact = list.find(i => i.nome === name); return exact ? exact.desc : 'Descrição não encontrada.'; }; if (char.inclinations.positive.length > 0) { incHtml += char.inclinations.positive.map(i => { const desc = findIncDesc('positivas', i.nome); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-green"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-green text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">${i.custo} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`; }).join(''); } if (char.inclinations.negative.length > 0) { incHtml += char.inclinations.negative.map(i => { const desc = findIncDesc('negativas', i.nome); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-red"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-red text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">+${i.valor} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`; }).join(''); } incHtml += `</div>`; }
-                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s)); let otherSkillsHtml = ''; if (otherTrainings.length > 0) { otherSkillsHtml = `<div class="space-y-2 mt-2 border-t border-gray-800 pt-4"><div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div><div class="flex flex-wrap gap-2">${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" style="color: ${themeColor}" class="shrink-0"></i><span class="text-xs font-bold whitespace-nowrap" style="color: ${themeColor}">${s}</span></div>`).join('')}</div></div>`; } tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${incHtml}${otherSkillsHtml}</div>`;
+                
+                // Other Skills Accordion Logic
+                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s)); 
+                let otherSkillsHtml = ''; 
+                if (otherTrainings.length > 0) { 
+                    const isOpen = state.sheetOtherSkillsOpen;
+                    otherSkillsHtml = `
+                    <div class="mt-2 border-t border-gray-800 pt-4">
+                        <div onclick="toggleSheetAccordion()" class="flex items-center justify-between cursor-pointer group">
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div>
+                                <div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div>
+                            </div>
+                            <div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600 group-hover:text-gray-400'}">
+                                <i data-lucide="chevron-down" size="20"></i>
+                            </div>
+                        </div>
+                        <div class="accordion-content ${isOpen ? 'open' : ''}">
+                            <div class="flex flex-wrap gap-2 pt-2">
+                                ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" style="color: ${themeColor}" class="shrink-0"></i><span class="text-xs font-bold whitespace-nowrap" style="color: ${themeColor}">${s}</span></div>`).join('')}
+                            </div>
+                        </div>
+                    </div>`; 
+                } 
+                
+                tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${incHtml}${otherSkillsHtml}</div>`;
             } else if (state.activeTab === 'INV') {
                 // ... (INV same)
                 tabContent = `<div class="p-4 space-y-4"><div class="flex gap-2"><input type="text" id="new-item-name" placeholder="Nome do item..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[${themeColor}]"><button onclick="addItem()" class="bg-[${themeColor}] text-black px-4 rounded-lg font-bold hover:brightness-110"><i data-lucide="plus"></i></button></div><div class="space-y-2">${char.inventory.length === 0 ? '<div class="text-center text-gray-600 text-xs py-8 border border-dashed border-gray-800 rounded-xl">Mochila vazia.</div>' : ''}${char.inventory.map((item, idx) => `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex justify-between items-center"><span class="text-sm font-bold text-white">${item.name}</span><div class="flex items-center gap-3"><button onclick="updateItemQty(${idx}, -1)" class="text-gray-500 hover:text-white"><i data-lucide="minus" size="14"></i></button><span class="text-sm w-4 text-center">${item.qty}</span><button onclick="updateItemQty(${idx}, 1)" class="text-gray-500 hover:text-white"><i data-lucide="plus" size="14"></i></button></div></div>`).join('')}</div><div class="flex justify-between items-center pt-4 border-t border-gray-800 text-xs text-gray-400"><span class="uppercase font-bold tracking-widest">Jenny (Dinheiro)</span><div class="flex items-center gap-2 bg-gray-900 px-3 py-1 rounded border border-gray-700"><span class="text-[${themeColor}] font-bold">$</span><input type="number" value="${char.money}" onchange="updateMoney(this.value)" class="w-24 text-right bg-transparent text-white font-mono outline-none"></div></div></div>`;
@@ -1132,17 +1165,24 @@
 
                 <!-- Vitals Row (3 Cols, 2 Rows logic) -->
                 <div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-t border-b border-gray-800 bg-[#0b0c10]">
-                    <!-- Row 1: SAN, PV, AURA -->
+                    <!-- Row 1: SAN, REA, AURA -->
                     ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
-                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
+                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
                     ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}
                     
-                    <!-- Row 2: CA, REA, Empty/Spacer -->
+                    <!-- Row 2: CA, Armor Icon, PV -->
                     ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
-                    ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
-                    <div class="flex items-center justify-center opacity-30 pointer-events-none">
-                       <i data-lucide="activity" size="20" class="text-gray-600"></i>
+                    
+                    <!-- Armor Icon -->
+                    <div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span>
+                        <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all">
+                            <i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i>
+                        </div>
+                        <div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div>
                     </div>
+
+                    ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
                 </div>
 
                 <!-- Roll Mode Selector -->
@@ -1652,6 +1692,15 @@
             char.level = newLevel;
             saveCharacter(char);
             render();
+        }
+
+        function toggleSheetAccordion() {
+            state.sheetOtherSkillsOpen = !state.sheetOtherSkillsOpen;
+            render();
+        }
+
+        function handleArmorClick() {
+            alert('Funcionalidade de Armadura em desenvolvimento.');
         }
 
         function addItem() { const name = document.getElementById('new-item-name').value; if (name) { state.currentChar.inventory.push({ name, qty: 1 }); saveCharacter(state.currentChar); render(); } }
