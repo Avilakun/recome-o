@@ -1099,6 +1099,30 @@
                     </div>
                 </div>
 
+                <!-- Info Bar -->
+                <div class="grid grid-cols-3 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
+                    <!-- Tendência -->
+                    <div class="p-2 flex flex-col items-center justify-center">
+                        <span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span>
+                        <select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full">
+                            <option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option>
+                            <option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option>
+                            <option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option>
+                            <option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option>
+                        </select>
+                    </div>
+                    <!-- Proficiência -->
+                    <div class="p-2 flex flex-col items-center justify-center">
+                        <span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span>
+                        <span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span>
+                    </div>
+                    <!-- Jogador -->
+                    <div class="p-2 flex flex-col items-center justify-center">
+                        <span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span>
+                        <input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700">
+                    </div>
+                </div>
+
                 <!-- Vitals Row -->
                 <div class="grid grid-cols-6 divide-x divide-gray-800 px-2 py-4 border-t border-b border-gray-800 bg-[#0b0c10]">
                     ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
@@ -1393,6 +1417,8 @@
                 xp: 0, 
                 xp_next: 50, 
                 money: 0,
+                alignment: 'Neutro', // Default Alignment
+                playerName: '', // Default Player Name
                 attributes: {}, 
                 skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], 
                 expertise: [], 
@@ -1523,6 +1549,13 @@
             saveCharacter(state.currentChar); 
             render(); 
         }
+
+        function updateCharProperty(prop, val) {
+            state.currentChar[prop] = val;
+            saveCharacter(state.currentChar);
+            render();
+        }
+
         function addItem() { const name = document.getElementById('new-item-name').value; if (name) { state.currentChar.inventory.push({ name, qty: 1 }); saveCharacter(state.currentChar); render(); } }
         function updateItemQty(idx, delta) { const item = state.currentChar.inventory[idx]; item.qty += delta; if (item.qty <= 0) state.currentChar.inventory.splice(idx, 1); saveCharacter(state.currentChar); render(); }
         function updateMoney(val) { state.currentChar.money = parseInt(val) || 0; saveCharacter(state.currentChar); }
