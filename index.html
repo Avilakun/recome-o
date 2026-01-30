@@ -492,7 +492,7 @@
              if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] } }; }
             const step = state.creatorStep;
             
-            // GARANTIR TEMA
+            // GARANTIR TEMA (PERSISTÊNCIA DE COR)
             if (state.tempChar && state.tempChar.class) {
                 const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class);
                 if (clsTheme) setThemeColor(clsTheme.color);
@@ -592,18 +592,18 @@
                 contentHtml = `<div class="space-y-4">`;
                 SYSTEM_DB.antecedentes.forEach(bg => {
                     const isSelected = state.tempChar.background === bg.nome;
-                    const borderColor = isSelected ? 'border-neon-blue ring-2 ring-neon-blue/20' : 'border-gray-800';
-                    const bgColor = isSelected ? 'bg-neon-blue/5' : 'bg-gray-900';
-                    const textColor = isSelected ? 'text-neon-blue' : 'text-white';
+                    const borderColor = isSelected ? 'border-neon-theme ring-2 ring-neon-theme/20' : 'border-gray-800';
+                    const bgColor = isSelected ? 'bg-neon-theme/5' : 'bg-gray-900';
+                    const textColor = isSelected ? 'text-neon-theme' : 'text-white';
                     
-                    const checkIcon = `<span class="transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'} flex items-center"><i data-lucide="check" size="16" class="text-neon-blue"></i></span>`;
+                    const checkIcon = `<span class="transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'} flex items-center"><i data-lucide="check" size="16" class="text-neon-theme"></i></span>`;
                     const chevronClass = isSelected ? 'rotate-0' : '-rotate-90';
 
                     contentHtml += `
                     <div id="bg-card-${bg.nome.replace(/\s/g,'-')}" onclick="selectBackground('${bg.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2">
                         <div class="p-4 flex items-start justify-between">
                             <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${bg.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight line-clamp-1">${bg.descricao}</p></div>
-                            <div class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-blue' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
+                            <div class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
                         </div>
                         <div class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}">
                             <div class="h-px w-full bg-gray-800 mb-4"></div>
@@ -819,15 +819,15 @@
                     
                     ${bgSkillsText ? `<div class="bg-gray-900/50 border border-gray-800 p-3 rounded-xl mb-4 text-center"><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Perícias de Antecedente (Extra)</p><p class="text-xs text-neon-blue font-bold">${bgSkillsText}</p></div>` : ''}
 
-                    ${renderAccordionHeader('MAIN', 'PERÍCIAS E RESISTÊNCIAS', mainCount, maxMain, state.openSkillAccordion === 'MAIN', 'text-neon-blue', 'text-neon-blue')}
+                    ${renderAccordionHeader('MAIN', 'PERÍCIAS E RESISTÊNCIAS', mainCount, maxMain, state.openSkillAccordion === 'MAIN', 'text-neon-theme', 'text-neon-theme')}
                     ${state.openSkillAccordion === 'MAIN' ? `<div class="pl-1 pr-1 pb-4 pt-1">
                         <div class="grid grid-cols-2 gap-2">
                             ${SYSTEM_DB.skills.map(skill => {
                                 const isSelected = state.tempChar.skills.includes(skill);
                                 const isFromBg = bgSkillsText.includes(skill); 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'main')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
-                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">ANTECEDENTE</span>' : ''}</span>
-                                    <div class="pointer-events-none ${isSelected ? 'text-neon-blue' : 'text-gray-700'}">
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'main')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-theme/10 border-neon-theme text-white shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
+                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-theme' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">ANTECEDENTE</span>' : ''}</span>
+                                    <div class="pointer-events-none ${isSelected ? 'text-neon-theme' : 'text-gray-700'}">
                                         ${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
@@ -1074,8 +1074,8 @@
                 let bgHtml = '';
                 if (bgData && char.backgroundFeature) {
                     const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature);
-                    bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-neon-blue"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6">`;
-                    bgHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-neon-blue"><h4 class="font-bold text-neon-blue text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
+                    bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6">`;
+                    bgHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
                     bgHtml += `</div>`;
                 }
 
@@ -1338,9 +1338,9 @@
             }
 
             const btn = document.getElementById(`skill-btn-${skill.replace(/\s/g,'-')}`);
-            const baseClass = type === 'main' ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)]';
-            const iconColor = type === 'main' ? 'text-neon-blue' : 'text-neon-yellow';
-            const maxColorClass = type === 'main' ? 'text-neon-blue' : 'text-neon-yellow';
+            const baseClass = type === 'main' ? 'bg-neon-theme/10 border-neon-theme text-white shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]' : 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)]';
+            const iconColor = type === 'main' ? 'text-neon-theme' : 'text-neon-yellow';
+            const maxColorClass = type === 'main' ? 'text-neon-theme' : 'text-neon-yellow';
             
             if (idx >= 0) {
                 // Desmarcado
