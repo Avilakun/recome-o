@@ -224,13 +224,44 @@
             inclinacoes: {
                 positivas: [
                     { nome: "Aliado", custo: 1, desc: "O personagem possui um velho amigo que pode lhe oferecer ajuda, informações e abrigo caso esteja próximo de sua residência." },
-                    { nome: "Contatos (Informação Rápida)", custo: 1, desc: "Você recebe uma informação sobre a dúvida em até 24 horas por $500. VOCÊ pode ser O CONTATO de alguém, tendo vantagem em testes de negociação na busca de informações cabíveis ao que solicitam." },
+                    { 
+                        nome: "Contatos", 
+                        custo: 1, 
+                        desc: "Rede de influência e informação.",
+                        hasOptions: true,
+                        options: [
+                            { label: "Informante Local", custo: 1, desc: "Acesso a rumores locais." },
+                            { label: "Rede de Informantes", custo: 2, desc: "Informações cruzadas em várias regiões." },
+                            { label: "Contato VIP", custo: 3, desc: "Acesso a governo ou submundo." }
+                        ]
+                    },
                     { nome: "Corpo de Gigante", custo: 5, desc: "Você é enorme e por isso tem um nível a mais de vitalidade. +5 HP inicial e +3 por nível. O usuário tem que ficar com altura acima de 2,10m e não consegue utilizar armas leves e pequenas sem depender de uma técnica." },
                     { nome: "Empatia com Animais", custo: 1, desc: "Você é talentoso em entender o comportamento dos animais. Superando um teste de INT = 10 você compreende o estado emocional do animal - amigável, assustado, hostil, faminto, etc." },
                     { nome: "Fôlego", custo: 2, desc: "Dificilmente alguém terá sucesso te asfixiando ou afogando. Você consegue prender a respiração por 5-7 minutos fazendo esforço e 10-15 apenas nadando de forma despretensiosa ou se concentrando." },
-                    { nome: "Inventor", custo: 1, desc: "Você é um inventor natural, podendo modificar equipamentos existentes e, com tempo e dinheiro suficientes, inventar aparelhos inteiramente novos concedendo benefícios variados." },
+                    { 
+                        nome: "Inventor", 
+                        custo: 1, 
+                        desc: "Talento natural para criar e modificar.",
+                        hasOptions: true,
+                        options: [
+                            { label: "Modificador", custo: 1, desc: "Ajustes simples em equipamentos." },
+                            { label: "Criador", custo: 2, desc: "Criação de novos itens mundanos." },
+                            { label: "Visionário", custo: 3, desc: "Criação de tecnologia avançada/única." }
+                        ]
+                    },
                     { nome: "Ligação com a Máfia", custo: 3, desc: "O personagem tem certa influência com alguma família mafiosa e poderá pedir alguns favores, mas cuidado, é bom não exagerar, pois eles normalmente pedem favores em troca." },
-                    { nome: "Sentidos Aguçados", custo: 1, desc: "Seus sentidos são mais desenvolvidos que o normal. Cada Sentido Aguçado concede +2 para uma das opções: Audição, Paladar/Olfato, Tato ou Visão." },
+                    { 
+                        nome: "Sentidos Aguçados", 
+                        custo: 1, 
+                        desc: "Um dos seus sentidos é superior.",
+                        hasOptions: true,
+                        options: [
+                            { label: "Audição", custo: 1 },
+                            { label: "Paladar/Olfato", custo: 1 },
+                            { label: "Tato", custo: 1 },
+                            { label: "Visão", custo: 1 }
+                        ]
+                    },
                     { nome: "Sorte Grande", custo: 3, desc: "Você pode re-rolar 1 dado por sessão ficando com o maior resultado." },
                     { nome: "Tempo de Vida Estendido (Anomalia)", custo: 3, desc: "Independente de que raça pertença, você é uma anomalia. Seu ciclo de vida se estende em uma margem de 20 anos a mais em todos os períodos de desenvolvimento após a infância." },
                     { nome: "Visão no Escuro", custo: 2, desc: "Você pode ver 9m no escuro como se fosse dia e não sofre penalidades de escuridão que não conte como bloqueio ou aplique cegueira." }
@@ -243,7 +274,19 @@
                     { nome: "Esquecido", valor: 1, desc: "Você tem dificuldade de se recordar de nomes, lugares, aparências e informações. É bem comum causar confusão por isso." },
                     { nome: "Honestidade", valor: 2, desc: "Você precisa obedecer a lei sempre e dar o melhor de si para que os outros também o façam. Você assumirá também que os outros são honestos até saber o contrário." },
                     { nome: "Indeciso", valor: 5, desc: "Você tem muita dificuldade para se decidir, recebendo -3 em rolagens de iniciativa. Além disso, sempre que se deparar com uma escolha, faça um teste simples de INT ou CAR CD 15." },
-                    { nome: "Inimigo (Fraco)", valor: 1, desc: "Seria um inimigo mais chato do que um desafio por assim dizer, ele sempre aparece para te atrapalhar e seus objetivos são estúpidos. (Valor varia de 1 a 5 dependendo do poder do inimigo)." },
+                    { 
+                        nome: "Inimigo", 
+                        valor: 1, 
+                        desc: "Alguém ou algo que ativamente tenta te prejudicar.",
+                        hasOptions: true,
+                        options: [
+                             { label: "Rival (Fraco)", valor: 1, desc: "Inconveniência constante." },
+                             { label: "Opositor (Médio)", valor: 2, desc: "Recursos moderados para te atrapalhar." },
+                             { label: "Ameaça (Forte)", valor: 3, desc: "Poderoso e perigoso." },
+                             { label: "Assassino (Muito Forte)", valor: 4, desc: "Intento letal e alta capacidade." },
+                             { label: "Nêmesis (Mortal)", valor: 5, desc: "Chefe de organização ou poder extremo." }
+                        ]
+                    },
                     { nome: "Inveja", valor: 1, desc: "Você tem uma reação muito ruim frente a qualquer um que pareça mais inteligente, mais atraente, poderoso ou em melhor situação do que a sua!" },
                     { nome: "Perda Auditiva", valor: 1, desc: "Você não é surdo, mas perdeu uma parte da audição e sofrerá um redutor de -3 em qualquer teste de Audição." },
                     { nome: "Veracidade", valor: 2, desc: "Você odeia dizer uma mentira ou o faz muito mal. Ter que mentir pode fazer literalmente você ficar enjoado ou com peso na consciência (Condição Envenenado ou -5 Sanidade)." }
@@ -629,16 +672,47 @@
                         </div>
                         <div class="space-y-2">
                             ${SYSTEM_DB.inclinacoes.positivas.map(inc => {
-                                const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === inc.nome);
-                                return `
-                                <div onclick="toggleInclination('positive', '${inc.nome}', ${inc.custo})" class="bg-gray-900 border ${isSelected ? 'border-neon-green shadow-[0_0_10px_rgba(0,255,157,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
-                                    ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-green"></i></div>' : ''}
-                                    <div class="flex justify-between items-start mb-1">
-                                        <span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span>
-                                        <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
-                                    </div>
-                                    <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
-                                </div>`;
+                                if (inc.hasOptions) {
+                                     const hasChildSelected = state.tempChar.inclinations.positive.some(i => i.nome.startsWith(inc.nome + ':'));
+                                     return `
+                                     <div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-green/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden">
+                                        <div class="mb-2 border-b border-gray-800 pb-2">
+                                            <span class="text-xs font-bold text-white flex items-center gap-2">
+                                                ${inc.nome}
+                                                ${hasChildSelected ? '<span class="text-[9px] bg-neon-green/10 text-neon-green px-1.5 rounded border border-neon-green/20 uppercase">Selecionado</span>' : ''}
+                                            </span>
+                                            <p class="text-[10px] text-gray-500 leading-tight mt-1">${inc.desc}</p>
+                                        </div>
+                                        <div class="space-y-1 pl-2 border-l-2 border-gray-800">
+                                            ${inc.options.map(opt => {
+                                                const fullName = `${inc.nome}: ${opt.label}`;
+                                                const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === fullName);
+                                                return `
+                                                <div onclick="toggleInclination('positive', '${fullName}', ${opt.custo})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-green/10' : ''}">
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[11px] font-bold ${isSelected ? 'text-neon-green' : 'text-gray-300'}">${opt.label}</span>
+                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500">${opt.desc}</span>` : ''}
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] font-mono text-gray-500">${opt.custo} pts</span>
+                                                        ${isSelected ? '<i data-lucide="check" size="12" class="text-neon-green"></i>' : '<div class="w-3 h-3"></div>'}
+                                                    </div>
+                                                </div>`;
+                                            }).join('')}
+                                        </div>
+                                     </div>`;
+                                } else {
+                                    const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === inc.nome);
+                                    return `
+                                    <div onclick="toggleInclination('positive', '${inc.nome}', ${inc.custo})" class="bg-gray-900 border ${isSelected ? 'border-neon-green shadow-[0_0_10px_rgba(0,255,157,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
+                                        ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-green"></i></div>' : ''}
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span>
+                                            <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
+                                    </div>`;
+                                }
                             }).join('')}
                         </div>
                     </div>
@@ -647,16 +721,47 @@
                         <h4 class="text-xs font-black text-neon-red uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="thumbs-down" size="14"></i> Gerais Negativas</h4>
                         <div class="space-y-2">
                             ${SYSTEM_DB.inclinacoes.negativas.map(inc => {
-                                const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === inc.nome);
-                                return `
-                                <div onclick="toggleInclination('negative', '${inc.nome}', ${inc.valor})" class="bg-gray-900 border ${isSelected ? 'border-neon-red shadow-[0_0_10px_rgba(255,0,85,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
-                                    ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-red"></i></div>' : ''}
-                                    <div class="flex justify-between items-start mb-1">
-                                        <span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span>
-                                        <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
-                                    </div>
-                                    <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
-                                </div>`;
+                                if (inc.hasOptions) {
+                                    const hasChildSelected = state.tempChar.inclinations.negative.some(i => i.nome.startsWith(inc.nome + ':'));
+                                     return `
+                                     <div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-red/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden">
+                                        <div class="mb-2 border-b border-gray-800 pb-2">
+                                            <span class="text-xs font-bold text-white flex items-center gap-2">
+                                                ${inc.nome}
+                                                ${hasChildSelected ? '<span class="text-[9px] bg-neon-red/10 text-neon-red px-1.5 rounded border border-neon-red/20 uppercase">Selecionado</span>' : ''}
+                                            </span>
+                                            <p class="text-[10px] text-gray-500 leading-tight mt-1">${inc.desc}</p>
+                                        </div>
+                                        <div class="space-y-1 pl-2 border-l-2 border-gray-800">
+                                            ${inc.options.map(opt => {
+                                                const fullName = `${inc.nome}: ${opt.label}`;
+                                                const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === fullName);
+                                                return `
+                                                <div onclick="toggleInclination('negative', '${fullName}', ${opt.valor})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-red/10' : ''}">
+                                                    <div class="flex flex-col">
+                                                        <span class="text-[11px] font-bold ${isSelected ? 'text-neon-red' : 'text-gray-300'}">${opt.label}</span>
+                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500">${opt.desc}</span>` : ''}
+                                                    </div>
+                                                    <div class="flex items-center gap-2">
+                                                        <span class="text-[9px] font-mono text-gray-500">+${opt.valor} pts</span>
+                                                        ${isSelected ? '<i data-lucide="check" size="12" class="text-neon-red"></i>' : '<div class="w-3 h-3"></div>'}
+                                                    </div>
+                                                </div>`;
+                                            }).join('')}
+                                        </div>
+                                     </div>`;
+                                } else {
+                                    const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === inc.nome);
+                                    return `
+                                    <div onclick="toggleInclination('negative', '${inc.nome}', ${inc.valor})" class="bg-gray-900 border ${isSelected ? 'border-neon-red shadow-[0_0_10px_rgba(255,0,85,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
+                                        ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-red"></i></div>' : ''}
+                                        <div class="flex justify-between items-start mb-1">
+                                            <span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span>
+                                            <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
+                                    </div>`;
+                                }
                             }).join('')}
                         </div>
                     </div>
@@ -939,8 +1044,8 @@
 
                 let incHtml = '';
                 if (char.inclinations) {
-                    const pos = char.inclinations.positive.map(i => `<li class="text-neon-green">${i.nome}</li>`).join('');
-                    const neg = char.inclinations.negative.map(i => `<li class="text-neon-red">${i.nome}</li>`).join('');
+                    const pos = char.inclinations.positive.map(i => `<li class="text-neon-green">${i.nome} (${i.custo} pts)</li>`).join('');
+                    const neg = char.inclinations.negative.map(i => `<li class="text-neon-red">${i.nome} (+${i.valor} pts)</li>`).join('');
                     if (pos || neg) {
                         incHtml = `<div class="bg-gray-900 border border-gray-800 p-4 rounded-xl"><h4 class="font-bold text-white text-sm mb-2">Inclinações</h4><ul class="text-xs list-disc pl-4 space-y-1">${pos}${neg}</ul></div>`;
                     }
