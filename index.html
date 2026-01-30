@@ -227,12 +227,12 @@
                     { 
                         nome: "Contatos", 
                         custo: 1, 
-                        desc: "Rede de influência e informação.",
+                        desc: "Você tem um associado que lhe fornece informações úteis ou faz pequenos favores.",
                         hasOptions: true,
                         options: [
-                            { label: "Informante Local", custo: 1, desc: "Acesso a rumores locais." },
-                            { label: "Rede de Informantes", custo: 2, desc: "Informações cruzadas em várias regiões." },
-                            { label: "Contato VIP", custo: 3, desc: "Acesso a governo ou submundo." }
+                            { label: "Informação rápida", custo: 1, desc: "Recebe uma informação sobre a dúvida em até 24 horas por $500." },
+                            { label: "Informação de confiança", custo: 2, desc: "Recebe todas as informações disponíveis, explicando quais se podem confiar ($2000)." },
+                            { label: "Informação barata", custo: 1, desc: "Diminui o custo da informação rápida de $500 para até $100." }
                         ]
                     },
                     { nome: "Corpo de Gigante", custo: 5, desc: "Você é enorme e por isso tem um nível a mais de vitalidade. +5 HP inicial e +3 por nível. O usuário tem que ficar com altura acima de 2,10m e não consegue utilizar armas leves e pequenas sem depender de uma técnica." },
@@ -241,25 +241,26 @@
                     { 
                         nome: "Inventor", 
                         custo: 1, 
-                        desc: "Talento natural para criar e modificar.",
+                        desc: "Modifica equipamentos ou cria novos. Selecione os benefícios:",
                         hasOptions: true,
                         options: [
-                            { label: "Modificador", custo: 1, desc: "Ajustes simples em equipamentos." },
-                            { label: "Criador", custo: 2, desc: "Criação de novos itens mundanos." },
-                            { label: "Visionário", custo: 3, desc: "Criação de tecnologia avançada/única." }
+                            { label: "Propriedade de Dano", custo: 1, desc: "Dão até 1d8 de dano natural de qualquer propriedade (max. 3 propriedades)." },
+                            { label: "Alcance/Alvos", custo: 1, desc: "Atingem até 2 alvos." },
+                            { label: "Compacto", custo: 1, desc: "Diminuem até 4 de espaço/peso." },
+                            { label: "Defensivo", custo: 1, desc: "Aumentam até 2 de CA." }
                         ]
                     },
                     { nome: "Ligação com a Máfia", custo: 3, desc: "O personagem tem certa influência com alguma família mafiosa e poderá pedir alguns favores, mas cuidado, é bom não exagerar, pois eles normalmente pedem favores em troca." },
                     { 
                         nome: "Sentidos Aguçados", 
                         custo: 1, 
-                        desc: "Um dos seus sentidos é superior.",
+                        desc: "Seus sentidos são mais desenvolvidos (+2 em testes específicos).",
                         hasOptions: true,
                         options: [
-                            { label: "Audição", custo: 1 },
-                            { label: "Paladar/Olfato", custo: 1 },
-                            { label: "Tato", custo: 1 },
-                            { label: "Visão", custo: 1 }
+                            { label: "Audição Aguçada", custo: 1, desc: "+2 para escutar ou reparar sons incomuns (ex: engatilhar arma no escuro)." },
+                            { label: "Paladar e Olfato", custo: 1, desc: "+2 para reparar gosto/cheiro. Bônus passivo antes de ingerir (evita veneno)." },
+                            { label: "Tato Aguçado", custo: 1, desc: "+2 em detectar pelo toque ou Prestidigitação (ex: revistar suspeito)." },
+                            { label: "Visão Aguçada", custo: 1, desc: "+2 em localizar visualmente, procurar armadilhas ou pegadas." }
                         ]
                     },
                     { nome: "Sorte Grande", custo: 3, desc: "Você pode re-rolar 1 dado por sessão ficando com o maior resultado." },
@@ -280,11 +281,9 @@
                         desc: "Alguém ou algo que ativamente tenta te prejudicar.",
                         hasOptions: true,
                         options: [
-                             { label: "Rival (Fraco)", valor: 1, desc: "Inconveniência constante." },
-                             { label: "Opositor (Médio)", valor: 2, desc: "Recursos moderados para te atrapalhar." },
-                             { label: "Ameaça (Forte)", valor: 3, desc: "Poderoso e perigoso." },
-                             { label: "Assassino (Muito Forte)", valor: 4, desc: "Intento letal e alta capacidade." },
-                             { label: "Nêmesis (Mortal)", valor: 5, desc: "Chefe de organização ou poder extremo." }
+                             { label: "Fraco", valor: 1, desc: "Inimigo chato, objetivos estúpidos, aparece para atrapalhar (Ex: Equipe Rocket)." },
+                             { label: "Rival", valor: 2, desc: "Inimigo mediano, mesmos objetivos que você, fará de tudo para atrapalhar inclusive lutar." },
+                             { label: "Poderoso", valor: 5, desc: "Chefão maligno. Te caça para recrutar ou matar sem piedade." }
                         ]
                     },
                     { nome: "Inveja", valor: 1, desc: "Você tem uma reação muito ruim frente a qualquer um que pareça mais inteligente, mais atraente, poderoso ou em melhor situação do que a sua!" },
