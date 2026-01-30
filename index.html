@@ -909,9 +909,9 @@
 
                         <!-- Value (Center) -->
                         <div class="flex items-center justify-center my-0 relative flex-1">
-                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="minus" size="14"></i></button>
+                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button>
                                 <span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span>
-                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1 opacity-0 group-hover:opacity-100 transition-opacity"><i data-lucide="plus" size="14"></i></button>
+                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button>
                         </div>
 
                         <!-- Mod (Bottom) -->
@@ -1073,9 +1073,9 @@
                 <div class="flex flex-col items-center justify-center w-full">
                     <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
                     <div class="flex items-center justify-center gap-1 w-full">
-                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', -1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="minus" size="6"></i></button>` : '<div class="w-4"></div>'}
                         <span class="font-display font-bold text-lg text-white tracking-wider">${val}</span>
-                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="12"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', 1)" class="text-gray-500 hover:text-white p-0.5"><i data-lucide="plus" size="6"></i></button>` : '<div class="w-4"></div>'}
                     </div>
                     <div class="w-8 h-0.5 rounded-full mt-0.5 ${borderClass} opacity-80"></div>
                 </div>
