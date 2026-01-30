@@ -194,7 +194,7 @@
                 { nome: "Goblins", descricao: "Maliciosos.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Fúria do Pequeno", efeito: "Dano extra." }], fonte: "Extra", categoria: "Raças Incomuns" }
             ],
             antecedentes: [
-                { nome: "Amigo dos Animais", descricao: "Pessoas que se importam com o equilíbrio da natureza, mas que também adoram um desafio, andam pelas florestas e pântanos buscando encontrar criaturas fantásticas e desconhecidas. Por outro lado, muitos amigos dos animais são simplesmente amados pela natureza como se fizessem parte dela.", proficiencias: "Escolha um Kit dentre os recebidos e Adestrar Animais e Natureza", equipamento: ["Qualquer arma simples", "Qualquer arma simples", "Kit de Caça e Rastreio de Criaturas ou Kit Médico"], caracteristicas: [{nome: "Habitat Natural", efeito: "Animais e Feras (inclusive hostis) normalmente o consideram outra criatura não hostil. Seus companheiros são tratados como membros aliados do seu bando, desde que não atuem de forma hostil."}, {nome: "Tarzan/Jane", efeito: "De alguma forma você se acostumou com a linguagem de animais e feras. Ao passar um minuto interagindo com uma criatura não hostil você pode identificar alguma informação que ela já tenha conhecimento sobre o ambiente ou uma outra criatura."}, {nome: "Companheiro Inabalável", efeito: "Você tem um companheiro que te concede a Ação 'Ajuda' no turno dele. Ele te entende e obedece comandos simples."}] },
+                { nome: "Amigo dos Animais", descricao: "Pessoas que se importam com o equilíbrio da natureza, mas que também adoram um desafio, andam pelas florestas e pântanos buscando encontrar criaturas fantásticas e desconhecidas. Por outro lado, muitos amigos dos animais são simplesmente amados pela natureza como se fizessem parte dela.", proficiencias: "Escolha um Kit dentre os recebidos e Lidar com Animais e Natureza", equipamento: ["Qualquer arma simples", "Qualquer arma simples", "Kit de Caça e Rastreio de Criaturas ou Kit Médico"], caracteristicas: [{nome: "Habitat Natural", efeito: "Animais e Feras (inclusive hostis) normalmente o consideram outra criatura não hostil. Seus companheiros são tratados como membros aliados do seu bando, desde que não atuem de forma hostil."}, {nome: "Tarzan/Jane", efeito: "De alguma forma você se acostumou com a linguagem de animais e feras. Ao passar um minuto interagindo com uma criatura não hostil você pode identificar alguma informação que ela já tenha conhecimento sobre o ambiente ou uma outra criatura."}, {nome: "Companheiro Inabalável", efeito: "Você tem um companheiro que te concede a Ação 'Ajuda' no turno dele. Ele te entende e obedece comandos simples."}] },
                 { nome: "Aristocrata", descricao: "Pessoas que entendem de riqueza, poder e privilégios. Mas não só entendem, elas desfrutam e estão acostumadas a isso. Através de algum título de nobreza, sua família exerce algum tipo de influência política significativa.", proficiencias: "História e Religião", equipamento: ["Celular ou Câmera", "Computador", "Mochila 3 (Mala)", "Qualquer arma simples"], caracteristicas: [{nome: "Posição Privilegiada", efeito: "Você é bem-vindo na alta sociedade e as pessoas assumem que você tem o direito de estar onde está. As pessoas comuns fazem todos os esforços para acomodá-lo e evitar seu desprazer."}, {nome: "Mauricinho / Patricinha", efeito: "Você recebe toda semana uma quantia correspondente aos recursos financeiros de sua família de acordo com a tabela ao rolar 1d4."}] },
                 { nome: "Artista", descricao: "Pessoas com as mais variadas capacidades de entretenimento se aventuram no mundo artístico para realizar seus sonhos vivendo daquilo que amam ou buscando alcançar fama e dinheiro.", proficiencias: "Kit de Ferramenta de Ofício e escolha 3 dentre: Acrobacia, Atuação, Intuição ou Prestidigitação", equipamento: ["Mala de Roupas ou Mochila Comum/Maleta", "Câmera ou Celular", "Kit de Ferramentas de Ofício"], caracteristicas: [{nome: "Tudo no @", efeito: "Comerciantes que negociam com você reconhecem seu trabalho como artista, você tem chance (50%) de pagar suas compras com merchandising."}, {nome: "Virando a Cadeira", efeito: "Apresentar sua arte às pessoas antes de conversar ou negociar, faz com que fiquem fascinadas por você e tenham uma inclinação a concordar com sua opinião. Vantagem em testes de Carisma."}] },
                 { nome: "Assassino", descricao: "Assassinos famosos como a família Zoldyck e ainda outros, desenvolvem habilidades próprias para sua profissão e, com isso, se tornam peritos naquilo que fazem. A arte de matar de forma rápida.", proficiencias: "Escolha um Kit dentre os recebidos e Acrobacia e Furtividade", equipamento: ["Adaga/Faca", "Veneno Variante: 1 frasco", "Pochete de Perna", "Kit de disfarce ou Kit de Falsificação"], caracteristicas: [{nome: "Eco do Ritmo", efeito: "Se concentrar em seu turno completo projeta um padrão hipnótico, fazendo com que todas as criaturas hostis tenham desvantagem em jogadas de ataque direcionadas a você."}, {nome: "Sumidão", efeito: "Vantagem em testes de furtividade de qualquer natureza e não é descoberto ao realizar um ataque enquanto se está furtivo."}, {nome: "Máquina de Matar", efeito: "Dano dobrado (nos dados) em ataques realizados enquanto se está oculto/furtivo."}] },
@@ -779,8 +779,10 @@
                 const mainCount = state.tempChar.skills.length;
                 const otherCount = state.tempChar.otherSkills.length;
                 const maxMain = 5;
-                const maxOther = 4;
                 const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : "";
+                
+                const hasBgKit = bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta");
+                const maxOther = hasBgKit ? 5 : 4;
 
                 const renderAccordionHeader = (id, label, count, max, isOpen, colorClass, labelColorClass) => {
                     return `
@@ -812,10 +814,10 @@
                             ${SYSTEM_DB.skills.map(skill => {
                                 const isSelected = state.tempChar.skills.includes(skill);
                                 const isFromBg = bgSkillsText.includes(skill); 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isFromBg ? '' : `toggleCreatorSkill('${skill}', 'main')`}" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isFromBg ? 'bg-gray-800 border-gray-700 opacity-70 cursor-not-allowed' : (isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700')} group">
-                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected || isFromBg ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">BG</span>' : ''}</span>
-                                    <div class="pointer-events-none ${isSelected || isFromBg ? 'text-neon-blue' : 'text-gray-700'}">
-                                        ${isSelected || isFromBg ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'main')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-blue/10 border-neon-blue text-white shadow-[0_0_10px_rgba(0,240,255,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
+                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-blue' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">ANTECEDENTE</span>' : ''}</span>
+                                    <div class="pointer-events-none ${isSelected ? 'text-neon-blue' : 'text-gray-700'}">
+                                        ${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
                             }).join('')}
@@ -828,13 +830,16 @@
                         <div class="grid grid-cols-1 gap-2">
                             ${SYSTEM_DB.otherSkills.map(skill => {
                                 const isSelected = state.tempChar.otherSkills.includes(skill);
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'other')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
+                                const isKitItem = skill === 'Kits';
+                                const isLocked = isKitItem && hasBgKit;
+                                
+                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all ${isLocked ? 'bg-neon-yellow/5 border-neon-yellow/50 text-white cursor-not-allowed' : (isSelected ? 'bg-neon-yellow/10 border-neon-yellow text-white shadow-[0_0_10px_rgba(255,230,0,0.1)] cursor-pointer' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700 cursor-pointer')} group">
                                     <div class="flex items-center gap-3 pointer-events-none">
-                                         <i data-lucide="hammer" size="14" class="${isSelected ? 'text-neon-yellow' : 'text-gray-600'}"></i>
-                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-yellow' : ''}">${skill}</span>
+                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" class="${isSelected ? 'text-neon-yellow' : 'text-gray-600'}"></i>
+                                         <span class="text-[10px] font-bold uppercase tracking-wide group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-yellow' : ''}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
                                     </div>
                                     <div class="pointer-events-none ${isSelected ? 'text-neon-yellow' : 'text-gray-700'}">
-                                        ${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
+                                        ${isSelected ? (isLocked ? '<i data-lucide="lock" size="14"></i>' : '<i data-lucide="check-square" size="14"></i>') : '<i data-lucide="square" size="14"></i>'}
                                     </div>
                                 </div>`;
                             }).join('')}
@@ -1290,7 +1295,16 @@
 
         function toggleCreatorSkill(skill, type = 'main') {
             const list = type === 'main' ? state.tempChar.skills : state.tempChar.otherSkills;
-            const limit = type === 'main' ? 5 : 4;
+            let limit = type === 'main' ? 5 : 4;
+            
+            // Dynamic limit for Other Skills if BG has Kit
+            if (type === 'other') {
+                const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : "";
+                if (bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta")) {
+                    limit = 5;
+                }
+            }
+
             const idx = list.indexOf(skill);
             
             if (idx >= 0) {
@@ -1396,6 +1410,28 @@
         function assignToSlot(attr) { if (state.selectedPoolIdx === null) return; if (state.tempChar.attributes[attr] !== null) state.attrPool.push(state.tempChar.attributes[attr]); const val = state.attrPool[state.selectedPoolIdx]; state.tempChar.attributes[attr] = val; state.attrPool.splice(state.selectedPoolIdx, 1); state.attrPool.sort((a,b) => b-a); state.selectedPoolIdx = null; render(); }
         function returnToPool(attr) { const val = state.tempChar.attributes[attr]; if (val !== null) { state.attrPool.push(val); state.attrPool.sort((a,b) => b-a); state.tempChar.attributes[attr] = null; render(); } }
 
+        function applyBackgroundProficiencies() {
+            if (!state.tempChar.background) return;
+            const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background);
+            if (!bgData) return;
+            
+            const profText = bgData.proficiencias;
+            
+            // Main Skills Pre-Selection
+            SYSTEM_DB.skills.forEach(skill => {
+                if (profText.includes(skill) && !state.tempChar.skills.includes(skill)) {
+                    state.tempChar.skills.push(skill);
+                }
+            });
+
+            // Kit Locking
+            if (profText.includes("Kit") || profText.includes("Ferramenta")) {
+                if (!state.tempChar.otherSkills.includes("Kits")) {
+                    state.tempChar.otherSkills.push("Kits");
+                }
+            }
+        }
+
         function nextCreatorStep() {
             if (state.creatorStep === 0 && !state.tempChar.name) { alert("Dê um nome ao personagem!"); return; }
             if (state.creatorStep === 2) {
@@ -1416,9 +1452,17 @@
                 
                 if (balance < 0) { alert("Suas inclinações não estão balanceadas! Adicione negativas ou remova positivas extras."); return; }
                 if (negVal > 10) { alert("O máximo de compensação negativa é 10 pontos."); return; }
+                
+                // Pre-apply background skills before next step
+                applyBackgroundProficiencies();
             }
             if (state.creatorStep === 5) {
+                 const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : "";
+                 const hasBgKit = bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta");
+                 const otherLimit = hasBgKit ? 5 : 4;
+                 
                  if (state.tempChar.skills.length !== 5) { alert("Você deve selecionar exatamente 5 perícias (o máximo permitido) para continuar."); return; }
+                 // if (state.tempChar.otherSkills.length > otherLimit) { alert(`Você excedeu o limite de ${otherLimit} treinamentos extras.`); return; }
             }
             state.creatorStep++; render();
         }
