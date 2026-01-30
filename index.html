@@ -740,7 +740,7 @@
                                                 ${inc.nome}
                                                 ${hasChildSelected ? '<span class="text-[9px] bg-neon-green/10 text-neon-green px-1.5 rounded border border-neon-green/20 uppercase">Selecionado</span>' : ''}
                                             </span>
-                                            <p class="text-[10px] text-gray-500 leading-tight mt-1">${inc.desc}</p>
+                                            <p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p>
                                         </div>
                                         <div class="space-y-1 pl-2 border-l-2 border-gray-800">
                                             ${inc.options.map(opt => {
@@ -750,7 +750,7 @@
                                                 <div onclick="toggleInclination('positive', '${fullName}', ${opt.custo})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-green/10' : ''}">
                                                     <div class="flex flex-col">
                                                         <span class="text-[11px] font-bold ${isSelected ? 'text-neon-green' : 'text-gray-300'}">${opt.label}</span>
-                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500">${opt.desc}</span>` : ''}
+                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}
                                                     </div>
                                                     <div class="flex items-center gap-2">
                                                         <span class="text-[9px] font-mono text-gray-500">${opt.custo} pts</span>
@@ -769,7 +769,7 @@
                                             <span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span>
                                             <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
                                         </div>
-                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
+                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p>
                                     </div>`;
                                 }
                             }).join('')}
@@ -789,7 +789,7 @@
                                                 ${inc.nome}
                                                 ${hasChildSelected ? '<span class="text-[9px] bg-neon-red/10 text-neon-red px-1.5 rounded border border-neon-red/20 uppercase">Selecionado</span>' : ''}
                                             </span>
-                                            <p class="text-[10px] text-gray-500 leading-tight mt-1">${inc.desc}</p>
+                                            <p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p>
                                         </div>
                                         <div class="space-y-1 pl-2 border-l-2 border-gray-800">
                                             ${inc.options.map(opt => {
@@ -799,7 +799,7 @@
                                                 <div onclick="toggleInclination('negative', '${fullName}', ${opt.valor})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-red/10' : ''}">
                                                     <div class="flex flex-col">
                                                         <span class="text-[11px] font-bold ${isSelected ? 'text-neon-red' : 'text-gray-300'}">${opt.label}</span>
-                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500">${opt.desc}</span>` : ''}
+                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}
                                                     </div>
                                                     <div class="flex items-center gap-2">
                                                         <span class="text-[9px] font-mono text-gray-500">+${opt.valor} pts</span>
@@ -818,7 +818,7 @@
                                             <span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span>
                                             <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
                                         </div>
-                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors">${inc.desc}</p>
+                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p>
                                     </div>`;
                                 }
                             }).join('')}
@@ -1027,221 +1027,43 @@
                     
                     return `
                     <div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')">
-                        
-                        <!-- Header Container -->
                         <div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]">
-                            
-                            <!-- Name & Icons (Centered with Glow) -->
                             <div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]">
                                 <i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
                                 <span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span>
                                 <i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
                             </div>
                         </div>
-
-                        <!-- Value (Center) -->
                         <div class="flex items-center justify-center my-0 relative flex-1">
                                 <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button>
                                 <span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span>
                                 <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button>
                         </div>
-
-                        <!-- Mod (Bottom) -->
                         <div class="flex justify-center mt-1 mb-1">
                                 <div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">
                                 ${mod >= 0 ? '+'+mod : mod}
                                 </div>
                         </div>
-
-                        <!-- Shield (Absolute Bottom Right) -->
                         <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}">
                             <i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i>
                             <span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span>
                         </div>
                     </div>`;
                 }).join('')}
-                
-                ${state.openAttrPopup ? (() => {
-                    const key = state.openAttrPopup;
-                    const attr = char.attributes[key];
-                    const mod = getMod(attr.value);
-                    const skillsList = SKILL_MAP[key] || [];
-
-                    return `
-                    <div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)">
-                        <div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()">
-                            
-                            <button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button>
-
-                            <div class="text-center mb-6">
-                                <h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2>
-                                <div class="flex justify-center items-center gap-4 mt-2">
-                                    <div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div>
-                                    <div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div>
-                                </div>
-                            </div>
-
-                            <div class="space-y-3 mb-6">
-                                <h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4>
-                                <div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">
-                                    ${skillsList.length > 0 ? skillsList.map(s => {
-                                        const isTrained = char.skills.includes(s);
-                                        const isExpert = (char.expertise || []).includes(s);
-                                        const pb = getProficiencyBonus(char.level);
-                                        let totalBonus = mod;
-                                        if (isExpert) totalBonus += (pb * 2);
-                                        else if (isTrained) totalBonus += pb;
-
-                                        let iconName = 'circle';
-                                        let iconColorClass = 'text-gray-600';
-                                        
-                                        if (isExpert) {
-                                            iconName = 'badge-check';
-                                            iconColorClass = 'text-neon-yellow fill-neon-yellow/20';
-                                        } else if (isTrained) {
-                                            iconName = 'check-circle-2';
-                                            iconColorClass = `text-[${themeColor}]`;
-                                        }
-
-                                        return `
-                                        <div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}">
-                                            <div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')">
-                                                 <i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i>
-                                                 <span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span>
-                                            </div>
-                                            <div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')">
-                                                 <span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span>
-                                                 <i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i>
-                                            </div>
-                                        </div>`
-                                    }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}
-                                </div>
-                            </div>
-
-                            <button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]">
-                                <i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO
-                            </button>
-                        </div>
-                    </div>
-                    ${state.skillSelectionModal ? `
-                    <div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()">
-                        <div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()">
-                             <h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3>
-                             <p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p>
-                             
-                             <div class="space-y-2">
-                                <button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2">
-                                    <i data-lucide="x" size="16"></i> Remover Proficiência
-                                </button>
-                                <button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2">
-                                    <i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)
-                                </button>
-                                <button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2">
-                                    <i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)
-                                </button>
-                             </div>
-                             
-                             <button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button>
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    `;
-                })() : ''}
-                </div>`;
+                ${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
             } else if (state.activeTab === 'TRACOS') {
                 const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race);
                 const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background);
-                
-                // --- RACE TRAITS ---
-                let traitsHtml = '';
-                // Header for Race
-                traitsHtml += `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`;
-                
-                if (char.race === 'Formiga Quimera') {
-                    if (char.raceTraits && char.raceTraits.length > 0) {
-                            traitsHtml += char.raceTraits.map(tName => {
-                            const tData = raceData.caracteristicas.find(c => c.nome === tName);
-                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`;
-                            }).join('');
-                    }
-                } else {
-                    const fixedFeatures = [...(raceData.caracteristicas || [])];
-                    if (fixedFeatures.length > 0) {
-                        traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p>${f.tabela_ancestral ? `<p class="text-[9px] text-gray-500 mt-1 italic">${f.tabela_ancestral}</p>` : ''}</div>`).join('');
-                    }
-                    // Also display attribute bonuses simply
-                    if (typeof raceData.aumento_atributo === 'object') {
-                         const attrs = Object.entries(raceData.aumento_atributo).map(([k,v]) => `${k} ${v>0?'+':''}${v}`).join(', ');
-                         traitsHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl"><h4 class="font-bold text-gray-500 text-[10px] uppercase mb-1">Bônus de Atributos</h4><p class="text-xs text-[${themeColor}] font-bold">${attrs}</p></div>`;
-                    }
-                }
-                traitsHtml += `</div>`;
-
-                // --- BACKGROUND FEATURE ---
-                let bgHtml = '';
-                if (bgData && char.backgroundFeature) {
-                    const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature);
-                    bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6">`;
-                    bgHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div>`;
-                    bgHtml += `</div>`;
-                }
-
-                // --- INCLINATIONS ---
-                let incHtml = '';
-                if (char.inclinations && (char.inclinations.positive.length > 0 || char.inclinations.negative.length > 0)) {
-                    incHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-white"><i data-lucide="scale" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Inclinações</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Positivas e Negativas</p></div></div><div class="space-y-2 mb-6">`;
-                    
-                    // Helper to find description
-                    const findIncDesc = (type, name) => {
-                        const list = SYSTEM_DB.inclinacoes[type]; // 'positivas' or 'negativas' (DB keys)
-                        if (name.includes(':')) {
-                            const [parentName, childName] = name.split(':').map(s=>s.trim());
-                            const parent = list.find(i => i.nome === parentName);
-                            if (parent && parent.options) {
-                                const child = parent.options.find(o => o.label === childName);
-                                if (child) return child.desc;
-                            }
-                        }
-                        const exact = list.find(i => i.nome === name);
-                        return exact ? exact.desc : 'Descrição não encontrada.';
-                    };
-
-                    // Positives
-                    if (char.inclinations.positive.length > 0) {
-                        incHtml += char.inclinations.positive.map(i => {
-                            const desc = findIncDesc('positivas', i.nome);
-                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-green"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-green text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">${i.custo} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`;
-                        }).join('');
-                    }
-                    
-                    // Negatives
-                    if (char.inclinations.negative.length > 0) {
-                        incHtml += char.inclinations.negative.map(i => {
-                            const desc = findIncDesc('negativas', i.nome);
-                            return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-red"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-red text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">+${i.valor} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`;
-                        }).join('');
-                    }
-                    incHtml += `</div>`;
-                }
-
-                // --- OTHER SKILLS ---
-                // (Existing logic for other trainings)
-                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s));
-                let otherSkillsHtml = '';
-                if (otherTrainings.length > 0) {
-                    otherSkillsHtml = `<div class="space-y-2 mt-2 border-t border-gray-800 pt-4">
-                        <div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div>
-                        <div class="flex flex-wrap gap-2">
-                        ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" class="text-[${themeColor}] shrink-0"></i><span class="text-xs text-gray-300 font-bold whitespace-nowrap">${s}</span></div>`).join('')}
-                        </div>
-                    </div>`;
-                }
-
-                tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${incHtml}${otherSkillsHtml}</div>`;
+                let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`;
+                if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { const tData = raceData.caracteristicas.find(c => c.nome === tName); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`; }).join(''); } } else { const fixedFeatures = [...(raceData.caracteristicas || [])]; if (fixedFeatures.length > 0) { traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p>${f.tabela_ancestral ? `<p class="text-[9px] text-gray-500 mt-1 italic">${f.tabela_ancestral}</p>` : ''}</div>`).join(''); } if (typeof raceData.aumento_atributo === 'object') { const attrs = Object.entries(raceData.aumento_atributo).map(([k,v]) => `${k} ${v>0?'+':''}${v}`).join(', '); traitsHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl"><h4 class="font-bold text-gray-500 text-[10px] uppercase mb-1">Bônus de Atributos</h4><p class="text-xs text-[${themeColor}] font-bold">${attrs}</p></div>`; } } traitsHtml += `</div>`;
+                let bgHtml = ''; if (bgData && char.backgroundFeature) { const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature); bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6"><div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div></div>`; }
+                let incHtml = ''; if (char.inclinations && (char.inclinations.positive.length > 0 || char.inclinations.negative.length > 0)) { incHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-white"><i data-lucide="scale" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Inclinações</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Positivas e Negativas</p></div></div><div class="space-y-2 mb-6">`; const findIncDesc = (type, name) => { const list = SYSTEM_DB.inclinacoes[type]; if (name.includes(':')) { const [parentName, childName] = name.split(':').map(s=>s.trim()); const parent = list.find(i => i.nome === parentName); if (parent && parent.options) { const child = parent.options.find(o => o.label === childName); if (child) return child.desc; } } const exact = list.find(i => i.nome === name); return exact ? exact.desc : 'Descrição não encontrada.'; }; if (char.inclinations.positive.length > 0) { incHtml += char.inclinations.positive.map(i => { const desc = findIncDesc('positivas', i.nome); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-green"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-green text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">${i.custo} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`; }).join(''); } if (char.inclinations.negative.length > 0) { incHtml += char.inclinations.negative.map(i => { const desc = findIncDesc('negativas', i.nome); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-neon-red"><div class="flex justify-between items-start mb-1"><h4 class="font-bold text-neon-red text-xs">${i.nome}</h4><span class="text-[9px] bg-gray-800 px-1.5 rounded text-gray-400 border border-gray-700">+${i.valor} pts</span></div><p class="text-[10px] text-gray-400 leading-relaxed">${desc}</p></div>`; }).join(''); } incHtml += `</div>`; }
+                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s)); let otherSkillsHtml = ''; if (otherTrainings.length > 0) { otherSkillsHtml = `<div class="space-y-2 mt-2 border-t border-gray-800 pt-4"><div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div><div class="flex flex-wrap gap-2">${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" style="color: ${themeColor}" class="shrink-0"></i><span class="text-xs font-bold whitespace-nowrap" style="color: ${themeColor}">${s}</span></div>`).join('')}</div></div>`; } tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${incHtml}${otherSkillsHtml}</div>`;
             } else if (state.activeTab === 'INV') {
+                // ... (INV same)
                 tabContent = `<div class="p-4 space-y-4"><div class="flex gap-2"><input type="text" id="new-item-name" placeholder="Nome do item..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[${themeColor}]"><button onclick="addItem()" class="bg-[${themeColor}] text-black px-4 rounded-lg font-bold hover:brightness-110"><i data-lucide="plus"></i></button></div><div class="space-y-2">${char.inventory.length === 0 ? '<div class="text-center text-gray-600 text-xs py-8 border border-dashed border-gray-800 rounded-xl">Mochila vazia.</div>' : ''}${char.inventory.map((item, idx) => `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex justify-between items-center"><span class="text-sm font-bold text-white">${item.name}</span><div class="flex items-center gap-3"><button onclick="updateItemQty(${idx}, -1)" class="text-gray-500 hover:text-white"><i data-lucide="minus" size="14"></i></button><span class="text-sm w-4 text-center">${item.qty}</span><button onclick="updateItemQty(${idx}, 1)" class="text-gray-500 hover:text-white"><i data-lucide="plus" size="14"></i></button></div></div>`).join('')}</div><div class="flex justify-between items-center pt-4 border-t border-gray-800 text-xs text-gray-400"><span class="uppercase font-bold tracking-widest">Jenny (Dinheiro)</span><div class="flex items-center gap-2 bg-gray-900 px-3 py-1 rounded border border-gray-700"><span class="text-[${themeColor}] font-bold">$</span><input type="number" value="${char.money}" onchange="updateMoney(this.value)" class="w-24 text-right bg-transparent text-white font-mono outline-none"></div></div></div>`;
             } else if (state.activeTab === 'DADOS') {
+                // ... (DADOS same)
                 tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map(h => `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1"><div class="flex justify-between text-[10px] text-gray-500"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`).join('')}</div></div>`;
             } else { tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`; }
 
@@ -1270,7 +1092,11 @@
                         <h1 class="font-display font-black text-2xl text-white uppercase tracking-wider truncate drop-shadow-lg">${char.name}</h1>
                         <div class="flex items-center gap-3 mt-2">
                             <div class="h-2 flex-1 bg-gray-800 rounded-full overflow-hidden border border-gray-700"><div class="h-full bg-[${themeColor}] shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]" style="width: ${xpPct}%"></div></div>
-                            <div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="changeLevel(-1)" class="w-6 h-6 bg-gray-800 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700"><i data-lucide="minus" size="12"></i></button>
+                                <div class="flex flex-col items-end leading-none"><span class="text-[10px] font-bold text-gray-500 uppercase">Nível</span><span class="text-lg font-display font-bold text-white">${char.level}</span></div>
+                                <button onclick="changeLevel(1)" class="w-6 h-6 bg-gray-800 rounded flex items-center justify-center text-gray-400 hover:text-white hover:bg-gray-700"><i data-lucide="plus" size="12"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1646,6 +1472,11 @@
             const modInt = getMod(finalAttrs.INT || 10);
             const modSab = getMod(finalAttrs.SAB || 10);
 
+            // CORPO DE GIGANTE: Base +5 HP Logic
+            const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante");
+            let hpInitial = 15 + modCon;
+            if (hasGiantBody) hpInitial += 5;
+
             const newChar = {
                 id: generateId(), 
                 name: state.tempChar.name, 
@@ -1665,8 +1496,8 @@
                 expertise: [], 
                 raceTraits: state.tempChar.raceTraits || [],
                 vitals: { 
-                    hp: 15 + modCon, 
-                    hpMax: 15 + modCon, 
+                    hp: hpInitial, 
+                    hpMax: hpInitial, 
                     aura: 100, 
                     auraMax: 100, 
                     san: 10 + modInt, 
@@ -1790,6 +1621,36 @@
         function updateCharProperty(prop, val) {
             state.currentChar[prop] = val;
             saveCharacter(state.currentChar);
+            render();
+        }
+
+        function changeLevel(delta) {
+            const char = state.currentChar;
+            const newLevel = char.level + delta;
+            if (newLevel < 0) return;
+
+            if (delta > 0) {
+                // Level Up Logic with HP Calculation
+                const hasGiantBody = char.inclinations.positive.some(i => i.nome === "Corpo de Gigante");
+                const bonus = hasGiantBody ? 3 : 0;
+                const conMod = getMod(char.attributes.CON.value);
+                
+                const rollInput = prompt(`SUBIR DE NÍVEL (${newLevel})\n\nInsira o valor da rolagem de vida (Dado de Vida da Classe):`, "5");
+                if (rollInput === null) return; // Cancelled
+                
+                const roll = parseInt(rollInput) || 0;
+                const totalGain = roll + conMod + bonus;
+                
+                char.vitals.hpMax += totalGain;
+                char.vitals.hp += totalGain;
+                
+                alert(`Nível ${newLevel} alcançado!\n\nVida aumentada em ${totalGain}:\n• Rolagem: ${roll}\n• CON: ${conMod}\n• Corpo de Gigante: +${bonus}`);
+            } else {
+                if(!confirm("Reduzir nível não desfaz automaticamente os ganhos de vida. Continuar?")) return;
+            }
+
+            char.level = newLevel;
+            saveCharacter(char);
             render();
         }
 
