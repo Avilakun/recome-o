@@ -388,7 +388,8 @@
                 { 
                     nome: "Formiga Quimera", 
                     descricao: "Sem Antecedentes. Ver Regra.", 
-                    aumento_atributo: "Nenhum", 
+                    aumento_atributo: "Nenhum",
+                    fagogenese_options: ["Ave", "Mamífero", "Réptil/Anfíbio", "Aquático", "Inseto/Insectóide", "Bestas Mágicas"],
                     caracteristicas: [
                         { nome: "Arma natural", efeito: "Dano variado baseado na anatomia.", opcoes: ["Bico", "Cauda", "Chifres", "Espinhos", "Garras", "Presas (Mordida)", "Ferrão (Picada)", "Tentáculos/Cipós"] },
                         { nome: "Corpo Adaptável", efeito: "Mudança corporal dramática ou adaptação ambiental.", opcoes: ["Metamorfose (Lagarta->Borboleta)", "Constituição Respiratória (Aéreo)", "Constituição Respiratória (Aquático)", "Corpo Mole (Resistência Impacto)"] },
@@ -804,7 +805,7 @@
         }
 
         function renderCreator(container) {
-             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] } }; }
+             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] }, fagogenese: null }; }
             const step = state.creatorStep;
             let themeColorHex = '#00ff9d';
             if (state.tempChar && state.tempChar.class) { const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class); if (clsTheme) { setThemeColor(clsTheme.color); themeColorHex = clsTheme.color; } }
@@ -834,7 +835,24 @@
                     if (r.nome === 'Formiga Quimera') {
                          const selectedCount = (state.tempChar.raceTraits || []).length;
                          const maxTraits = 3;
-                         featuresHtml = `<div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2 flex justify-between">Características da Espécie <span id="trait-counter" class="${selectedCount >= maxTraits ? 'text-neon-theme' : 'text-gray-500'}">(${selectedCount}/${maxTraits})</span></h4><div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50 grid grid-cols-1 gap-2">${r.caracteristicas.map(f => {
+                         
+                         // Seletor de Origem da Fagogênese
+                         const originOpts = r.fagogenese_options || [];
+                         const currentOrigin = state.tempChar.fagogenese || originOpts[0];
+                         if(!state.tempChar.fagogenese) state.tempChar.fagogenese = currentOrigin;
+
+                         const originHtml = `
+                            <div class="mb-4" onclick="event.stopPropagation()">
+                                <h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2">Origem da Fagogênese (Visual Predominante)</h4>
+                                <div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50">
+                                    <select onchange="state.tempChar.fagogenese = this.value" class="w-full bg-black border border-gray-700 rounded p-2 text-xs text-white outline-none focus:border-neon-theme">
+                                        ${originOpts.map(o => `<option value="${o}" ${currentOrigin === o ? 'selected' : ''}>${o}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                         `;
+
+                         featuresHtml = originHtml + `<div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2 flex justify-between">Características da Espécie <span id="trait-counter" class="${selectedCount >= maxTraits ? 'text-neon-theme' : 'text-gray-500'}">(${selectedCount}/${maxTraits})</span></h4><div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50 grid grid-cols-1 gap-2">${r.caracteristicas.map(f => {
                                 const isTraitSelected = (state.tempChar.raceTraits || []).includes(f.nome);
                                 let optionsHtml = '';
                                 if (isTraitSelected && f.opcoes) {
@@ -1001,7 +1019,14 @@
                 const hexNodes = SYSTEM_DB.classes.map(c => { const isSelected = char.class === c.id; const pct = percentages[c.id]; const rad = (c.angle * Math.PI) / 180; const radius = 35; const left = 50 + (radius * Math.cos(rad)); const top = 50 + (radius * Math.sin(rad)); const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`; const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)'; const zIndex = isSelected ? 'z-10' : 'z-0'; return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`; }).join('');
                 tabContent = `<div class="p-6 h-full flex flex-col items-center justify-center"><div class="text-center mb-6"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative w-full max-w-[320px] mx-auto mb-8"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
             } else if (state.activeTab === 'TRACOS') {
-                const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background); let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`; if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { 
+                const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background); let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`; 
+                
+                // Add Origin Display Here
+                if (char.race === 'Formiga Quimera' && char.fagogenese) {
+                    traitsHtml += `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}] mb-2"><h4 class="font-bold text-white text-xs mb-1">Origem da Fagogênese</h4><p class="text-[10px] text-gray-400 leading-relaxed uppercase tracking-widest font-bold text-neon-blue">${char.fagogenese}</p></div>`;
+                }
+
+                if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { 
                     // Handle "Trait: Detail" format
                     const parts = tName.split(':');
                     const baseTraitName = parts[0].trim();
@@ -1128,7 +1153,7 @@
         function finishCreator() { Object.entries(state.allocations).forEach(([key, val]) => { state.tempChar.attributes[key] += val; }); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : []; const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race); const finalAttrs = { ...state.tempChar.attributes }; if (raceData && typeof raceData.aumento_atributo === 'object') { const req = getBonusRequirements(state.tempChar.race); if (!req) { Object.entries(raceData.aumento_atributo).forEach(([key, val]) => { if (finalAttrs[key] !== undefined) { finalAttrs[key] += val; } }); } } const modCon = getMod(finalAttrs.CON || 10); const modInt = getMod(finalAttrs.INT || 10); const modSab = getMod(finalAttrs.SAB || 10); const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); let hpInitial = 15 + modCon; if (hasGiantBody) hpInitial += 5; 
             // Merge traits with details
             const mergedTraits = (state.tempChar.raceTraits || []).map(t => { const detail = state.tempChar.traitDetails && state.tempChar.traitDetails[t]; return detail ? `${t}: ${detail}` : t; });
-            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' } }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
+            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' }, fagogenese: state.tempChar.fagogenese || null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function setTab(tab) { state.activeTab = tab; if(tab === 'DADOS') state.unreadRolls = false; render(true); }
         function setRollMode(mode) { state.rollMode = mode; render(true); }
         function updateSheetAttr(key, delta) { state.currentChar.attributes[key].value += delta; saveCharacter(state.currentChar); render(true); }
