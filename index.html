@@ -729,6 +729,100 @@
             render(true);
         }
 
+        // --- REFATORAÇÃO DO DIAGRAMA DE NEN ---
+        function renderNenHexagon(selectedId, interactive) {
+            const percentages = getNenPercentages(selectedId);
+            const currentClass = SYSTEM_DB.classes.find(c => c.id === selectedId);
+            const color = currentClass ? currentClass.color : '#00ff9d';
+            
+            // Calculando pontos para o SVG baseado nos ângulos
+            const center = {x: 50, y: 50};
+            const points = SYSTEM_DB.classes.map(c => {
+                const rad = (c.angle * Math.PI) / 180;
+                const r = 35; // Raio que combina com o posicionamento CSS
+                return {
+                    id: c.id,
+                    x: 50 + (r * Math.cos(rad)),
+                    y: 50 + (r * Math.sin(rad))
+                };
+            });
+
+            // Encontrar ponto selecionado para desenhar a linha de conexão
+            const selPoint = points.find(p => p.id === selectedId);
+            
+            // Polígono base
+            const polyPoints = points.map(p => `${p.x},${p.y}`).join(' ');
+            
+            // Gerar HTML dos Nodos
+            const nodesHtml = SYSTEM_DB.classes.map(c => {
+                const pct = percentages[c.id];
+                const isSelected = c.id === selectedId;
+                const rad = (c.angle * Math.PI) / 180;
+                // Usando a mesma matemática do SVG para posicionamento CSS
+                const top = 50 + (35 * Math.sin(rad)); 
+                const left = 50 + (35 * Math.cos(rad));
+                
+                let nodeContent = '';
+                let borderStyle = '';
+                
+                if (isSelected) {
+                    borderStyle = `border-color: ${c.color}; background-color: ${c.color}20; box-shadow: 0 0 15px ${c.color}; transform: scale(1.2);`;
+                    nodeContent = `<span class="font-display font-black text-xs text-white drop-shadow-md">${pct}%</span>`;
+                } else {
+                    const opacity = pct === 0 ? 0.2 : (pct / 100);
+                    borderStyle = `border-color: ${c.color}; opacity: ${0.5 + (opacity/2)}; transform: scale(${0.8 + (opacity * 0.2)});`;
+                    nodeContent = `<span class="font-display font-bold text-[10px]" style="color:${c.color}">${pct}%</span>`;
+                }
+
+                const clickAttr = interactive ? `onclick="selectNenType('${c.id}')"` : '';
+                const cursor = interactive ? 'cursor-pointer' : 'cursor-default';
+
+                return `
+                    <div class="absolute w-12 h-12 flex items-center justify-center ${cursor} transition-all duration-500 ease-out z-10" 
+                         style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%);" 
+                         ${clickAttr}>
+                        <div class="w-full h-full rounded-full border-2 bg-gray-950 flex items-center justify-center transition-all duration-300" 
+                             style="${borderStyle}">
+                            ${nodeContent}
+                        </div>
+                        ${isSelected ? `<div class="absolute -inset-2 rounded-full border border-${c.color} opacity-30 animate-pulse"></div>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="relative w-full aspect-square max-w-[320px] mx-auto my-4">
+                    <!-- Camada SVG -->
+                    <svg class="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 100 100">
+                        <!-- Hexágono Externo -->
+                        <polygon points="${polyPoints}" fill="none" stroke="#1f2937" stroke-width="1" />
+                        
+                        <!-- Linhas de Fundo (Raios) -->
+                        ${points.map(p => `<line x1="50" y1="50" x2="${p.x}" y2="${p.y}" stroke="#1f2937" stroke-width="0.5" />`).join('')}
+                        
+                        <!-- Linha Ativa -->
+                        ${selPoint ? `<line x1="50" y1="50" x2="${selPoint.x}" y2="${selPoint.y}" stroke="${color}" stroke-width="1.5" stroke-dasharray="2" class="animate-pulse">
+                            <animate attributeName="stroke-dashoffset" from="10" to="0" dur="1s" repeatCount="indefinite" />
+                        </line>` : ''}
+                        <!-- Hexágono Brilho -->
+                        <polygon points="${polyPoints}" fill="none" stroke="${color}" stroke-width="0.5" stroke-opacity="0.3" />
+                    </svg>
+                    
+                    <!-- Núcleo Central -->
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-gray-900/80 rounded-full border border-gray-700 flex items-center justify-center backdrop-blur-sm z-0">
+                        <div class="text-[${color}] opacity-20"><i data-lucide="hexagon" size="32"></i></div>
+                    </div>
+
+                    <!-- Nodos -->
+                    ${nodesHtml}
+                </div>
+                <div class="text-center mt-2">
+                     <h3 class="text-2xl font-display font-black tracking-widest uppercase drop-shadow-lg transition-all duration-300" style="color: ${color};">${selectedId}</h3>
+                     ${interactive ? `<p class="text-xs text-gray-500 font-bold uppercase tracking-widest mt-1">Selecione seu tipo de Aura</p>` : ''}
+                </div>
+            `;
+        }
+
         // --- RENDERIZADORES ---
         function render(preserveScroll = false) {
             const app = document.getElementById('app');
@@ -814,10 +908,24 @@
 
             if (step === 0) {
                  title = 'IDENTIDADE';
-                const percentages = getNenPercentages(state.tempChar.class);
                 const currentClass = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class);
-                const hexNodes = SYSTEM_DB.classes.map(c => { const isSelected = state.tempChar.class === c.id; const pct = percentages[c.id]; const rad = (c.angle * Math.PI) / 180; const radius = 35; const left = 50 + (radius * Math.cos(rad)); const top = 50 + (radius * Math.sin(rad)); const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`; const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)'; const zIndex = isSelected ? 'z-10' : 'z-0'; return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};" onclick="selectNenType('${c.id}')"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`; }).join('');
-                contentHtml = `<div class="space-y-6"><div class="relative"><label class="text-[10px] font-bold text-neon-theme uppercase tracking-widest mb-2 block pl-2">Nome do Candidato</label><input type="text" id="creator-name" value="${state.tempChar.name}" placeholder="INSIRA SEU NOME..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-center font-display font-bold tracking-wider focus:border-neon-theme focus:shadow-[0_0_15px_rgba(var(--theme-rgb),0.2)] transition-all uppercase placeholder-gray-600" oninput="state.tempChar.name = this.value"></div><div class="text-center transition-all"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_rgba(var(--theme-rgb),0.6)]" style="color: ${currentClass.color}; text-shadow: 0 0 10px ${currentClass.color}40;">${state.tempChar.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative max-w-[360px] mx-auto"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
+                
+                // Usando a nova função refatorada renderNenHexagon
+                const diagramHtml = renderNenHexagon(state.tempChar.class, true);
+
+                contentHtml = `
+                    <div class="space-y-6">
+                        <div class="relative">
+                            <label class="text-[10px] font-bold text-neon-theme uppercase tracking-widest mb-2 block pl-2">Nome do Candidato</label>
+                            <input type="text" id="creator-name" value="${state.tempChar.name}" placeholder="INSIRA SEU NOME..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-center font-display font-bold tracking-wider focus:border-neon-theme focus:shadow-[0_0_15px_rgba(var(--theme-rgb),0.2)] transition-all uppercase placeholder-gray-600" oninput="state.tempChar.name = this.value">
+                        </div>
+                        
+                        ${diagramHtml}
+
+                        <div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50">
+                            <p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p>
+                        </div>
+                    </div>`;
             } else if (step === 1) {
                 title = 'RAÇA';
                 contentHtml = `<div class="space-y-4">`;
@@ -1014,10 +1122,21 @@
                 const sections = [ { id: 'personality', label: 'Personalidade', icon: 'fingerprint' }, { id: 'history', label: 'História', icon: 'scroll' }, { id: 'organizations', label: 'Organizações', icon: 'building-2' }, { id: 'enemies', label: 'Inimigos', icon: 'skull' }, { id: 'allies', label: 'Aliados', icon: 'heart-handshake' } ];
                 tabContent = `<div class="p-4 space-y-3"><div class="text-center mb-4"><h2 class="text-lg font-display font-bold text-white uppercase tracking-widest">Biografia</h2><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Informações Detalhadas</p></div>${sections.map(section => { const isOpen = state.bioAccordionOpen === section.id; const isPersonality = section.id === 'personality'; let hasContent = false; if (isPersonality) { hasContent = (bioData.personality_traits || bioData.personality_goals || bioData.personality_hates || bioData.personality_likes || bioData.personality); } else { hasContent = bioData[section.id] && bioData[section.id].trim().length > 0; } const borderColor = isOpen ? `border-[${themeColor}]` : 'border-gray-800'; const headerColor = isOpen ? `text-[${themeColor}]` : (hasContent ? 'text-white' : 'text-gray-500'); const renderSubField = (key, label, placeholder, legacyVal = '') => `<div class="mb-3 last:mb-0 w-full"><label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1 block pl-1">${label}</label><textarea class="w-full h-20 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="${placeholder}" onblur="updateBio('${key}', this.value)">${bioData[key] || legacyVal || ''}</textarea></div>`; return `<div class="bg-gray-900 border ${borderColor} rounded-xl transition-all duration-300"><div onclick="toggleBioAccordion('${section.id}')" class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-800/50 rounded-xl"><div class="flex items-center gap-3"><div class="bg-gray-950 p-2 rounded-lg border border-gray-800"><i data-lucide="${section.icon}" size="18" class="${headerColor}"></i></div><div><h3 class="font-display font-bold text-sm uppercase tracking-wider ${headerColor}">${section.label}</h3>${hasContent && !isOpen ? '<span class="text-[8px] text-gray-500 bg-gray-950 px-1.5 py-0.5 rounded border border-gray-800 font-bold uppercase tracking-widest">Preenchido</span>' : ''}</div></div><div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600'}"><i data-lucide="chevron-down" size="18"></i></div></div><div class="accordion-content ${isOpen ? 'open' : ''}"><div class="px-4 pb-4"><div class="h-px w-full bg-gray-800 mb-3"></div>${isPersonality ? `${renderSubField('personality_traits', 'Traços de Personalidade', 'Descreva como seu personagem se comporta...', bioData.personality)}${renderSubField('personality_goals', 'Sonho / Objetivo', 'Qual o maior desejo do seu personagem?')}<div class="flex gap-3">${renderSubField('personality_hates', 'O que odeio', 'O que te tira do sério...')}${renderSubField('personality_likes', 'O que gosto', 'O que te agrada...')}</div>` : `<textarea class="w-full h-32 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="Escreva aqui..." onblur="updateBio('${section.id}', this.value)">${bioData[section.id] || ''}</textarea>`}</div></div></div>`; }).join('')}</div>`;
             } else if (state.activeTab === 'NEN') {
-                const percentages = getNenPercentages(char.class);
+                const diagramHtml = renderNenHexagon(char.class, false);
                 const currentClass = SYSTEM_DB.classes.find(c => c.id === char.class);
-                const hexNodes = SYSTEM_DB.classes.map(c => { const isSelected = char.class === c.id; const pct = percentages[c.id]; const rad = (c.angle * Math.PI) / 180; const radius = 35; const left = 50 + (radius * Math.cos(rad)); const top = 50 + (radius * Math.sin(rad)); const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`; const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)'; const zIndex = isSelected ? 'z-10' : 'z-0'; return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`; }).join('');
-                tabContent = `<div class="p-6 h-full flex flex-col items-center justify-center"><div class="text-center mb-6"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative w-full max-w-[320px] mx-auto mb-8"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
+                
+                tabContent = `
+                    <div class="p-6 h-full flex flex-col items-center justify-center">
+                        <div class="text-center mb-6">
+                            <h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3>
+                        </div>
+                        
+                        ${diagramHtml}
+
+                        <div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto">
+                            <p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p>
+                        </div>
+                    </div>`;
             } else if (state.activeTab === 'TRACOS') {
                 const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background); let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`; 
                 
