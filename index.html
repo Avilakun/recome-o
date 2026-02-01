@@ -63,7 +63,7 @@
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
         /* Inputs limpos */
-        input, select { background: transparent; outline: none; }
+        input, select, textarea { background: transparent; outline: none; }
         
         /* Containers */
         #app {
@@ -385,7 +385,27 @@
                 // Clãs Especiais
                 { nome: "Kurta", descricao: "Olhos Escarlates.", aumento_atributo: { "INT_ou_SAB": 2 }, caracteristicas: [{ nome: "Mudança Escarlate", efeito: "+1 atributos com olhos vermelhos." }, { nome: "Caça Fascinante", efeito: "Procurado." }, { nome: "Sofrimento Profundo", efeito: "Gatilhos emocionais." }], fonte: "[5, 6]", categoria: "Clãs Especiais" },
                 // Formigas Quimera
-                { nome: "Formiga Quimera", descricao: "Sem Antecedentes. Ver Regra.", aumento_atributo: "Nenhum", caracteristicas: [{ nome: "Arma natural", efeito: "Dano variado." }, { nome: "Corpo Adaptável", efeito: "Resistência." }, { nome: "Criatura de Cerco", efeito: "Dano em construções." }, { nome: "Destreza animal", efeito: "Vantagem DES." }, { nome: "Escudo Natural", efeito: "Resistência dano físico." }, { nome: "Evasão", efeito: "+2 Esquiva." }, { nome: "Investida", efeito: "Dano com movimento." }, { nome: "Rasante", efeito: "Sem AdO voando." }, { nome: "Regeneração", efeito: "Recupera HP." }, { nome: "Telepatia", efeito: "Comunicação." }, { nome: "Veneno/Peçonha", efeito: "Aplica veneno." }], fonte: "[1, 2]", categoria: "Formigas Quimera" },
+                { 
+                    nome: "Formiga Quimera", 
+                    descricao: "Sem Antecedentes. Ver Regra.", 
+                    aumento_atributo: "Nenhum", 
+                    caracteristicas: [
+                        { nome: "Arma natural", efeito: "Dano variado baseado na anatomia.", opcoes: ["Bico", "Cauda", "Chifres", "Espinhos", "Garras", "Presas (Mordida)", "Ferrão (Picada)", "Tentáculos/Cipós"] },
+                        { nome: "Corpo Adaptável", efeito: "Mudança corporal dramática ou adaptação ambiental.", opcoes: ["Metamorfose (Lagarta->Borboleta)", "Constituição Respiratória (Aéreo)", "Constituição Respiratória (Aquático)", "Corpo Mole (Resistência Impacto)"] },
+                        { nome: "Criatura de Cerco", efeito: "Dano crítico em construções e Constructos." },
+                        { nome: "Destreza animal", efeito: "Vantagem em testes de resistência de Destreza." },
+                        { nome: "Escudo Natural/Carapaça", efeito: "Resistência a tipos específicos de dano físico.", opcoes: ["Resistência a Corte", "Resistência a Perfuração", "Resistência a Impacto"] },
+                        { nome: "Evasão", efeito: "Manobra de fuga que adiciona +2 na Reação de Esquiva.", opcoes: ["Aérea", "Aquática", "Terrestre"] },
+                        { nome: "Investida", efeito: "Dano extra com movimento." },
+                        { nome: "Rasante", efeito: "Manobra de ataque aéreo sem receber AdO." },
+                        { nome: "Regeneração", efeito: "Recuperação gradual de Vida." },
+                        { nome: "Telepatia", efeito: "Comunicação entre espécies.", opcoes: ["Ativa (Inferior)", "Passiva (Superior)"] },
+                        { nome: "Tração Animal", efeito: "Capacidade de carga aumentada e/ou salto dobrado." },
+                        { nome: "Veneno/Peçonha", efeito: "Aplica veneno. Imune ao próprio veneno." }
+                    ], 
+                    fonte: "[1, 2]", 
+                    categoria: "Formigas Quimera" 
+                },
                 // Modificados e Fantasia
                 { nome: "Wormorfos", descricao: "Povo verme.", aumento_atributo: "Nenhum", caracteristicas: [{ nome: "Visão", efeito: "Ecolocalização." }, { nome: "Corpo Malemolente", efeito: "Resistência concussão." }, { nome: "Enterrada", efeito: "Submergir." }], fonte: "[5, 6]", categoria: "Modificados e Fantasia" },
                 { nome: "Elfos e Meio-Elfos", descricao: "Herança feérica.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Ancestral Feérico", efeito: "Vantagem social." }], fonte: "[5, 6]", categoria: "Modificados e Fantasia" },
@@ -562,7 +582,8 @@
             invMode: 'BAG', // 'BAG' or 'SHOP'
             shopCategory: 'armas', // Default Shop Category
             shopSubFilter: null, // Default subfilter
-            searchTerm: '' // Search filter
+            searchTerm: '', // Search filter
+            bioAccordionOpen: null // Novo estado para a aba BIO
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -683,7 +704,6 @@
                     return { type: 'choice', keys: ['INT', 'SAB'], amount: r.aumento_atributo.INT_ou_SAB };
                 }
                 if (r.aumento_atributo.Físico) {
-                    // Caso específico para Vampiros ou similares
                     return { type: 'choice', keys: ['FOR', 'DES', 'CON'], amount: r.aumento_atributo.Físico };
                 }
             }
@@ -697,17 +717,13 @@
         function updateAllocation(attr, delta, limit) {
             const current = state.allocations[attr] || 0;
             const total = getAllocatedTotal();
-            
-            // Check limits
             if (delta > 0 && total >= limit) return;
             if (delta < 0 && current <= 0) return;
-            
             state.allocations[attr] = current + delta;
             render(true);
         }
 
         function updateChoiceAllocation(attr, amount) {
-            // Reset other allocations for choice type
             state.allocations = { [attr]: amount };
             render(true);
         }
@@ -715,7 +731,6 @@
         // --- RENDERIZADORES ---
         function render(preserveScroll = false) {
             const app = document.getElementById('app');
-            
             let scrollTop = 0;
             if (preserveScroll) {
                 const scrollEl = app.querySelector('.custom-scrollbar');
@@ -732,29 +747,17 @@
             if (state.rollResult) {
                 const r = state.rollResult;
                 const themeColor = 'var(--theme-color-hex)';
-                // Se for amarelo (crítico 20) ou vermelho (falha 1), usa cor específica, senão tema
                 const displayColor = r.diceVal === 20 ? '#ffe600' : (r.diceVal === 1 ? '#ff0055' : themeColor);
                 
                 const modalHtml = `
                 <div class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300" onclick="closeRollModal()">
-                    
-                    <div class="mb-4 text-[${displayColor}] drop-shadow-[0_0_15px_${displayColor}] animate-bounce">
-                        <i data-lucide="dices" size="48"></i>
-                    </div>
-
+                    <div class="mb-4 text-[${displayColor}] drop-shadow-[0_0_15px_${displayColor}] animate-bounce"><i data-lucide="dices" size="48"></i></div>
                     <h2 class="font-display font-black text-2xl text-white uppercase tracking-widest mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">${r.name}</h2>
-
                     <div class="relative w-48 h-48 flex items-center justify-center mb-8 pulse-ring">
                         <div class="absolute inset-0 rounded-full border-4 border-[${displayColor}] shadow-[0_0_30px_${displayColor}] opacity-100 bg-black/50 backdrop-blur-md"></div>
                         <span class="font-display font-black text-7xl text-[${displayColor}] relative z-10 drop-shadow-[0_0_10px_${displayColor}]">${r.total}</span>
                     </div>
-
-                    <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-full px-6 py-2 mb-12 shadow-lg">
-                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">
-                            d20 (${r.diceVal}) ${r.mod >= 0 ? '+' : ''} Mod (${r.mod})
-                        </span>
-                    </div>
-
+                    <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-full px-6 py-2 mb-12 shadow-lg"><span class="text-xs font-bold text-gray-400 uppercase tracking-widest">d20 (${r.diceVal}) ${r.mod >= 0 ? '+' : ''} Mod (${r.mod})</span></div>
                     <p class="text-[10px] text-gray-600 uppercase font-bold tracking-[0.2em] animate-pulse">Toque em qualquer lugar para fechar</p>
                 </div>`;
                 app.insertAdjacentHTML('beforeend', modalHtml);
@@ -801,50 +804,25 @@
         }
 
         function renderCreator(container) {
-             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] } }; }
+             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] } }; }
             const step = state.creatorStep;
-            
-            // GARANTIR TEMA (PERSISTÊNCIA DE COR)
             let themeColorHex = '#00ff9d';
-            if (state.tempChar && state.tempChar.class) {
-                const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class);
-                if (clsTheme) {
-                    setThemeColor(clsTheme.color);
-                    themeColorHex = clsTheme.color;
-                }
-            }
-
+            if (state.tempChar && state.tempChar.class) { const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class); if (clsTheme) { setThemeColor(clsTheme.color); themeColorHex = clsTheme.color; } }
             let contentHtml = '';
             let title = '';
 
-            // ... (Passos 0 a 4 mantidos iguais, apenas restaurando lógica visual) ...
             if (step === 0) {
                  title = 'IDENTIDADE';
                 const percentages = getNenPercentages(state.tempChar.class);
                 const currentClass = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class);
-                const hexNodes = SYSTEM_DB.classes.map(c => {
-                    const isSelected = state.tempChar.class === c.id;
-                    const pct = percentages[c.id];
-                    const rad = (c.angle * Math.PI) / 180;
-                    const radius = 35; 
-                    const left = 50 + (radius * Math.cos(rad));
-                    const top = 50 + (radius * Math.sin(rad));
-                    const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`;
-                    const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)';
-                    const zIndex = isSelected ? 'z-10' : 'z-0';
-                    return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};" onclick="selectNenType('${c.id}')"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`;
-                }).join('');
+                const hexNodes = SYSTEM_DB.classes.map(c => { const isSelected = state.tempChar.class === c.id; const pct = percentages[c.id]; const rad = (c.angle * Math.PI) / 180; const radius = 35; const left = 50 + (radius * Math.cos(rad)); const top = 50 + (radius * Math.sin(rad)); const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`; const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)'; const zIndex = isSelected ? 'z-10' : 'z-0'; return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};" onclick="selectNenType('${c.id}')"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`; }).join('');
                 contentHtml = `<div class="space-y-6"><div class="relative"><label class="text-[10px] font-bold text-neon-theme uppercase tracking-widest mb-2 block pl-2">Nome do Candidato</label><input type="text" id="creator-name" value="${state.tempChar.name}" placeholder="INSIRA SEU NOME..." class="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-white text-center font-display font-bold tracking-wider focus:border-neon-theme focus:shadow-[0_0_15px_rgba(var(--theme-rgb),0.2)] transition-all uppercase placeholder-gray-600" oninput="state.tempChar.name = this.value"></div><div class="text-center transition-all"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_rgba(var(--theme-rgb),0.6)]" style="color: ${currentClass.color}; text-shadow: 0 0 10px ${currentClass.color}40;">${state.tempChar.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative max-w-[360px] mx-auto"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
             } else if (step === 1) {
-                // ... (Step 1 mantido)
                 title = 'RAÇA';
                 contentHtml = `<div class="space-y-4">`;
                 let lastCat = '';
                 SYSTEM_DB.racas.forEach(r => {
-                    if (r.categoria && r.categoria !== lastCat) {
-                        contentHtml += `<div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 mb-2 pl-2">${r.categoria}</div>`;
-                        lastCat = r.categoria;
-                    }
+                    if (r.categoria && r.categoria !== lastCat) { contentHtml += `<div class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mt-4 mb-2 pl-2">${r.categoria}</div>`; lastCat = r.categoria; }
                     const isSelected = state.tempChar.race === r.nome;
                     const borderColor = isSelected ? 'border-neon-theme ring-2 ring-neon-theme/20' : 'border-gray-800';
                     const bgColor = isSelected ? 'bg-neon-theme/5' : 'bg-gray-900';
@@ -858,7 +836,14 @@
                          const maxTraits = 3;
                          featuresHtml = `<div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2 flex justify-between">Características da Espécie <span id="trait-counter" class="${selectedCount >= maxTraits ? 'text-neon-theme' : 'text-gray-500'}">(${selectedCount}/${maxTraits})</span></h4><div class="bg-gray-950/50 rounded-lg p-2 border border-gray-800/50 grid grid-cols-1 gap-2">${r.caracteristicas.map(f => {
                                 const isTraitSelected = (state.tempChar.raceTraits || []).includes(f.nome);
-                                return `<div id="trait-btn-${f.nome.replace(/\s/g,'-')}" onclick="event.stopPropagation(); toggleRaceTrait('${f.nome}')" class="p-2 rounded border cursor-pointer transition-all flex items-start gap-2 ${isTraitSelected ? 'bg-neon-theme/10 border-neon-theme text-white' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800'}"><div class="mt-0.5 pointer-events-none">${isTraitSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}</div><div class="pointer-events-none"><span class="text-[10px] font-bold block">${f.nome}</span><span class="text-[9px] block leading-tight opacity-70">${f.efeito || f.mecanica || ''}</span></div></div>`;
+                                let optionsHtml = '';
+                                if (isTraitSelected && f.opcoes) {
+                                    const currentDetail = (state.tempChar.traitDetails || {})[f.nome] || f.opcoes[0];
+                                    if (!state.tempChar.traitDetails) state.tempChar.traitDetails = {};
+                                    if (!state.tempChar.traitDetails[f.nome]) state.tempChar.traitDetails[f.nome] = f.opcoes[0];
+                                    optionsHtml = `<div class="mt-2 pl-6 pointer-events-auto" onclick="event.stopPropagation()"><select class="bg-black border border-gray-700 text-[9px] text-white rounded p-1 w-full outline-none focus:border-neon-theme" onchange="updateTraitDetail('${f.nome}', this.value)">${f.opcoes.map(opt => `<option value="${opt}" ${currentDetail === opt ? 'selected' : ''}>${opt}</option>`).join('')}</select></div>`;
+                                }
+                                return `<div id="trait-btn-${f.nome.replace(/\s/g,'-')}" onclick="event.stopPropagation(); toggleRaceTrait('${f.nome}')" class="p-2 rounded border cursor-pointer transition-all flex flex-col items-start ${isTraitSelected ? 'bg-neon-theme/10 border-neon-theme text-white' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800'}"><div class="flex items-start gap-2 w-full"><div class="mt-0.5 pointer-events-none shrink-0">${isTraitSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}</div><div class="pointer-events-none"><span class="text-[10px] font-bold block">${f.nome}</span><span class="text-[9px] block leading-tight opacity-70">${f.efeito || f.mecanica || ''}</span></div></div>${optionsHtml}</div>`;
                             }).join('')}</div></div>`;
                     } else {
                         const features = [...(r.caracteristicas || []), ...(r.opcoes_caracteristica || [])];
@@ -868,22 +853,14 @@
                     const checkIcon = `<span id="check-${r.nome.replace(/\s/g,'-')}" class="transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'} flex items-center"><i data-lucide="check" size="16"></i></span>`;
                     const chevronClass = isSelected ? 'rotate-0' : '-rotate-90';
 
-                    contentHtml += `
-                    <div id="race-card-${r.nome.replace(/\s/g,'-')}" onclick="selectRace('${r.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2">
-                        <div class="p-4 flex items-start justify-between">
-                            <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${r.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight">${r.descricao}</p></div>
-                            <div id="chevron-${r.nome.replace(/\s/g,'-')}" class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
-                        </div>
-                        <div id="race-content-${r.nome.replace(/\s/g,'-')}" class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}"><div class="h-px w-full bg-gray-800 mb-4"></div><div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2">Bônus de Atributo</h4><div class="flex flex-wrap gap-2">${attrHtml}</div></div>${featuresHtml}<div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500"><div class="col-span-2 text-right italic text-gray-600">Fonte: ${r.fonte}</div></div></div>
-                    </div>`;
+                    contentHtml += `<div id="race-card-${r.nome.replace(/\s/g,'-')}" onclick="selectRace('${r.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2"><div class="p-4 flex items-start justify-between"><div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${r.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight">${r.descricao}</p></div><div id="chevron-${r.nome.replace(/\s/g,'-')}" class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div></div><div id="race-content-${r.nome.replace(/\s/g,'-')}" class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}"><div class="h-px w-full bg-gray-800 mb-4"></div><div class="mb-4"><h4 class="text-[10px] font-black text-neon-theme uppercase tracking-widest mb-2">Bônus de Atributo</h4><div class="flex flex-wrap gap-2">${attrHtml}</div></div>${featuresHtml}<div class="grid grid-cols-2 gap-2 text-[10px] text-gray-500"><div class="col-span-2 text-right italic text-gray-600">Fonte: ${r.fonte}</div></div></div></div>`;
                 });
                 contentHtml += `</div>`;
             } else if (step === 2) {
-                // ... (Step 2 mantido)
+                // ... (Step 2 - Atributos)
                 title = 'ATRIBUTOS';
                 const totalCost = calculateTotalCost(state.tempChar.attributes);
                 const maxCost = 20;
-
                 const tabBtn = (id, label, icon) => {
                     const isActive = state.attrTab === id;
                     const isLocked = state.attrMethodLocked && !isActive;
@@ -891,15 +868,12 @@
                     let stateClasses = isActive ? "bg-neon-theme/20 border-neon-theme text-neon-theme shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]" : (isLocked ? "bg-gray-900 border-gray-800 text-gray-600 opacity-50 cursor-not-allowed" : "bg-gray-900 border-gray-800 text-gray-500 hover:text-gray-300 cursor-pointer");
                     return `<button onclick="${isLocked ? '' : `setAttrTab('${id}')`}" class="${baseClasses} ${stateClasses}">${isLocked ? '<i data-lucide="lock" size="14"></i>' : `<i data-lucide="${icon}" size="14"></i>`} ${label}</button>`;
                 };
-
                 contentHtml = `<div class="space-y-6"><div class="bg-[#2a0e14] border border-neon-red/30 p-4 rounded-xl text-center relative overflow-hidden shadow-[0_0_15px_rgba(255,0,85,0.1)]"><p class="text-[10px] text-neon-red font-bold uppercase tracking-widest flex items-center justify-center gap-2 relative z-10"><i data-lucide="alert-triangle" size="14"></i> Atenção: Apenas um modo pode ser escolhido. Ao iniciar, os outros serão bloqueados.</p></div><div class="flex gap-2 p-1 bg-gray-900 rounded-xl border border-gray-800">${tabBtn('ROLAGEM', 'Rolagem', 'dices')}${tabBtn('ARRAY', 'Média', 'list')}${tabBtn('COMPRA', 'Compra', 'coins')}</div>`;
-
                 if (state.attrTab === 'ROLAGEM' || state.attrTab === 'ARRAY') {
                     contentHtml += `<div class="space-y-4">${!state.attrMethodLocked ? (state.attrTab === 'ROLAGEM' ? `<button onclick="rollAllStats()" class="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl font-display font-bold text-white tracking-widest hover:brightness-110 active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2 border border-white/10"><i data-lucide="dices"></i> ROLAR ATRIBUTOS</button>` : `<button onclick="applyStandardArray()" class="w-full py-4 bg-neon-blue/10 text-neon-blue border border-neon-blue/50 rounded-xl font-display font-bold tracking-widest hover:bg-neon-blue hover:text-black active:scale-95 transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(0,240,255,0.2)]"><i data-lucide="list"></i> USAR MÉDIA PADRÃO</button>`) : ''}${state.attrMethodLocked ? `<div class="bg-gray-900/50 border border-gray-700 rounded-xl p-4"><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-3 text-center">Banco de Atributos</p>${state.attrPool.length === 0 ? '<div class="text-center text-xs text-gray-600 py-2 italic">Todos os valores alocados.</div>' : `<div class="flex flex-wrap gap-2 justify-center">${state.attrPool.map((val, idx) => `<button draggable="true" ondragstart="handleDragStart(event, ${idx})" ondragend="handleDragEnd(event)" onclick="selectPoolItem(${idx})" class="w-10 h-10 rounded-lg font-display font-bold text-lg flex items-center justify-center transition-all cursor-move ${state.selectedPoolIdx === idx ? 'bg-neon-theme text-black shadow-[0_0_10px_var(--theme-color-hex)] scale-110' : 'bg-gray-800 text-white hover:bg-gray-700'}">${val}</button>`).join('')}</div>`}<p class="text-[9px] text-gray-500 text-center mt-3">${state.selectedPoolIdx !== null ? 'Selecione um atributo abaixo para aplicar.' : 'Clique em um número para selecionar ou arraste para um slot.'}</p></div>` : ''}</div>`;
                 } else if (state.attrTab === 'COMPRA') {
                      contentHtml += `<div id="buy-container" class="bg-gray-900 border border-gray-800 p-4 rounded-xl relative overflow-hidden"><div class="flex justify-between items-center relative z-10"><span class="text-xs text-gray-400 uppercase font-bold tracking-widest">Pontos Gastos</span><div class="flex items-center gap-1"><span id="buy-total" class="font-display font-bold text-2xl ${totalCost > maxCost ? 'text-red-500' : 'text-white'} transition-all">${totalCost}</span><span class="font-display text-gray-600 text-lg">/ ${maxCost}</span></div></div><div class="absolute bottom-0 left-0 h-1 bg-gray-800 w-full"><div id="buy-bar" class="h-full ${totalCost > maxCost ? 'bg-red-500' : 'bg-neon-theme'} transition-all duration-300" style="width: ${Math.min(100, (totalCost/maxCost)*100)}%"></div></div></div>`;
                 }
-
                 contentHtml += `<div class="grid grid-cols-2 gap-3">${Object.keys(state.tempChar.attributes).map(attr => {
                     const val = state.tempChar.attributes[attr];
                     const isPoolMode = state.attrTab !== 'COMPRA';
@@ -907,6 +881,7 @@
                     return `<div ${dndAttrs} class="bg-gray-900 rounded-xl p-3 border transition-all relative overflow-hidden group ${state.selectedPoolIdx !== null && isPoolMode ? 'border-neon-theme/50 cursor-pointer hover:border-neon-theme' : 'border-gray-800'} ${val === null && isPoolMode ? 'border-dashed' : ''}" onclick="${isPoolMode ? (val === null ? `assignToSlot('${attr}')` : `returnToPool('${attr}')`) : ''}"><div class="flex justify-between items-center mb-2"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${attr}</span>${val !== null ? `<span class="text-[10px] bg-gray-800 text-gray-400 px-1.5 rounded border border-gray-700">Mod ${getModStr(val)}</span>` : ''}</div>${state.attrTab === 'COMPRA' ? `<div class="flex items-center justify-between"><button onclick="buyStat('${attr}', -1)" class="w-8 h-8 bg-black/30 rounded text-gray-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"><i data-lucide="minus" size="14"></i></button><span id="attr-val-${attr}" class="text-xl font-display font-bold text-white transition-all">${val}</span><button onclick="buyStat('${attr}', 1)" class="w-8 h-8 bg-black/30 rounded text-gray-400 hover:text-white hover:bg-white/10 flex items-center justify-center transition-colors"><i data-lucide="plus" size="14"></i></button></div><div class="text-center mt-1"><span class="text-[8px] text-gray-600">Custo: ${getPointBuyCost(val)}</span></div>` : `<div class="text-center py-1 h-10 flex items-center justify-center pointer-events-none">${val !== null ? `<span class="text-3xl font-display font-bold text-white transition-colors">${val}</span>` : `<span class="text-[10px] text-gray-700 uppercase font-bold tracking-widest">Vazio</span>`}</div>${isPoolMode && val !== null ? '<div class="absolute inset-0 bg-red-500/10 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity pointer-events-none"><i data-lucide="x" class="text-red-500"></i></div>' : ''}`}</div>`;
                 }).join('')}</div></div>`;
             } else if (step === 3) {
+                // ... (Step 3 - Antecedente)
                  title = 'ANTECEDENTE';
                 contentHtml = `<div class="space-y-4">`;
                 SYSTEM_DB.antecedentes.forEach(bg => {
@@ -914,60 +889,13 @@
                     const borderColor = isSelected ? 'border-neon-theme ring-2 ring-neon-theme/20' : 'border-gray-800';
                     const bgColor = isSelected ? 'bg-neon-theme/5' : 'bg-gray-900';
                     const textColor = isSelected ? 'text-neon-theme' : 'text-white';
-                    
                     const checkIcon = `<span class="transition-opacity duration-300 ${isSelected ? 'opacity-100' : 'opacity-0'} flex items-center"><i data-lucide="check" size="16" class="text-neon-theme"></i></span>`;
                     const chevronClass = isSelected ? 'rotate-0' : '-rotate-90';
-
-                    contentHtml += `
-                    <div id="bg-card-${bg.nome.replace(/\s/g,'-')}" onclick="selectBackground('${bg.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2">
-                        <div class="p-4 flex items-start justify-between">
-                            <div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${bg.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight line-clamp-2">${bg.descricao}</p></div>
-                            <div class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div>
-                        </div>
-                        <div class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}">
-                            <div class="h-px w-full bg-gray-800 mb-4"></div>
-                            <p class="text-xs text-gray-400 italic mb-4">"${bg.descricao}"</p>
-                            
-                            <div class="bg-gray-950/50 border border-cyan-500/30 rounded-xl p-3 mb-3 relative overflow-hidden">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
-                                <h4 class="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="graduation-cap" size="12"></i> Proficiências</h4>
-                                <p class="text-xs text-gray-300 font-bold">${bg.proficiencias}</p>
-                                <p class="text-[10px] text-gray-500 italic mt-1">Estas perícias serão adicionadas automaticamente.</p>
-                            </div>
-
-                            <div class="bg-gray-950/50 border border-green-500/30 rounded-xl p-3 mb-3 relative overflow-hidden">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
-                                <h4 class="text-[10px] font-black text-green-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="backpack" size="12"></i> Equipamento</h4>
-                                <div class="space-y-1">
-                                    ${bg.equipamento.map(item => `<div class="bg-gray-900 border border-gray-800 px-2 py-1 rounded text-[10px] text-gray-300 font-mono">${item}</div>`).join('')}
-                                </div>
-                            </div>
-
-                            <div class="bg-gray-950/50 border border-purple-500/30 rounded-xl p-3 relative overflow-hidden">
-                                <div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
-                                <h4 class="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="star" size="12"></i> Escolha uma Característica</h4>
-                                <div class="space-y-2">
-                                    ${bg.caracteristicas.map(c => `
-                                        <label class="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-white/5 transition-colors">
-                                            <div class="relative flex items-center mt-0.5">
-                                                <input type="radio" name="bg-feature" value="${c.nome}" class="peer sr-only" onclick="selectBackgroundFeature('${c.nome}')" ${state.tempChar.backgroundFeature === c.nome ? 'checked' : ''}>
-                                                <div class="w-4 h-4 border-2 border-gray-600 rounded-full peer-checked:border-purple-500 peer-checked:bg-purple-500/20 transition-all flex items-center justify-center">
-                                                    <div class="w-2 h-2 rounded-full bg-transparent peer-checked:bg-purple-500 transition-colors radio-indicator"></div>
-                                                </div>
-                                            </div>
-                                            <div class="flex-1">
-                                                <span class="text-xs font-bold text-white block ${state.tempChar.backgroundFeature === c.nome ? 'text-purple-400' : ''}">${c.nome}</span>
-                                                <span class="text-[10px] text-gray-500 leading-tight block">${c.efeito}</span>
-                                            </div>
-                                        </label>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        </div>
-                    </div>`;
+                    contentHtml += `<div id="bg-card-${bg.nome.replace(/\s/g,'-')}" onclick="selectBackground('${bg.nome}')" class="w-full text-left rounded-2xl border ${borderColor} ${bgColor} transition-all duration-300 cursor-pointer group relative overflow-hidden mb-2"><div class="p-4 flex items-start justify-between"><div><h3 class="font-display font-bold text-lg uppercase tracking-wider ${textColor} flex items-center gap-2">${bg.nome} ${checkIcon}</h3><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mt-1 pr-6 leading-tight line-clamp-2">${bg.descricao}</p></div><div class="transition-transform duration-300 ${chevronClass} ${isSelected ? 'text-neon-theme' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div></div><div class="accordion-content px-4 ${isSelected ? 'open pb-4' : ''}"><div class="h-px w-full bg-gray-800 mb-4"></div><p class="text-xs text-gray-400 italic mb-4">"${bg.descricao}"</p><div class="bg-gray-950/50 border border-cyan-500/30 rounded-xl p-3 mb-3 relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div><h4 class="text-[10px] font-black text-cyan-400 uppercase tracking-widest mb-1 flex items-center gap-2"><i data-lucide="graduation-cap" size="12"></i> Proficiências</h4><p class="text-xs text-gray-300 font-bold">${bg.proficiencias}</p><p class="text-[10px] text-gray-500 italic mt-1">Estas perícias serão adicionadas automaticamente.</p></div><div class="bg-gray-950/50 border border-green-500/30 rounded-xl p-3 mb-3 relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full bg-green-500"></div><h4 class="text-[10px] font-black text-green-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="backpack" size="12"></i> Equipamento</h4><div class="space-y-1">${bg.equipamento.map(item => `<div class="bg-gray-900 border border-gray-800 px-2 py-1 rounded text-[10px] text-gray-300 font-mono">${item}</div>`).join('')}</div></div><div class="bg-gray-950/50 border border-purple-500/30 rounded-xl p-3 relative overflow-hidden"><div class="absolute top-0 left-0 w-1 h-full bg-purple-500"></div><h4 class="text-[10px] font-black text-purple-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="star" size="12"></i> Escolha uma Característica</h4><div class="space-y-2">${bg.caracteristicas.map(c => `<label class="flex items-start gap-3 cursor-pointer p-2 rounded hover:bg-white/5 transition-colors"><div class="relative flex items-center mt-0.5"><input type="radio" name="bg-feature" value="${c.nome}" class="peer sr-only" onclick="selectBackgroundFeature('${c.nome}')" ${state.tempChar.backgroundFeature === c.nome ? 'checked' : ''}><div class="w-4 h-4 border-2 border-gray-600 rounded-full peer-checked:border-purple-500 peer-checked:bg-purple-500/20 transition-all flex items-center justify-center"><div class="w-2 h-2 rounded-full bg-transparent peer-checked:bg-purple-500 transition-colors radio-indicator"></div></div></div><div class="flex-1"><span class="text-xs font-bold text-white block ${state.tempChar.backgroundFeature === c.nome ? 'text-purple-400' : ''}">${c.nome}</span><span class="text-[10px] text-gray-500 leading-tight block">${c.efeito}</span></div></label>`).join('')}</div></div></div></div>`;
                 });
                 contentHtml += `</div>`;
             } else if (step === 4) {
+                // ... (Step 4 - Inclinação)
                   title = 'INCLINAÇÃO';
                 const posCost = state.tempChar.inclinations.positive.reduce((acc, i) => acc + i.custo, 0);
                 const negVal = state.tempChar.inclinations.negative.reduce((acc, i) => acc + i.valor, 0);
@@ -976,298 +904,40 @@
                 const paidCost = Math.max(0, posCost - freeCost);
                 const balance = (negVal) - paidCost; 
                 const isOk = balance >= 0;
-
-                contentHtml = `
-                <div class="space-y-6">
-                    <div class="grid grid-cols-3 gap-2 bg-gray-900 border border-gray-800 rounded-xl p-3">
-                        <div class="text-center border-r border-gray-800">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Custo Positivo</span>
-                            <span class="text-xl font-display font-bold text-white">${posCost} <span class="text-[10px] text-gray-600">pts</span></span>
-                        </div>
-                        <div class="text-center border-r border-gray-800">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Compensação</span>
-                            <div class="flex items-center justify-center gap-2">
-                                <i data-lucide="scale" size="16" class="${isOk ? 'text-neon-green' : 'text-neon-red'}"></i>
-                                <span class="text-xl font-display font-bold ${isOk ? 'text-neon-green' : 'text-neon-red'}">${isOk ? 'OK' : balance}</span>
-                            </div>
-                        </div>
-                        <div class="text-center">
-                            <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Pontos Neg.</span>
-                            <span class="text-xl font-display font-bold text-neon-red">${negVal} <span class="text-[10px] text-gray-600">/ 10</span></span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="flex items-center justify-between mb-2">
-                            <h4 class="text-xs font-black text-neon-green uppercase tracking-widest flex items-center gap-2"><i data-lucide="thumbs-up" size="14"></i> Gerais Positivas</h4>
-                            <span class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">1ª Grátis (Maior Valor)</span>
-                        </div>
-                        <div class="space-y-2">
-                            ${SYSTEM_DB.inclinacoes.positivas.map(inc => {
-                                if (inc.hasOptions) {
-                                     const hasChildSelected = state.tempChar.inclinations.positive.some(i => i.nome.startsWith(inc.nome + ':'));
-                                     return `
-                                     <div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-green/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden">
-                                        <div class="mb-2 border-b border-gray-800 pb-2">
-                                            <span class="text-xs font-bold text-white flex items-center gap-2">
-                                                ${inc.nome}
-                                                ${hasChildSelected ? '<span class="text-[9px] bg-neon-green/10 text-neon-green px-1.5 rounded border border-neon-green/20 uppercase">Selecionado</span>' : ''}
-                                            </span>
-                                            <p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p>
-                                        </div>
-                                        <div class="space-y-1 pl-2 border-l-2 border-gray-800">
-                                            ${inc.options.map(opt => {
-                                                const fullName = `${inc.nome}: ${opt.label}`;
-                                                const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === fullName);
-                                                return `
-                                                <div onclick="toggleInclination('positive', '${fullName}', ${opt.custo})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-green/10' : ''}">
-                                                    <div class="flex flex-col">
-                                                        <span class="text-[11px] font-bold ${isSelected ? 'text-neon-green' : 'text-gray-300'}">${opt.label}</span>
-                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}
-                                                    </div>
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-[9px] font-mono text-gray-500">${opt.custo} pts</span>
-                                                        ${isSelected ? '<i data-lucide="check" size="12" class="text-neon-green"></i>' : '<div class="w-3 h-3"></div>'}
-                                                    </div>
-                                                </div>`;
-                                            }).join('')}
-                                        </div>
-                                     </div>`;
-                                } else {
-                                    const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === inc.nome);
-                                    return `
-                                    <div onclick="toggleInclination('positive', '${inc.nome}', ${inc.custo})" class="bg-gray-900 border ${isSelected ? 'border-neon-green shadow-[0_0_10px_rgba(0,255,157,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
-                                        ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-green"></i></div>' : ''}
-                                        <div class="flex justify-between items-start mb-1">
-                                            <span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span>
-                                            <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span>
-                                        </div>
-                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p>
-                                    </div>`;
-                                }
-                            }).join('')}
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 class="text-xs font-black text-neon-red uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="thumbs-down" size="14"></i> Gerais Negativas</h4>
-                        <div class="space-y-2">
-                            ${SYSTEM_DB.inclinacoes.negativas.map(inc => {
-                                if (inc.hasOptions) {
-                                    const hasChildSelected = state.tempChar.inclinations.negative.some(i => i.nome.startsWith(inc.nome + ':'));
-                                     return `
-                                     <div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-red/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden">
-                                        <div class="mb-2 border-b border-gray-800 pb-2">
-                                            <span class="text-xs font-bold text-white flex items-center gap-2">
-                                                ${inc.nome}
-                                                ${hasChildSelected ? '<span class="text-[9px] bg-neon-red/10 text-neon-red px-1.5 rounded border border-neon-red/20 uppercase">Selecionado</span>' : ''}
-                                            </span>
-                                            <p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p>
-                                        </div>
-                                        <div class="space-y-1 pl-2 border-l-2 border-gray-800">
-                                            ${inc.options.map(opt => {
-                                                const fullName = `${inc.nome}: ${opt.label}`;
-                                                const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === fullName);
-                                                return `
-                                                <div onclick="toggleInclination('negative', '${fullName}', ${opt.valor})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-red/10' : ''}">
-                                                    <div class="flex flex-col">
-                                                        <span class="text-[11px] font-bold ${isSelected ? 'text-neon-red' : 'text-gray-300'}">${opt.label}</span>
-                                                        ${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}
-                                                    </div>
-                                                    <div class="flex items-center gap-2">
-                                                        <span class="text-[9px] font-mono text-gray-500">+${opt.valor} pts</span>
-                                                        ${isSelected ? '<i data-lucide="check" size="12" class="text-neon-red"></i>' : '<div class="w-3 h-3"></div>'}
-                                                    </div>
-                                                </div>`;
-                                            }).join('')}
-                                        </div>
-                                     </div>`;
-                                } else {
-                                    const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === inc.nome);
-                                    return `
-                                    <div onclick="toggleInclination('negative', '${inc.nome}', ${inc.valor})" class="bg-gray-900 border ${isSelected ? 'border-neon-red shadow-[0_0_10px_rgba(255,0,85,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">
-                                        ${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-red"></i></div>' : ''}
-                                        <div class="flex justify-between items-start mb-1">
-                                            <span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span>
-                                            <span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span>
-                                        </div>
-                                        <p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p>
-                                    </div>`;
-                                }
-                            }).join('')}
-                        </div>
-                    </div>
-                </div>`;
+                contentHtml = `<div class="space-y-6"><div class="grid grid-cols-3 gap-2 bg-gray-900 border border-gray-800 rounded-xl p-3"><div class="text-center border-r border-gray-800"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Custo Positivo</span><span class="text-xl font-display font-bold text-white">${posCost} <span class="text-[10px] text-gray-600">pts</span></span></div><div class="text-center border-r border-gray-800"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Compensação</span><div class="flex items-center justify-center gap-2"><i data-lucide="scale" size="16" class="${isOk ? 'text-neon-green' : 'text-neon-red'}"></i><span class="text-xl font-display font-bold ${isOk ? 'text-neon-green' : 'text-neon-red'}">${isOk ? 'OK' : balance}</span></div></div><div class="text-center"><span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Pontos Neg.</span><span class="text-xl font-display font-bold text-neon-red">${negVal} <span class="text-[10px] text-gray-600">/ 10</span></span></div></div><div><div class="flex items-center justify-between mb-2"><h4 class="text-xs font-black text-neon-green uppercase tracking-widest flex items-center gap-2"><i data-lucide="thumbs-up" size="14"></i> Gerais Positivas</h4><span class="text-[10px] bg-gray-800 text-gray-400 px-2 py-0.5 rounded border border-gray-700">1ª Grátis (Maior Valor)</span></div><div class="space-y-2">${SYSTEM_DB.inclinacoes.positivas.map(inc => { if (inc.hasOptions) { const hasChildSelected = state.tempChar.inclinations.positive.some(i => i.nome.startsWith(inc.nome + ':')); return `<div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-green/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden"><div class="mb-2 border-b border-gray-800 pb-2"><span class="text-xs font-bold text-white flex items-center gap-2">${inc.nome}${hasChildSelected ? '<span class="text-[9px] bg-neon-green/10 text-neon-green px-1.5 rounded border border-neon-green/20 uppercase">Selecionado</span>' : ''}</span><p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p></div><div class="space-y-1 pl-2 border-l-2 border-gray-800">${inc.options.map(opt => { const fullName = `${inc.nome}: ${opt.label}`; const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === fullName); return `<div onclick="toggleInclination('positive', '${fullName}', ${opt.custo})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-green/10' : ''}"><div class="flex flex-col"><span class="text-[11px] font-bold ${isSelected ? 'text-neon-green' : 'text-gray-300'}">${opt.label}</span>${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}</div><div class="flex items-center gap-2"><span class="text-[9px] font-mono text-gray-500">${opt.custo} pts</span>${isSelected ? '<i data-lucide="check" size="12" class="text-neon-green"></i>' : '<div class="w-3 h-3"></div>'}</div></div>`; }).join('')}</div></div>`; } else { const isSelected = state.tempChar.inclinations.positive.some(i => i.nome === inc.nome); return `<div onclick="toggleInclination('positive', '${inc.nome}', ${inc.custo})" class="bg-gray-900 border ${isSelected ? 'border-neon-green shadow-[0_0_10px_rgba(0,255,157,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-green"></i></div>' : ''}<div class="flex justify-between items-start mb-1"><span class="text-xs font-bold ${isSelected ? 'text-neon-green' : 'text-white'}">${inc.nome}</span><span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">${inc.custo} pts</span></div><p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p></div>`; } }).join('')}</div></div><div><h4 class="text-xs font-black text-neon-red uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="thumbs-down" size="14"></i> Gerais Negativas</h4><div class="space-y-2">${SYSTEM_DB.inclinacoes.negativas.map(inc => { if (inc.hasOptions) { const hasChildSelected = state.tempChar.inclinations.negative.some(i => i.nome.startsWith(inc.nome + ':')); return `<div class="bg-gray-900 border ${hasChildSelected ? 'border-neon-red/50' : 'border-gray-800'} rounded-xl p-3 relative overflow-hidden"><div class="mb-2 border-b border-gray-800 pb-2"><span class="text-xs font-bold text-white flex items-center gap-2">${inc.nome}${hasChildSelected ? '<span class="text-[9px] bg-neon-red/10 text-neon-red px-1.5 rounded border border-neon-red/20 uppercase">Selecionado</span>' : ''}</span><p class="text-[10px] text-gray-500 leading-tight mt-1 line-clamp-2">${inc.desc}</p></div><div class="space-y-1 pl-2 border-l-2 border-gray-800">${inc.options.map(opt => { const fullName = `${inc.nome}: ${opt.label}`; const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === fullName); return `<div onclick="toggleInclination('negative', '${fullName}', ${opt.valor})" class="flex justify-between items-center p-2 rounded cursor-pointer hover:bg-white/5 transition-colors ${isSelected ? 'bg-neon-red/10' : ''}"><div class="flex flex-col"><span class="text-[11px] font-bold ${isSelected ? 'text-neon-red' : 'text-gray-300'}">${opt.label}</span>${opt.desc ? `<span class="text-[9px] text-gray-500 line-clamp-1">${opt.desc}</span>` : ''}</div><div class="flex items-center gap-2"><span class="text-[9px] font-mono text-gray-500">+${opt.valor} pts</span>${isSelected ? '<i data-lucide="check" size="12" class="text-neon-red"></i>' : '<div class="w-3 h-3"></div>'}</div></div>`; }).join('')}</div></div>`; } else { const isSelected = state.tempChar.inclinations.negative.some(i => i.nome === inc.nome); return `<div onclick="toggleInclination('negative', '${inc.nome}', ${inc.valor})" class="bg-gray-900 border ${isSelected ? 'border-neon-red shadow-[0_0_10px_rgba(255,0,85,0.2)]' : 'border-gray-800'} rounded-xl p-3 cursor-pointer transition-all hover:border-gray-600 group relative overflow-hidden">${isSelected ? '<div class="absolute top-0 right-0 p-1"><i data-lucide="check" size="14" class="text-neon-red"></i></div>' : ''}<div class="flex justify-between items-start mb-1"><span class="text-xs font-bold ${isSelected ? 'text-neon-red' : 'text-white'}">${inc.nome}</span><span class="text-[10px] font-mono bg-black/50 px-1.5 rounded text-gray-400 border border-gray-700">+${inc.valor} pts</span></div><p class="text-[10px] text-gray-500 leading-tight group-hover:text-gray-400 transition-colors line-clamp-2">${inc.desc}</p></div>`; } }).join('')}</div></div></div>`;
             } else if (step === 5) {
+                // ... (Step 5 - Treinamentos)
                  title = 'TREINAMENTOS';
                 window.toggleAccordion = (section) => { state.openSkillAccordion = state.openSkillAccordion === section ? null : section; render(true); };
-                
                 const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : "";
-                
-                // Separate skills into Manual and Background
                 const manualMainSkills = state.tempChar.skills.filter(s => !bgSkillsText.includes(s));
-                
                 const mainCount = manualMainSkills.length;
                 const otherCount = state.tempChar.otherSkills.length;
                 const maxMain = 5;
-                
                 const hasBgKit = bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta");
                 const maxOther = hasBgKit ? 5 : 4;
-
                 const renderAccordionHeader = (id, label, count, max, isOpen, colorClass, labelColorClass) => {
-                    return `
-                    <div onclick="toggleAccordion('${id}')" class="flex items-center justify-between p-4 bg-gray-900 border ${isOpen ? `border-${colorClass.split('-')[1]}-${colorClass.split('-')[2]}` : 'border-gray-800'} rounded-xl cursor-pointer hover:bg-gray-800 transition-all mb-2 relative group overflow-hidden">
-                         <div class="absolute left-0 top-0 bottom-0 w-1 ${isOpen ? 'bg-' + colorClass.replace('text-', '') : 'bg-transparent'} transition-colors"></div>
-                        <div class="flex items-center gap-3 pl-2">
-                             <div>
-                                <h3 class="font-display font-bold text-sm text-white uppercase tracking-wider ${isOpen ? colorClass : ''}">${label}</h3>
-                                <div class="flex items-baseline gap-2 mt-0.5">
-                                    <span class="text-[10px] text-gray-500 font-bold tracking-wider">SELECIONADO</span>
-                                    <span id="counter-text-${id}" class="font-display font-bold text-xs ${count >= max ? colorClass : 'text-gray-400'}">${count} <span class="text-gray-600 text-[10px]">/ ${max}</span></span>
-                                </div>
-                             </div>
-                        </div>
-                        <div class="${isOpen ? colorClass + ' rotate-180' : 'text-gray-600'} transition-transform duration-300">
-                            <i data-lucide="chevron-down" size="20"></i>
-                        </div>
-                    </div>`;
+                    return `<div onclick="toggleAccordion('${id}')" class="flex items-center justify-between p-4 bg-gray-900 border ${isOpen ? `border-${colorClass.split('-')[1]}-${colorClass.split('-')[2]}` : 'border-gray-800'} rounded-xl cursor-pointer hover:bg-gray-800 transition-all mb-2 relative group overflow-hidden"><div class="absolute left-0 top-0 bottom-0 w-1 ${isOpen ? 'bg-' + colorClass.replace('text-', '') : 'bg-transparent'} transition-colors"></div><div class="flex items-center gap-3 pl-2"><div><h3 class="font-display font-bold text-sm text-white uppercase tracking-wider ${isOpen ? colorClass : ''}">${label}</h3><div class="flex items-baseline gap-2 mt-0.5"><span class="text-[10px] text-gray-500 font-bold tracking-wider">SELECIONADO</span><span id="counter-text-${id}" class="font-display font-bold text-xs ${count >= max ? colorClass : 'text-gray-400'}">${count} <span class="text-gray-600 text-[10px]">/ ${max}</span></span></div></div></div><div class="transition-transform duration-300 ${isOpen ? colorClass + ' rotate-180' : 'text-gray-600'}"><i data-lucide="chevron-down" size="20"></i></div></div>`;
                 };
-
-                // Use themeColorHex for Step 5 logic to ensure colors stick
                 const tc = themeColorHex;
-
-                contentHtml = `<div class="space-y-4 pt-2">
-                    <div class="text-center mb-4"><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Defina suas competências de combate e perícias</p></div>
-                    
-                    ${bgSkillsText ? `<div class="bg-gray-900/50 border border-gray-800 p-3 rounded-xl mb-4 text-center"><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Perícias de Antecedente (Extra)</p><p class="text-xs text-neon-blue font-bold">${bgSkillsText}</p></div>` : ''}
-
-                    ${renderAccordionHeader('MAIN', 'PERÍCIAS E RESISTÊNCIAS', mainCount, maxMain, state.openSkillAccordion === 'MAIN', 'text-neon-theme', 'text-neon-theme')}
-                    ${state.openSkillAccordion === 'MAIN' ? `<div class="pl-1 pr-1 pb-4 pt-1">
-                        <div class="grid grid-cols-2 gap-2">
-                            ${SYSTEM_DB.skills.map(skill => {
-                                const isSelected = state.tempChar.skills.includes(skill);
-                                const isFromBg = bgSkillsText.includes(skill); 
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'main')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-theme/10 border-neon-theme text-white shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group">
-                                    <span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-theme' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">ANTECEDENTE</span>' : ''}</span>
-                                    <div class="pointer-events-none ${isSelected ? 'text-neon-theme' : 'text-gray-700'}">
-                                        ${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>` : ''}
-
-                    ${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', `text-[${tc}]`, `text-[${tc}]`)}
-                    ${state.openSkillAccordion === 'OTHER' ? `<div class="pl-1 pr-1 pb-4 pt-1">
-                        <p class="text-[10px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p>
-                        <div class="grid grid-cols-1 gap-2">
-                            ${SYSTEM_DB.otherSkills.map(skill => {
-                                const isSelected = state.tempChar.otherSkills.includes(skill);
-                                const isKitItem = skill === 'Kits';
-                                const isLocked = isKitItem && hasBgKit;
-                                
-                                // Recalculate RGB manually for inline style robustness
-                                let r = 0, g = 0, b = 0;
-                                if (themeColorHex.startsWith('#')) {
-                                    const h = themeColorHex.substring(1);
-                                    r = parseInt(h.substring(0, 2), 16);
-                                    g = parseInt(h.substring(2, 4), 16);
-                                    b = parseInt(h.substring(4, 6), 16);
-                                }
-                                
-                                const activeStyle = `color: ${tc}; border-color: ${tc}; background-color: rgba(${r}, ${g}, ${b}, 0.15); box-shadow: 0 0 10px rgba(${r}, ${g}, ${b}, 0.1);`;
-                                const inactiveStyle = `border-color: #1f2937; background-color: #111827;`;
-                                
-                                return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer group" style="${isSelected && !isLocked ? activeStyle : inactiveStyle}">
-                                    <div class="flex items-center gap-3 pointer-events-none">
-                                         <i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" style="${isSelected ? `color:${tc}` : 'color:#4b5563'}"></i>
-                                         <span class="text-[10px] font-bold uppercase tracking-wide transition-colors" style="${isSelected ? `color:${tc}` : 'color:#6b7280'}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span>
-                                    </div>
-                                    <div class="pointer-events-none" style="${isSelected ? `color:${tc}` : 'color:#374151'}">
-                                        ${isSelected ? (isLocked ? '<i data-lucide="lock" size="14"></i>' : '<i data-lucide="check-square" size="14"></i>') : '<i data-lucide="square" size="14"></i>'}
-                                    </div>
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>` : ''}
-                </div>`;
+                contentHtml = `<div class="space-y-4 pt-2"><div class="text-center mb-4"><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Defina suas competências de combate e perícias</p></div>${bgSkillsText ? `<div class="bg-gray-900/50 border border-gray-800 p-3 rounded-xl mb-4 text-center"><p class="text-[10px] text-gray-500 uppercase font-bold tracking-widest mb-1">Perícias de Antecedente (Extra)</p><p class="text-xs text-neon-blue font-bold">${bgSkillsText}</p></div>` : ''}${renderAccordionHeader('MAIN', 'PERÍCIAS E RESISTÊNCIAS', mainCount, maxMain, state.openSkillAccordion === 'MAIN', 'text-neon-theme', 'text-neon-theme')}${state.openSkillAccordion === 'MAIN' ? `<div class="pl-1 pr-1 pb-4 pt-1"><div class="grid grid-cols-2 gap-2">${SYSTEM_DB.skills.map(skill => { const isSelected = state.tempChar.skills.includes(skill); const isFromBg = bgSkillsText.includes(skill); return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="toggleCreatorSkill('${skill}', 'main')" class="flex items-center justify-between p-2 rounded-xl border cursor-pointer transition-all ${isSelected ? 'bg-neon-theme/10 border-neon-theme text-white shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)]' : 'bg-gray-900 border-gray-800 text-gray-500 hover:bg-gray-800 hover:border-gray-700'} group"><span class="text-[10px] font-bold uppercase tracking-wide pointer-events-none group-hover:text-gray-300 transition-colors ${isSelected ? 'text-neon-theme' : ''}">${skill} ${isFromBg ? '<span class="text-[9px] bg-gray-900 px-1 rounded ml-1 border border-gray-700 text-gray-400 block mt-1 w-fit">ANTECEDENTE</span>' : ''}</span><div class="pointer-events-none ${isSelected ? 'text-neon-theme' : 'text-gray-700'}">${isSelected ? '<i data-lucide="check-square" size="14"></i>' : '<i data-lucide="square" size="14"></i>'}</div></div>`; }).join('')}</div></div>` : ''}${renderAccordionHeader('OTHER', 'OUTROS TREINAMENTOS', otherCount, maxOther, state.openSkillAccordion === 'OTHER', `text-[${tc}]`, `text-[${tc}]`)}${state.openSkillAccordion === 'OTHER' ? `<div class="pl-1 pr-1 pb-4 pt-1"><p class="text-[10px] text-gray-500 italic mb-3 px-2">A 5ª escolha é atribuída automaticamente pelo kit de antecedente.</p><div class="grid grid-cols-1 gap-2">${SYSTEM_DB.otherSkills.map(skill => { const isSelected = state.tempChar.otherSkills.includes(skill); const isKitItem = skill === 'Kits'; const isLocked = isKitItem && hasBgKit; let r = 0, g = 0, b = 0; if (themeColorHex.startsWith('#')) { const h = themeColorHex.substring(1); r = parseInt(h.substring(0, 2), 16); g = parseInt(h.substring(2, 4), 16); b = parseInt(h.substring(4, 6), 16); } const activeStyle = `color: ${tc}; border-color: ${tc}; background-color: rgba(${r}, ${g}, ${b}, 0.15); box-shadow: 0 0 10px rgba(${r}, ${g}, ${b}, 0.1);`; const inactiveStyle = `border-color: #1f2937; background-color: #111827;`; return `<div id="skill-btn-${skill.replace(/\s/g,'-')}" onclick="${isLocked ? '' : `toggleCreatorSkill('${skill}', 'other')`}" class="flex items-center justify-between p-2 rounded-xl border transition-all cursor-pointer group" style="${isSelected && !isLocked ? activeStyle : inactiveStyle}"><div class="flex items-center gap-3 pointer-events-none"><i data-lucide="${isLocked ? 'lock' : 'hammer'}" size="14" style="${isSelected ? `color:${tc}` : 'color:#4b5563'}"></i><span class="text-[10px] font-bold uppercase tracking-wide transition-colors" style="${isSelected ? `color:${tc}` : 'color:#6b7280'}">${skill} ${isLocked ? '(ANTECEDENTE)' : ''}</span></div><div class="pointer-events-none" style="${isSelected ? `color:${tc}` : 'color:#374151'}">${isSelected ? (isLocked ? '<i data-lucide="lock" size="14"></i>' : '<i data-lucide="check-square" size="14"></i>') : '<i data-lucide="square" size="14"></i>'}</div></div>`; }).join('')}</div></div>` : ''}</div>`;
             } else if (step === 6) {
-                // ... (Step 6 mantido)
+                // ... (Step 6 - Revisão)
                 title = 'REVISÃO';
                 const color = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class).color;
-                
-                // Bonus Logic
                 const bonusReq = getBonusRequirements(state.tempChar.race);
                 const allocatedTotal = getAllocatedTotal();
                 const isBonusReady = !bonusReq || (bonusReq.type === 'wildcard' && allocatedTotal === bonusReq.amount) || (bonusReq.type === 'choice' && allocatedTotal === bonusReq.amount);
                 
                 let bonusHtml = '';
                 if (bonusReq) {
-                    bonusHtml = `<div class="bg-gray-900 rounded-xl p-4 border border-neon-theme shadow-[0_0_15px_rgba(var(--theme-rgb),0.1)] mb-4 animate-in fade-in zoom-in duration-300">
-                        <div class="flex items-center gap-2 mb-3 text-neon-theme border-b border-neon-theme/30 pb-2">
-                            <i data-lucide="gift" size="18"></i>
-                            <h3 class="font-bold uppercase text-xs tracking-widest">Alocação de Bônus (${state.tempChar.race})</h3>
-                        </div>
-                        
-                        ${bonusReq.type === 'wildcard' ? `
-                            <p class="text-[10px] text-gray-400 mb-3">Distribua <span class="text-white font-bold">${bonusReq.amount}</span> pontos entre seus atributos.</p>
-                            <div class="grid grid-cols-3 gap-2">
-                                ${Object.keys(state.tempChar.attributes).map(attr => {
-                                    const current = state.allocations[attr] || 0;
-                                    return `<div class="flex flex-col items-center bg-black/30 rounded p-2 border border-gray-800">
-                                        <span class="text-[9px] text-gray-500 font-bold mb-1">${attr}</span>
-                                        <div class="flex items-center gap-2">
-                                            <button onclick="updateAllocation('${attr}', -1, ${bonusReq.amount})" class="text-gray-500 hover:text-white ${current <= 0 ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="minus" size="12"></i></button>
-                                            <span class="font-bold text-white text-sm w-3 text-center">${current}</span>
-                                            <button onclick="updateAllocation('${attr}', 1, ${bonusReq.amount})" class="text-neon-theme hover:brightness-125 ${allocatedTotal >= bonusReq.amount ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="plus" size="12"></i></button>
-                                        </div>
-                                    </div>`;
-                                }).join('')}
-                            </div>
-                            <div class="mt-2 text-right text-[10px] font-bold ${allocatedTotal === bonusReq.amount ? 'text-neon-green' : 'text-neon-yellow'}">
-                                ${allocatedTotal} / ${bonusReq.amount} Pontos
-                            </div>
-                        ` : ''}
-
-                        ${bonusReq.type === 'choice' ? `
-                            <p class="text-[10px] text-gray-400 mb-3">Escolha onde aplicar +${bonusReq.amount}.</p>
-                            <div class="flex gap-2">
-                                ${bonusReq.keys.map(attr => {
-                                    const isSelected = state.allocations[attr] === bonusReq.amount;
-                                    return `<button onclick="updateChoiceAllocation('${attr}', ${bonusReq.amount})" class="flex-1 py-2 rounded border font-bold text-xs transition-all ${isSelected ? 'bg-neon-theme text-black border-neon-theme' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}">${attr} +${bonusReq.amount}</button>`;
-                                }).join('')}
-                            </div>
-                        ` : ''}
-                    </div>`;
+                    bonusHtml = `<div class="bg-gray-900 rounded-xl p-4 border border-neon-theme shadow-[0_0_15px_rgba(var(--theme-rgb),0.1)] mb-4 animate-in fade-in zoom-in duration-300"><div class="flex items-center gap-2 mb-3 text-neon-theme border-b border-neon-theme/30 pb-2"><i data-lucide="gift" size="18"></i><h3 class="font-bold uppercase text-xs tracking-widest">Alocação de Bônus (${state.tempChar.race})</h3></div>${bonusReq.type === 'wildcard' ? `<p class="text-[10px] text-gray-400 mb-3">Distribua <span class="text-white font-bold">${bonusReq.amount}</span> pontos entre seus atributos.</p><div class="grid grid-cols-3 gap-2">${Object.keys(state.tempChar.attributes).map(attr => { const current = state.allocations[attr] || 0; return `<div class="flex flex-col items-center bg-black/30 rounded p-2 border border-gray-800"><span class="text-[9px] text-gray-500 font-bold mb-1">${attr}</span><div class="flex items-center gap-2"><button onclick="updateAllocation('${attr}', -1, ${bonusReq.amount})" class="text-gray-500 hover:text-white ${current <= 0 ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="minus" size="12"></i></button><span class="font-bold text-white text-sm w-3 text-center">${current}</span><button onclick="updateAllocation('${attr}', 1, ${bonusReq.amount})" class="text-neon-theme hover:brightness-125 ${allocatedTotal >= bonusReq.amount ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="plus" size="12"></i></button></div></div>`; }).join('')}</div><div class="mt-2 text-right text-[10px] font-bold ${allocatedTotal === bonusReq.amount ? 'text-neon-green' : 'text-neon-yellow'}">${allocatedTotal} / ${bonusReq.amount} Pontos</div>` : ''}${bonusReq.type === 'choice' ? `<p class="text-[10px] text-gray-400 mb-3">Escolha onde aplicar +${bonusReq.amount}.</p><div class="flex gap-2">${bonusReq.keys.map(attr => { const isSelected = state.allocations[attr] === bonusReq.amount; return `<button onclick="updateChoiceAllocation('${attr}', ${bonusReq.amount})" class="flex-1 py-2 rounded border font-bold text-xs transition-all ${isSelected ? 'bg-neon-theme text-black border-neon-theme' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}">${attr} +${bonusReq.amount}</button>`; }).join('')}</div>` : ''}</div>`;
                 }
 
-                contentHtml = `<div class="space-y-6">
-                <div class="text-center"><h2 class="text-3xl font-display font-bold text-white mb-1">${state.tempChar.name || 'Sem Nome'}</h2><span class="bg-[${color}]/20 text-[${color}] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-[${color}]/30">${state.tempChar.class}</span></div>
-                
-                ${bonusHtml}
-
-                <div class="bg-gray-900 rounded-xl p-4 border border-gray-800 space-y-4">
-                    <div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Raça</span><span class="text-sm font-bold text-white">${state.tempChar.race}</span></div>
-                    <div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Antecedente</span><span class="text-sm font-bold text-white">${state.tempChar.background || '-'}</span></div>
-                    
-                    ${state.tempChar.raceTraits && state.tempChar.raceTraits.length > 0 ? `<div><span class="text-xs text-gray-500 uppercase block mb-2">Traços Raciais Selecionados</span><div class="flex flex-wrap gap-1">${state.tempChar.raceTraits.map(t => `<span class="text-[10px] bg-gray-800 text-white px-2 py-1 rounded border border-gray-700">${t}</span>`).join('')}</div></div>` : ''}
-                    
-                    <div><span class="text-xs text-gray-500 uppercase block mb-2">Atributos Base</span><div class="grid grid-cols-6 gap-1 text-center">${Object.entries(state.tempChar.attributes).map(([k,v]) => `<div class="bg-black rounded p-1"><div class="text-[8px] text-gray-500">${k}</div><div class="text-xs font-bold text-white">${v}</div></div>`).join('')}</div></div>
-                    
-                    <div><span class="text-xs text-gray-500 uppercase block mb-2">Treinamentos</span><div class="flex flex-wrap gap-1 mb-2">${state.tempChar.skills.length > 0 ? state.tempChar.skills.map(s => `<span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento principal</span>'}</div><div class="flex flex-wrap gap-1">${state.tempChar.otherSkills.length > 0 ? state.tempChar.otherSkills.map(s => `<span class="text-[10px] bg-gray-800 text-neon-blue/70 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento extra</span>'}</div></div>
-                    
-                    <div>
-                        <span class="text-xs text-gray-500 uppercase block mb-2">Inclinações</span>
-                        <div class="space-y-1">
-                            ${state.tempChar.inclinations.positive.map(i => `<div class="text-[10px] text-neon-green flex justify-between"><span>+ ${i.nome}</span><span>${i.custo}</span></div>`).join('')}
-                            ${state.tempChar.inclinations.negative.map(i => `<div class="text-[10px] text-neon-red flex justify-between"><span>- ${i.nome}</span><span>${i.valor}</span></div>`).join('')}
-                        </div>
-                    </div>
-                </div>
-                
-                ${!isBonusReady ? `<div class="bg-red-500/10 border border-red-500/50 p-3 rounded-xl flex items-center gap-3 text-red-400 text-xs font-bold animate-pulse"><i data-lucide="alert-circle" size="20"></i> Aloque todos os pontos de bônus para finalizar.</div>` : ''}
-                
-                </div>`;
+                contentHtml = `<div class="space-y-6"><div class="text-center"><h2 class="text-3xl font-display font-bold text-white mb-1">${state.tempChar.name || 'Sem Nome'}</h2><span class="bg-[${color}]/20 text-[${color}] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-[${color}]/30">${state.tempChar.class}</span></div>${bonusHtml}<div class="bg-gray-900 rounded-xl p-4 border border-gray-800 space-y-4"><div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Raça</span><span class="text-sm font-bold text-white">${state.tempChar.race}</span></div><div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Antecedente</span><span class="text-sm font-bold text-white">${state.tempChar.background || '-'}</span></div>${state.tempChar.raceTraits && state.tempChar.raceTraits.length > 0 ? `<div><span class="text-xs text-gray-500 uppercase block mb-2">Traços Raciais Selecionados</span><div class="flex flex-wrap gap-1">${state.tempChar.raceTraits.map(t => { 
+                    const detail = state.tempChar.traitDetails && state.tempChar.traitDetails[t];
+                    return `<span class="text-[10px] bg-gray-800 text-white px-2 py-1 rounded border border-gray-700">${t}${detail ? ': ' + detail : ''}</span>`;
+                }).join('')}</div></div>` : ''}<div><span class="text-xs text-gray-500 uppercase block mb-2">Atributos Base</span><div class="grid grid-cols-6 gap-1 text-center">${Object.entries(state.tempChar.attributes).map(([k,v]) => `<div class="bg-black rounded p-1"><div class="text-[8px] text-gray-500">${k}</div><div class="text-xs font-bold text-white">${v}</div></div>`).join('')}</div></div><div><span class="text-xs text-gray-500 uppercase block mb-2">Treinamentos</span><div class="flex flex-wrap gap-1 mb-2">${state.tempChar.skills.length > 0 ? state.tempChar.skills.map(s => `<span class="text-[10px] bg-gray-800 text-gray-300 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento principal</span>'}</div><div class="flex flex-wrap gap-1">${state.tempChar.otherSkills.length > 0 ? state.tempChar.otherSkills.map(s => `<span class="text-[10px] bg-gray-800 text-neon-blue/70 px-2 py-1 rounded border border-gray-700">${s}</span>`).join('') : '<span class="text-[10px] text-gray-600 italic">Nenhum treinamento extra</span>'}</div></div><div><span class="text-xs text-gray-500 uppercase block mb-2">Inclinações</span><div class="space-y-1">${state.tempChar.inclinations.positive.map(i => `<div class="text-[10px] text-neon-green flex justify-between"><span>+ ${i.nome}</span><span>${i.custo}</span></div>`).join('')}${state.tempChar.inclinations.negative.map(i => `<div class="text-[10px] text-neon-red flex justify-between"><span>- ${i.nome}</span><span>${i.valor}</span></div>`).join('')}</div></div></div>${!isBonusReady ? `<div class="bg-red-500/10 border border-red-500/50 p-3 rounded-xl flex items-center gap-3 text-red-400 text-xs font-bold animate-pulse"><i data-lucide="alert-circle" size="20"></i> Aloque todos os pontos de bônus para finalizar.</div>` : ''}</div>`;
             }
 
             const footerBtn = step < 6 
@@ -1276,354 +946,20 @@
                     const bonusReq = getBonusRequirements(state.tempChar.race);
                     const allocatedTotal = getAllocatedTotal();
                     const isBonusReady = !bonusReq || (bonusReq.type === 'wildcard' && allocatedTotal === bonusReq.amount) || (bonusReq.type === 'choice' && allocatedTotal === bonusReq.amount);
-                    
                     return `<button onclick="finishCreator()" ${!isBonusReady ? 'disabled' : ''} class="flex-1 py-4 ${isBonusReady ? 'bg-neon-theme text-black hover:brightness-110 shadow-[0_0_20px_rgba(var(--theme-rgb),0.6)]' : 'bg-gray-800 text-gray-500 cursor-not-allowed'} font-bold rounded-xl transition-all text-xs uppercase tracking-wider flex items-center justify-center gap-2"><i data-lucide="save" size="16"></i> FINALIZAR</button>`;
                 })();
 
             container.innerHTML = `<div class="flex flex-col h-full bg-gray-950"><div class="p-4 border-b border-gray-800 flex justify-between items-center bg-gray-900/50"><button onclick="state.view='LIST'; render()" class="text-gray-500 hover:text-white flex items-center gap-1 text-[10px] uppercase font-bold"><i data-lucide="chevron-left" size="14"></i> Cancelar</button><div class="flex gap-1">${[0,1,2,3,4,5,6].map(i => `<div class="w-4 h-1 rounded-full ${i <= step ? 'bg-neon-theme shadow-[0_0_5px_var(--theme-color-hex)]' : 'bg-gray-800'} transition-all duration-300"></div>`).join('')}</div><div class="w-16"></div></div><div class="flex-1 p-6 overflow-y-auto custom-scrollbar relative"><h2 class="text-2xl font-display font-bold text-white text-center mb-6 tracking-widest drop-shadow-[0_0_10px_rgba(var(--theme-rgb),0.5)]">${title}</h2>${contentHtml}</div><div class="p-6 border-t border-gray-800 flex gap-4 bg-gray-900/50 pb-6 pb-safe">${step > 0 ? `<button onclick="state.creatorStep--; render()" class="w-1/3 py-4 bg-transparent border border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-gray-500 transition-colors text-xs uppercase tracking-wider">Voltar</button>` : '<div class="w-1/3"></div>'}${footerBtn}</div></div>`;
-            
-            // 2. Restore Scroll Position handled by render()
         }
 
-        // Helper to find detailed item data
-        function findItemData(itemName) {
-            const cleanName = itemName.toLowerCase();
-            // Search in ITEM_DB
-            // Armas
-            for (const cat in ITEM_DB.armas) {
-                const found = ITEM_DB.armas[cat].find(i => i.nome.toLowerCase() === cleanName || cleanName.includes(i.nome.toLowerCase()));
-                if(found) return { ...found, category: 'Armas', sub: cat };
-            }
-            // Armaduras
-            for (const cat in ITEM_DB.armaduras) {
-                const found = ITEM_DB.armaduras[cat].find(i => i.nome.toLowerCase() === cleanName || cleanName.includes(i.nome.toLowerCase()));
-                if(found) return { ...found, category: 'Armaduras', sub: cat };
-            }
-            // Municoes
-            const foundMun = ITEM_DB.municoes.find(i => i.nome.toLowerCase() === cleanName);
-            if(foundMun) return { ...foundMun, category: 'Munições' };
-            // Medicos
-            const foundMed = ITEM_DB.itens_medicos.find(i => i.nome.toLowerCase() === cleanName);
-            if(foundMed) return { ...foundMed, category: 'Médicos' };
-            // Kits
-            const foundKit = ITEM_DB.kits.find(i => i.nome.toLowerCase() === cleanName);
-            if(foundKit) return { ...foundKit, category: 'Kits' };
-            // Gerais
-            for (const cat in ITEM_DB.equipamentos_gerais) {
-                const found = ITEM_DB.equipamentos_gerais[cat].find(i => i.nome.toLowerCase() === cleanName);
-                if(found) return { ...found, category: 'Gerais', sub: cat };
-            }
-            return null;
-        }
-
-        function renderNavItem(id, icon, color) { 
-            const active = state.activeTab === id; 
-            // Adiciona badge se houver rolagens não lidas e a aba DADOS não estiver ativa
-            const showBadge = (id === 'DADOS' && state.unreadRolls && !active);
-            
-            return `<button onclick="setTab('${id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 group relative">
-                ${active ? `<div class="absolute top-0 w-8 h-0.5 bg-[${color}] shadow-[0_0_10px_${color}]"></div>` : ''}
-                <div class="relative">
-                    <i data-lucide="${icon}" size="${active ? 20 : 18}" class="${active ? `text-[${color}] drop-shadow-[0_0_5px_${color}]` : 'text-gray-600 group-hover:text-gray-400'} transition-all"></i>
-                    ${showBadge ? `<div class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[${color}] shadow-[0_0_8px_${color}] animate-pulse border border-black"></div>` : ''}
-                </div>
-                <span class="text-[7px] font-bold tracking-widest ${active ? `text-[${color}]` : 'text-gray-600'}">${id}</span>
-            </button>`; 
-        }
-
+        // --- SHEET RENDERER ---
         function renderSheet(container) {
             const char = state.currentChar;
             const clsData = SYSTEM_DB.classes.find(c => c.id === char.class);
             const themeColor = clsData ? clsData.color : '#00ff9d';
             setThemeColor(themeColor);
             
-            let tabContent = '';
-            
-            const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'CAR': 'CARISMA' };
-            const ATTR_ICONS_MAP = {
-                'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 
-                'CON': ['heart', 'activity'],
-                'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'CAR': ['crown', 'message-circle']
-            };
-
-            if (state.activeTab === 'FICHA') {
-                tabContent = `<div class="grid grid-cols-2 gap-3 p-4">${Object.entries(char.attributes).map(([key, attr]) => {
-                    const mod = getMod(attr.value);
-                    const isOpen = state.openAttrPopup === key;
-                    const fullName = ATTR_FULL_NAMES[key];
-                    const icons = ATTR_ICONS_MAP[key];
-                    const saveSkillName = `TR de ${key}`;
-                    const isTrained = char.skills.includes(saveSkillName);
-                    const isExpert = (char.expertise || []).includes(saveSkillName);
-                    const pb = getProficiencyBonus(char.level);
-                    let saveBonus = mod;
-                    if(isExpert) saveBonus += pb * 2;
-                    else if(isTrained) saveBonus += pb;
-                    const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`;
-                    
-                    return `
-                    <div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')">
-                        <div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]">
-                            <div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]">
-                                <i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
-                                <span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span>
-                                <i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i>
-                            </div>
-                        </div>
-                        <div class="flex items-center justify-center my-0 relative flex-1">
-                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button>
-                                <span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span>
-                                <button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button>
-                        </div>
-                        <div class="flex justify-center mt-1 mb-1">
-                                <div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">
-                                ${mod >= 0 ? '+'+mod : mod}
-                                </div>
-                        </div>
-                        <div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}">
-                            <i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i>
-                            <span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span>
-                        </div>
-                    </div>`;
-                }).join('')}
-                ${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
-            } 
-            else if (state.activeTab === 'TRACOS') {
-                const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background); let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`; if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { const tData = raceData.caracteristicas.find(c => c.nome === tName); return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`; }).join(''); } } else { const fixedFeatures = [...(raceData.caracteristicas || [])]; if (fixedFeatures.length > 0) { traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p></div>`).join(''); } } traitsHtml += `</div>`; let bgHtml = ''; if (bgData && char.backgroundFeature) { const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature); bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6"><div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div></div>`; }
-                
-                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s)); 
-                let otherSkillsHtml = ''; 
-                if (otherTrainings.length > 0) { 
-                    const isOpen = state.sheetOtherSkillsOpen;
-                    otherSkillsHtml = `
-                    <div class="mt-2 border-t border-gray-800 pt-4">
-                        <div onclick="toggleSheetAccordion()" class="flex items-center justify-between cursor-pointer group">
-                            <div class="flex items-center gap-3 mb-2">
-                                <div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div>
-                                <div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div>
-                            </div>
-                            <div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600 group-hover:text-gray-400'}">
-                                <i data-lucide="chevron-down" size="20"></i>
-                            </div>
-                        </div>
-                        <div class="accordion-content ${isOpen ? 'open' : ''}">
-                            <div class="flex flex-wrap gap-2 pt-2">
-                                ${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" style="color: ${themeColor}" class="shrink-0"></i><span class="text-xs font-bold whitespace-nowrap" style="color: ${themeColor}">${s}</span></div>`).join('')}
-                            </div>
-                        </div>
-                    </div>`; 
-                }
-                tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${otherSkillsHtml}</div>`;
-            } 
-            else if (state.activeTab === 'NEN') {
-                const percentages = getNenPercentages(char.class);
-                const currentClass = SYSTEM_DB.classes.find(c => c.id === char.class);
-                const hexNodes = SYSTEM_DB.classes.map(c => {
-                    const isSelected = char.class === c.id;
-                    const pct = percentages[c.id];
-                    const rad = (c.angle * Math.PI) / 180;
-                    const radius = 35; 
-                    const left = 50 + (radius * Math.cos(rad));
-                    const top = 50 + (radius * Math.sin(rad));
-                    const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`;
-                    const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)';
-                    const zIndex = isSelected ? 'z-10' : 'z-0';
-                    return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`;
-                }).join('');
-                
-                tabContent = `<div class="p-6 h-full flex flex-col items-center justify-center"><div class="text-center mb-6"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative w-full max-w-[320px] mx-auto mb-8"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
-            }
-            // ----------------------------------------
-            // INVENTORY TAB LOGIC
-            // ----------------------------------------
-            else if (state.activeTab === 'INV') {
-                const isShop = state.invMode === 'SHOP';
-                
-                // Toggle Header
-                const headerHtml = `
-                <div class="flex items-center justify-between px-4 pt-4 pb-2 sticky top-0 bg-gray-950 z-20 border-b border-gray-800/50">
-                    <div class="flex bg-gray-900 rounded-lg p-1 border border-gray-800">
-                        <button onclick="toggleInvMode('BAG')" class="px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${!isShop ? `bg-[${themeColor}] text-black shadow-[0_0_10px_${themeColor}]` : 'text-gray-500 hover:text-white'}">Mochila</button>
-                        <button onclick="toggleInvMode('SHOP')" class="px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${isShop ? `bg-[${themeColor}] text-black shadow-[0_0_10px_${themeColor}]` : 'text-gray-500 hover:text-white'}">Loja</button>
-                    </div>
-                    <div class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5">
-                        <span class="text-[${themeColor}] font-bold text-xs">$</span>
-                        <input type="number" value="${char.money}" onchange="updateMoney(this.value)" class="w-16 bg-transparent text-white font-mono text-sm text-right outline-none">
-                    </div>
-                </div>`;
-
-                let bodyHtml = '';
-
-                if (!isShop) {
-                    // --- BACKPACK MODE ---
-                    const totalWeight = char.inventory.reduce((acc, item) => {
-                        const data = findItemData(item.name);
-                        return acc + (data ? (data.peso * item.qty) : 0);
-                    }, 0);
-
-                    bodyHtml = `
-                    <div class="p-4 space-y-4">
-                        <div class="flex gap-2">
-                            <input type="text" id="new-item-name" placeholder="Adicionar item customizado..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[${themeColor}] outline-none">
-                            <button onclick="addItem()" class="bg-gray-800 border border-gray-700 text-gray-300 px-4 rounded-lg font-bold hover:bg-gray-700 hover:text-white transition-colors"><i data-lucide="plus" size="16"></i></button>
-                        </div>
-                        
-                        <div class="flex justify-between items-center text-[10px] text-gray-500 uppercase font-bold tracking-widest px-1">
-                            <span>Itens: ${char.inventory.length}</span>
-                            <span>Peso Est.: ${totalWeight.toFixed(1)} kg</span>
-                        </div>
-
-                        <div class="space-y-2">
-                            ${char.inventory.length === 0 ? '<div class="text-center text-gray-600 text-xs py-8 border border-dashed border-gray-800 rounded-xl">Mochila vazia.</div>' : ''}
-                            ${char.inventory.map((item, idx) => {
-                                const data = findItemData(item.name);
-                                let tagsHtml = '';
-                                let statsHtml = '';
-                                if (data) {
-                                    if(data.tags) tagsHtml = data.tags.map(t => `<span class="text-[8px] bg-gray-950 text-gray-400 px-1.5 py-0.5 rounded border border-gray-800">${t}</span>`).join('');
-                                    if(data.dano) statsHtml += `<span class="text-[9px] text-red-400 font-bold flex items-center gap-1"><i data-lucide="sword" size="10"></i> ${data.dano} ${data.tipo_dano}</span>`;
-                                    if(data.ca) statsHtml += `<span class="text-[9px] text-blue-400 font-bold flex items-center gap-1"><i data-lucide="shield" size="10"></i> CA ${data.ca}</span>`;
-                                    if(data.peso) statsHtml += `<span class="text-[9px] text-gray-500 flex items-center gap-1"><i data-lucide="weight" size="10"></i> ${data.peso}kg</span>`;
-                                }
-
-                                return `
-                                <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 relative group transition-all hover:border-gray-600">
-                                    <div class="flex justify-between items-start mb-1">
-                                        <span class="text-sm font-bold text-white">${item.name}</span>
-                                        <div class="flex items-center gap-2">
-                                            <button onclick="sellItem(${idx})" class="text-[9px] text-red-900 hover:text-red-500 uppercase font-bold tracking-wider mr-2 opacity-0 group-hover:opacity-100 transition-opacity">Vender</button>
-                                            <button onclick="updateItemQty(${idx}, -1)" class="text-gray-600 hover:text-white"><i data-lucide="minus" size="14"></i></button>
-                                            <span class="text-sm w-4 text-center font-mono text-gray-300">${item.qty}</span>
-                                            <button onclick="updateItemQty(${idx}, 1)" class="text-gray-600 hover:text-white"><i data-lucide="plus" size="14"></i></button>
-                                        </div>
-                                    </div>
-                                    ${statsHtml ? `<div class="flex gap-3 mb-1.5">${statsHtml}</div>` : ''}
-                                    ${tagsHtml ? `<div class="flex flex-wrap gap-1">${tagsHtml}</div>` : ''}
-                                    ${data && data.detalhe ? `<div class="mt-1 text-[9px] text-gray-600 italic border-t border-gray-800/50 pt-1">${data.detalhe}</div>` : ''}
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>`;
-                } else {
-                    // --- SHOP MODE ---
-                    // Categories
-                    const categories = [
-                        { id: 'armas', label: 'Armas', icon: 'sword' },
-                        { id: 'armaduras', label: 'Armaduras', icon: 'shield' },
-                        { id: 'municoes', label: 'Munições', icon: 'crosshair' },
-                        { id: 'itens_medicos', label: 'Médicos', icon: 'heart' },
-                        { id: 'kits', label: 'Kits', icon: 'briefcase' },
-                        { id: 'equipamentos_gerais', label: 'Gerais', icon: 'backpack' }
-                    ];
-
-                    const currentCat = state.shopCategory;
-                    const dbCat = ITEM_DB[currentCat];
-                    let itemsToDisplay = [];
-                    let subFilters = [];
-
-                    // Process Data for Display
-                    if (Array.isArray(dbCat)) {
-                        itemsToDisplay = dbCat;
-                    } else {
-                        subFilters = Object.keys(dbCat);
-                        if (state.shopSubFilter && dbCat[state.shopSubFilter]) {
-                            itemsToDisplay = dbCat[state.shopSubFilter];
-                        } else {
-                            // Default to first subcategory or flatten all
-                            itemsToDisplay = Object.values(dbCat).flat();
-                        }
-                    }
-
-                    // Apply Search
-                    if (state.searchTerm) {
-                        const term = state.searchTerm.toLowerCase();
-                        // Search across ALL items if searching, or just current list? Let's search current list logic for now
-                        itemsToDisplay = itemsToDisplay.filter(i => i.nome.toLowerCase().includes(term));
-                    }
-
-                    bodyHtml = `
-                    <div class="flex flex-col h-full">
-                        <!-- Search -->
-                        <div class="px-4 py-2 border-b border-gray-800 bg-gray-900/50">
-                            <div class="relative">
-                                <i data-lucide="search" size="14" class="absolute left-3 top-3 text-gray-600"></i>
-                                <input type="text" placeholder="Buscar na loja..." oninput="state.searchTerm = this.value; render(true)" value="${state.searchTerm}" class="w-full bg-gray-950 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:border-[${themeColor}] outline-none">
-                            </div>
-                        </div>
-
-                        <!-- Categories -->
-                        <div class="flex overflow-x-auto no-scrollbar gap-2 p-2 border-b border-gray-800 bg-gray-950">
-                            ${categories.map(c => `
-                                <button onclick="setShopCategory('${c.id}')" class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all whitespace-nowrap ${currentCat === c.id ? `bg-[${themeColor}]/10 border-[${themeColor}] text-[${themeColor}]` : 'bg-gray-900 border-gray-800 text-gray-500 hover:text-gray-300'}">
-                                    <i data-lucide="${c.icon}" size="14"></i>
-                                    <span class="text-[10px] font-bold uppercase tracking-wide">${c.label}</span>
-                                </button>
-                            `).join('')}
-                        </div>
-
-                        <!-- Subfilters -->
-                        ${subFilters.length > 0 ? `
-                        <div class="flex overflow-x-auto no-scrollbar gap-2 px-4 py-2 bg-gray-900/30 border-b border-gray-800">
-                            <button onclick="setShopSubFilter(null)" class="px-2 py-1 rounded text-[9px] font-bold uppercase border transition-all ${!state.shopSubFilter ? `bg-gray-800 text-white border-gray-600` : 'text-gray-500 border-transparent hover:text-gray-300'}">Todos</button>
-                            ${subFilters.map(s => `
-                                <button onclick="setShopSubFilter('${s}')" class="px-2 py-1 rounded text-[9px] font-bold uppercase border transition-all ${state.shopSubFilter === s ? `bg-[${themeColor}]/20 text-[${themeColor}] border-[${themeColor}]/50` : 'text-gray-500 border-transparent hover:bg-gray-800'}">${s.replace(/_/g, ' ')}</button>
-                            `).join('')}
-                        </div>
-                        ` : ''}
-
-                        <!-- Item List -->
-                        <div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 pb-24">
-                            ${itemsToDisplay.length === 0 ? '<div class="text-center text-gray-600 text-xs italic py-10">Nenhum item encontrado.</div>' : ''}
-                            ${itemsToDisplay.map(item => {
-                                const canBuy = char.money >= item.custo;
-                                let statsHtml = `<span class="text-[10px] font-mono text-gray-400">$${item.custo}</span>`;
-                                if(item.peso) statsHtml += `<span class="text-[9px] text-gray-600"> • ${item.peso}kg</span>`;
-                                
-                                let combatHtml = '';
-                                if(item.dano) combatHtml += `<div class="flex items-center gap-1 text-[9px] text-red-400 font-bold bg-red-900/10 px-1.5 rounded"><i data-lucide="sword" size="10"></i> ${item.dano} ${item.tipo_dano}</div>`;
-                                if(item.ca) combatHtml += `<div class="flex items-center gap-1 text-[9px] text-blue-400 font-bold bg-blue-900/10 px-1.5 rounded"><i data-lucide="shield" size="10"></i> CA ${item.ca}</div>`;
-
-                                return `
-                                <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex flex-col gap-2 group hover:border-gray-600 transition-colors">
-                                    <div class="flex justify-between items-start">
-                                        <div>
-                                            <span class="text-xs font-bold text-white block">${item.nome}</span>
-                                            <div class="flex items-center gap-1 mt-0.5">${statsHtml}</div>
-                                        </div>
-                                        <button onclick="buyItem('${item.nome}', ${item.custo})" class="px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wide transition-all flex items-center gap-1 ${canBuy ? `bg-[${themeColor}] text-black hover:brightness-110 shadow-[0_0_10px_${themeColor}40]` : 'bg-gray-800 text-gray-600 cursor-not-allowed opacity-50'}">
-                                            <i data-lucide="shopping-bag" size="12"></i> Comprar
-                                        </button>
-                                    </div>
-                                    
-                                    ${combatHtml || item.tags ? `
-                                    <div class="flex flex-wrap gap-1">
-                                        ${combatHtml}
-                                        ${item.tags ? item.tags.map(t => `<span class="text-[8px] bg-gray-950 text-gray-500 px-1.5 py-0.5 rounded border border-gray-800">${t}</span>`).join('') : ''}
-                                    </div>` : ''}
-                                    
-                                    ${item.detalhe ? `<p class="text-[9px] text-gray-500 leading-tight">${item.detalhe}</p>` : ''}
-                                </div>`;
-                            }).join('')}
-                        </div>
-                    </div>`;
-                }
-
-                tabContent = `<div class="h-full flex flex-col">${headerHtml}<div class="flex-1 overflow-hidden relative">${bodyHtml}</div></div>`;
-            } 
-            else if (state.activeTab === 'DADOS') { 
-                /* Updated DADOS tab with Copy Button */
-                tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map((h, index) => {
-                    const originalIndex = char.history.length - 1 - index;
-                    return `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1 group relative">
-                        <button onclick="copyToClipboard(${originalIndex})" class="absolute top-2 right-2 p-1.5 bg-gray-800 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-all" title="Copiar para Discord"><i data-lucide="copy" size="14"></i></button>
-                        <div class="flex justify-between text-[10px] text-gray-500 pr-8"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div>
-                        <div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div>
-                    </div>`;
-                }).join('')}</div></div>`; 
-            } 
-            else { tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`; }
-
-            
+            // Helpers de renderização interna da ficha
             const renderNeonVital = (label, val, max, colorClass, borderClass, showBtns = true, step = 1) => `
                 <div class="flex flex-col items-center justify-center w-full">
                     <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
@@ -1635,11 +971,65 @@
                     <div class="w-8 h-0.5 rounded-full mt-0.5 ${borderClass} opacity-80"></div>
                 </div>
             `;
-            
             const rollModeBtn = (mode) => {
                 const isActive = state.rollMode === mode;
                 return `<button onclick="setRollMode('${mode}')" class="flex-1 py-3 text-[9px] font-bold uppercase tracking-widest transition-all rounded-lg ${isActive ? `bg-[${themeColor}] text-black shadow-[0_0_15px_${themeColor}80]` : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'}">${mode}</button>`;
             };
+            const renderNavItem = (id, icon, color) => { 
+                const active = state.activeTab === id; 
+                const showBadge = (id === 'DADOS' && state.unreadRolls && !active);
+                return `<button onclick="setTab('${id}')" class="flex flex-col items-center justify-center w-full h-full gap-1 group relative">${active ? `<div class="absolute top-0 w-8 h-0.5 bg-[${color}] shadow-[0_0_10px_${color}]"></div>` : ''}<div class="relative"><i data-lucide="${icon}" size="${active ? 20 : 18}" class="${active ? `text-[${color}] drop-shadow-[0_0_5px_${color}]` : 'text-gray-600 group-hover:text-gray-400'} transition-all"></i>${showBadge ? `<div class="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[${color}] shadow-[0_0_8px_${color}] animate-pulse border border-black"></div>` : ''}</div><span class="text-[7px] font-bold tracking-widest ${active ? `text-[${color}]` : 'text-gray-600'}">${id}</span></button>`; 
+            };
+
+            let tabContent = '';
+            
+            if (state.activeTab === 'FICHA') {
+                const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'CAR': 'CARISMA' };
+                const ATTR_ICONS_MAP = { 'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 'CON': ['heart', 'activity'], 'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'CAR': ['crown', 'message-circle'] };
+                const infoGridHtml = `<div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-b border-gray-800 mb-2"><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span><select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full"><option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option><option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option><option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option><option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option></select></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span><span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span><span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span><input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700"></div></div>`;
+                const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>`;
+                const rollModesHtml = `<div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mb-4">${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}</div>`;
+                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
+                tabContent = `${infoGridHtml}${vitalsGridHtml}${rollModesHtml}${attributesHtml}`;
+            } else if (state.activeTab === 'BIO') {
+                const bioData = char.bio || {};
+                const sections = [ { id: 'personality', label: 'Personalidade', icon: 'fingerprint' }, { id: 'history', label: 'História', icon: 'scroll' }, { id: 'organizations', label: 'Organizações', icon: 'building-2' }, { id: 'enemies', label: 'Inimigos', icon: 'skull' }, { id: 'allies', label: 'Aliados', icon: 'heart-handshake' } ];
+                tabContent = `<div class="p-4 space-y-3"><div class="text-center mb-4"><h2 class="text-lg font-display font-bold text-white uppercase tracking-widest">Biografia</h2><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Informações Detalhadas</p></div>${sections.map(section => { const isOpen = state.bioAccordionOpen === section.id; const isPersonality = section.id === 'personality'; let hasContent = false; if (isPersonality) { hasContent = (bioData.personality_traits || bioData.personality_goals || bioData.personality_hates || bioData.personality_likes || bioData.personality); } else { hasContent = bioData[section.id] && bioData[section.id].trim().length > 0; } const borderColor = isOpen ? `border-[${themeColor}]` : 'border-gray-800'; const headerColor = isOpen ? `text-[${themeColor}]` : (hasContent ? 'text-white' : 'text-gray-500'); const renderSubField = (key, label, placeholder, legacyVal = '') => `<div class="mb-3 last:mb-0 w-full"><label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1 block pl-1">${label}</label><textarea class="w-full h-20 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="${placeholder}" onblur="updateBio('${key}', this.value)">${bioData[key] || legacyVal || ''}</textarea></div>`; return `<div class="bg-gray-900 border ${borderColor} rounded-xl transition-all duration-300"><div onclick="toggleBioAccordion('${section.id}')" class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-800/50 rounded-xl"><div class="flex items-center gap-3"><div class="bg-gray-950 p-2 rounded-lg border border-gray-800"><i data-lucide="${section.icon}" size="18" class="${headerColor}"></i></div><div><h3 class="font-display font-bold text-sm uppercase tracking-wider ${headerColor}">${section.label}</h3>${hasContent && !isOpen ? '<span class="text-[8px] text-gray-500 bg-gray-950 px-1.5 py-0.5 rounded border border-gray-800 font-bold uppercase tracking-widest">Preenchido</span>' : ''}</div></div><div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600'}"><i data-lucide="chevron-down" size="18"></i></div></div><div class="accordion-content ${isOpen ? 'open' : ''}"><div class="px-4 pb-4"><div class="h-px w-full bg-gray-800 mb-3"></div>${isPersonality ? `${renderSubField('personality_traits', 'Traços de Personalidade', 'Descreva como seu personagem se comporta...', bioData.personality)}${renderSubField('personality_goals', 'Sonho / Objetivo', 'Qual o maior desejo do seu personagem?')}<div class="flex gap-3">${renderSubField('personality_hates', 'O que odeio', 'O que te tira do sério...')}${renderSubField('personality_likes', 'O que gosto', 'O que te agrada...')}</div>` : `<textarea class="w-full h-32 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="Escreva aqui..." onblur="updateBio('${section.id}', this.value)">${bioData[section.id] || ''}</textarea>`}</div></div></div>`; }).join('')}</div>`;
+            } else if (state.activeTab === 'NEN') {
+                const percentages = getNenPercentages(char.class);
+                const currentClass = SYSTEM_DB.classes.find(c => c.id === char.class);
+                const hexNodes = SYSTEM_DB.classes.map(c => { const isSelected = char.class === c.id; const pct = percentages[c.id]; const rad = (c.angle * Math.PI) / 180; const radius = 35; const left = 50 + (radius * Math.cos(rad)); const top = 50 + (radius * Math.sin(rad)); const nodeStyle = isSelected ? `background-color: ${c.color}; border-color: ${c.color}; color: #000; box-shadow: 0 0 20px ${c.color}80;` : `background-color: #0a0a0f; border-color: ${c.color}; color: ${c.color};`; const transformScale = isSelected ? 'scale(1.15)' : 'scale(1.0)'; const zIndex = isSelected ? 'z-10' : 'z-0'; return `<div class="absolute w-20 h-20 flex items-center justify-center cursor-pointer nen-node ${zIndex}" style="top: ${top}%; left: ${left}%; transform: translate(-50%, -50%) ${transformScale};"><div class="w-14 h-14 rounded-full border-2 flex items-center justify-center transition-all duration-300 relative shadow-lg" style="${nodeStyle}"><span class="font-display font-bold text-lg leading-none">${pct}%</span></div></div>`; }).join('');
+                tabContent = `<div class="p-6 h-full flex flex-col items-center justify-center"><div class="text-center mb-6"><h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3></div><div class="bg-gray-900/20 rounded-full border border-gray-800/50 p-4 aspect-square relative w-full max-w-[320px] mx-auto mb-8"><svg class="absolute inset-0 w-full h-full pointer-events-none opacity-30" viewBox="0 0 100 100"><polygon points="50,15 80.3,32.5 80.3,67.5 50,85 19.7,67.5 19.7,32.5" fill="none" stroke="currentColor" stroke-width="0.8" class="text-white" /><line x1="50" y1="15" x2="50" y2="85" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="32.5" x2="19.7" y2="67.5" stroke="currentColor" stroke-width="0.5" class="text-white" /><line x1="80.3" y1="67.5" x2="19.7" y2="32.5" stroke="currentColor" stroke-width="0.5" class="text-white" /></svg>${hexNodes}</div><div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto"><p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p></div></div>`;
+            } else if (state.activeTab === 'TRACOS') {
+                const raceData = SYSTEM_DB.racas.find(r => r.nome === char.race); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === char.background); let traitsHtml = `<div class="flex items-center gap-3 mb-2 mt-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="dna" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.race}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Características Raciais</p></div></div><div class="space-y-2 mb-6">`; if (char.race === 'Formiga Quimera') { if (char.raceTraits && char.raceTraits.length > 0) { traitsHtml += char.raceTraits.map(tName => { 
+                    // Handle "Trait: Detail" format
+                    const parts = tName.split(':');
+                    const baseTraitName = parts[0].trim();
+                    const detail = parts.length > 1 ? parts[1].trim() : '';
+                    const tData = raceData.caracteristicas.find(c => c.nome === baseTraitName); 
+                    return `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${tName}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${tData ? (tData.efeito || tData.mecanica) : 'Descrição não encontrada.'}</p></div>`; }).join(''); } } else { const fixedFeatures = [...(raceData.caracteristicas || [])]; if (fixedFeatures.length > 0) { traitsHtml += fixedFeatures.map(f => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-2 border-l-[${themeColor}]"><h4 class="font-bold text-white text-xs mb-1">${f.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${f.efeito || f.mecanica || ''}</p></div>`).join(''); } } traitsHtml += `</div>`; let bgHtml = ''; if (bgData && char.backgroundFeature) { const feature = bgData.caracteristicas.find(f => f.nome === char.backgroundFeature); bgHtml = `<div class="flex items-center gap-3 mb-2 border-t border-gray-800 pt-4"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="book-open" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">${char.background}</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Antecedente</p></div></div><div class="space-y-2 mb-6"><div class="bg-gray-900 border border-gray-800 p-3 rounded-xl border-l-4 border-l-[${themeColor}]"><h4 class="font-bold text-[${themeColor}] text-xs mb-1">${feature.nome}</h4><p class="text-[10px] text-gray-400 leading-relaxed">${feature.efeito}</p></div></div>`; }
+                const otherTrainings = char.skills.filter(s => SYSTEM_DB.otherSkills.includes(s)); let otherSkillsHtml = ''; if (otherTrainings.length > 0) { const isOpen = state.sheetOtherSkillsOpen; otherSkillsHtml = `<div class="mt-2 border-t border-gray-800 pt-4"><div onclick="toggleSheetAccordion()" class="flex items-center justify-between cursor-pointer group"><div class="flex items-center gap-3 mb-2"><div class="bg-gray-800 p-2 rounded text-[${themeColor}]"><i data-lucide="hammer" size="20"></i></div><div><h3 class="font-bold text-white uppercase tracking-wider text-sm">Outros Treinamentos</h3><p class="text-[10px] text-gray-500 uppercase tracking-widest">Equipamentos, Linguagens e Ferramentas</p></div></div><div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600 group-hover:text-gray-400'}"><i data-lucide="chevron-down" size="20"></i></div></div><div class="accordion-content ${isOpen ? 'open' : ''}"><div class="flex flex-wrap gap-2 pt-2">${otherTrainings.map(s => `<div class="bg-gray-900 border border-gray-800 p-3 rounded-xl inline-flex items-center gap-2 w-auto pr-4"><i data-lucide="check-circle" size="14" style="color: ${themeColor}" class="shrink-0"></i><span class="text-xs font-bold whitespace-nowrap" style="color: ${themeColor}">${s}</span></div>`).join('')}</div></div></div>`; }
+                tabContent = `<div class="p-4 space-y-2">${traitsHtml}${bgHtml}${otherSkillsHtml}</div>`;
+            } else if (state.activeTab === 'INV') {
+                const isShop = state.invMode === 'SHOP';
+                const headerHtml = `<div class="flex items-center justify-between px-4 pt-4 pb-2 sticky top-0 bg-gray-950 z-20 border-b border-gray-800/50"><div class="flex bg-gray-900 rounded-lg p-1 border border-gray-800"><button onclick="toggleInvMode('BAG')" class="px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${!isShop ? `bg-[${themeColor}] text-black shadow-[0_0_10px_${themeColor}]` : 'text-gray-500 hover:text-white'}">Mochila</button><button onclick="toggleInvMode('SHOP')" class="px-4 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-widest transition-all ${isShop ? `bg-[${themeColor}] text-black shadow-[0_0_10px_${themeColor}]` : 'text-gray-500 hover:text-white'}">Loja</button></div><div class="flex items-center gap-2 bg-gray-900 border border-gray-800 rounded-lg px-3 py-1.5"><span class="text-[${themeColor}] font-bold text-xs">$</span><input type="number" value="${char.money}" onchange="updateMoney(this.value)" class="w-16 bg-transparent text-white font-mono text-sm text-right outline-none"></div></div>`;
+                let bodyHtml = '';
+                if (!isShop) {
+                    const totalWeight = char.inventory.reduce((acc, item) => { const data = findItemData(item.name); return acc + (data ? (data.peso * item.qty) : 0); }, 0);
+                    bodyHtml = `<div class="p-4 space-y-4"><div class="flex gap-2"><input type="text" id="new-item-name" placeholder="Adicionar item customizado..." class="flex-1 bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:border-[${themeColor}] outline-none"><button onclick="addItem()" class="bg-gray-800 border border-gray-700 text-gray-300 px-4 rounded-lg font-bold hover:bg-gray-700 hover:text-white transition-colors"><i data-lucide="plus" size="16"></i></button></div><div class="flex justify-between items-center text-[10px] text-gray-500 uppercase font-bold tracking-widest px-1"><span>Itens: ${char.inventory.length}</span><span>Peso Est.: ${totalWeight.toFixed(1)} kg</span></div><div class="space-y-2">${char.inventory.length === 0 ? '<div class="text-center text-gray-600 text-xs py-8 border border-dashed border-gray-800 rounded-xl">Mochila vazia.</div>' : ''}${char.inventory.map((item, idx) => { const data = findItemData(item.name); let tagsHtml = '', statsHtml = ''; if (data) { if(data.tags) tagsHtml = data.tags.map(t => `<span class="text-[8px] bg-gray-950 text-gray-400 px-1.5 py-0.5 rounded border border-gray-800">${t}</span>`).join(''); if(data.dano) statsHtml += `<span class="text-[9px] text-red-400 font-bold flex items-center gap-1"><i data-lucide="sword" size="10"></i> ${data.dano} ${data.tipo_dano}</span>`; if(data.ca) statsHtml += `<span class="text-[9px] text-blue-400 font-bold flex items-center gap-1"><i data-lucide="shield" size="10"></i> CA ${data.ca}</span>`; if(data.peso) statsHtml += `<span class="text-[9px] text-gray-500 flex items-center gap-1"><i data-lucide="weight" size="10"></i> ${data.peso}kg</span>`; } return `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 relative group transition-all hover:border-gray-600"><div class="flex justify-between items-start mb-1"><span class="text-sm font-bold text-white">${item.name}</span><div class="flex items-center gap-2"><button onclick="sellItem(${idx})" class="text-[9px] text-red-900 hover:text-red-500 uppercase font-bold tracking-wider mr-2 opacity-0 group-hover:opacity-100 transition-opacity">Vender</button><button onclick="updateItemQty(${idx}, -1)" class="text-gray-600 hover:text-white"><i data-lucide="minus" size="14"></i></button><span class="text-sm w-4 text-center font-mono text-gray-300">${item.qty}</span><button onclick="updateItemQty(${idx}, 1)" class="text-gray-600 hover:text-white"><i data-lucide="plus" size="14"></i></button></div></div>${statsHtml ? `<div class="flex gap-3 mb-1.5">${statsHtml}</div>` : ''}${tagsHtml ? `<div class="flex flex-wrap gap-1">${tagsHtml}</div>` : ''}${data && data.detalhe ? `<div class="mt-1 text-[9px] text-gray-600 italic border-t border-gray-800/50 pt-1">${data.detalhe}</div>` : ''}</div>`; }).join('')}</div></div>`;
+                } else {
+                    const categories = [ { id: 'armas', label: 'Armas', icon: 'sword' }, { id: 'armaduras', label: 'Armaduras', icon: 'shield' }, { id: 'municoes', label: 'Munições', icon: 'crosshair' }, { id: 'itens_medicos', label: 'Médicos', icon: 'heart' }, { id: 'kits', label: 'Kits', icon: 'briefcase' }, { id: 'equipamentos_gerais', label: 'Gerais', icon: 'backpack' } ];
+                    const currentCat = state.shopCategory; const dbCat = ITEM_DB[currentCat]; let itemsToDisplay = []; let subFilters = [];
+                    if (Array.isArray(dbCat)) { itemsToDisplay = dbCat; } else { subFilters = Object.keys(dbCat); if (state.shopSubFilter && dbCat[state.shopSubFilter]) { itemsToDisplay = dbCat[state.shopSubFilter]; } else { itemsToDisplay = Object.values(dbCat).flat(); } }
+                    if (state.searchTerm) { const term = state.searchTerm.toLowerCase(); itemsToDisplay = itemsToDisplay.filter(i => i.nome.toLowerCase().includes(term)); }
+                    bodyHtml = `<div class="flex flex-col h-full"><div class="px-4 py-2 border-b border-gray-800 bg-gray-900/50"><div class="relative"><i data-lucide="search" size="14" class="absolute left-3 top-3 text-gray-600"></i><input type="text" placeholder="Buscar na loja..." oninput="state.searchTerm = this.value; render(true)" value="${state.searchTerm}" class="w-full bg-gray-950 border border-gray-800 rounded-lg pl-9 pr-3 py-2 text-xs text-white focus:border-[${themeColor}] outline-none"></div></div><div class="flex overflow-x-auto no-scrollbar gap-2 p-2 border-b border-gray-800 bg-gray-950">${categories.map(c => `<button onclick="setShopCategory('${c.id}')" class="flex items-center gap-2 px-3 py-2 rounded-lg border transition-all whitespace-nowrap ${currentCat === c.id ? `bg-[${themeColor}]/10 border-[${themeColor}] text-[${themeColor}]` : 'bg-gray-900 border-gray-800 text-gray-500 hover:text-gray-300'}"><i data-lucide="${c.icon}" size="14"></i><span class="text-[10px] font-bold uppercase tracking-wide">${c.label}</span></button>`).join('')}</div>${subFilters.length > 0 ? `<div class="flex overflow-x-auto no-scrollbar gap-2 px-4 py-2 bg-gray-900/30 border-b border-gray-800"><button onclick="setShopSubFilter(null)" class="px-2 py-1 rounded text-[9px] font-bold uppercase border transition-all ${!state.shopSubFilter ? `bg-gray-800 text-white border-gray-600` : 'text-gray-500 border-transparent hover:text-gray-300'}">Todos</button>${subFilters.map(s => `<button onclick="setShopSubFilter('${s}')" class="px-2 py-1 rounded text-[9px] font-bold uppercase border transition-all ${state.shopSubFilter === s ? `bg-[${themeColor}]/20 text-[${themeColor}] border-[${themeColor}]/50` : 'text-gray-500 border-transparent hover:bg-gray-800'}">${s.replace(/_/g, ' ')}</button>`).join('')}</div>` : ''}<div class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3 pb-24">${itemsToDisplay.length === 0 ? '<div class="text-center text-gray-600 text-xs italic py-10">Nenhum item encontrado.</div>' : ''}${itemsToDisplay.map(item => { const canBuy = char.money >= item.custo; let statsHtml = `<span class="text-[10px] font-mono text-gray-400">$${item.custo}</span>`; if(item.peso) statsHtml += `<span class="text-[9px] text-gray-600"> • ${item.peso}kg</span>`; let combatHtml = ''; if(item.dano) combatHtml += `<div class="flex items-center gap-1 text-[9px] text-red-400 font-bold bg-red-900/10 px-1.5 rounded"><i data-lucide="sword" size="10"></i> ${item.dano} ${item.tipo_dano}</div>`; if(item.ca) combatHtml += `<div class="flex items-center gap-1 text-[9px] text-blue-400 font-bold bg-blue-900/10 px-1.5 rounded"><i data-lucide="shield" size="10"></i> CA ${item.ca}</div>`; return `<div class="bg-gray-900 border border-gray-800 rounded-xl p-3 flex flex-col gap-2 group hover:border-gray-600 transition-colors"><div class="flex justify-between items-start"><div><span class="text-xs font-bold text-white block">${item.nome}</span><div class="flex items-center gap-1 mt-0.5">${statsHtml}</div></div><button onclick="buyItem('${item.nome}', ${item.custo})" class="px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase tracking-wide transition-all flex items-center gap-1 ${canBuy ? `bg-[${themeColor}] text-black hover:brightness-110 shadow-[0_0_10px_${themeColor}40]` : 'bg-gray-800 text-gray-600 cursor-not-allowed opacity-50'}"><i data-lucide="shopping-bag" size="12"></i> Comprar</button></div>${combatHtml || item.tags ? `<div class="flex flex-wrap gap-1">${combatHtml}${item.tags ? item.tags.map(t => `<span class="text-[8px] bg-gray-950 text-gray-500 px-1.5 py-0.5 rounded border border-gray-800">${t}</span>`).join('') : ''}</div>` : ''}${item.detalhe ? `<p class="text-[9px] text-gray-500 leading-tight">${item.detalhe}</p>` : ''}</div>`; }).join('')}</div></div>`;
+                }
+                tabContent = `<div class="h-full flex flex-col">${headerHtml}<div class="flex-1 overflow-hidden relative">${bodyHtml}</div></div>`;
+            } else if (state.activeTab === 'DADOS') {
+                tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map((h, index) => { const originalIndex = char.history.length - 1 - index; return `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1 group relative"><button onclick="copyToClipboard(${originalIndex})" class="absolute top-2 right-2 p-1.5 bg-gray-800 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-all" title="Copiar para Discord"><i data-lucide="copy" size="14"></i></button><div class="flex justify-between text-[10px] text-gray-500 pr-8"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`; }).join('')}</div></div>`;
+            } else {
+                tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`;
+            }
 
             const nextXp = char.xp_next || 100;
             const xpPct = Math.min(100, (char.xp / nextXp) * 100);
@@ -1671,29 +1061,6 @@
                             </div>
                         </div>
                     </div>
-                    <div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-gray-800">
-                        <div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span><select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full"><option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option><option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option><option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option><option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option></select></div>
-                        <div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span><span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span></div>
-                        <div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span><span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span></div>
-                        <div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span><input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700"></div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-t border-b border-gray-800 bg-[#0b0c10]">
-                        ${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}
-                        ${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}
-                        ${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}
-                        ${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}
-                        <div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()">
-                            <span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span>
-                            <div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all">
-                                <i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i>
-                            </div>
-                            <div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div>
-                        </div>
-                        ${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}
-                    </div>
-                    <div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mt-4 mb-2">
-                        ${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}
-                    </div>
                     <div class="relative">${tabContent}</div>
                 </div>` : 
                 `<div class="flex-1 overflow-hidden relative flex flex-col">
@@ -1703,227 +1070,50 @@
                     ${tabContent}
                 </div>`
                 }
-
                 <div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">
-                    ${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}
+                    ${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('BIO', 'contact', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}
                 </div>
             </div>`;
         }
 
+        function findItemData(itemName) {
+            const cleanName = itemName.toLowerCase();
+            for (const cat in ITEM_DB.armas) { const found = ITEM_DB.armas[cat].find(i => i.nome.toLowerCase() === cleanName || cleanName.includes(i.nome.toLowerCase())); if(found) return { ...found, category: 'Armas', sub: cat }; }
+            for (const cat in ITEM_DB.armaduras) { const found = ITEM_DB.armaduras[cat].find(i => i.nome.toLowerCase() === cleanName || cleanName.includes(i.nome.toLowerCase())); if(found) return { ...found, category: 'Armaduras', sub: cat }; }
+            const foundMun = ITEM_DB.municoes.find(i => i.nome.toLowerCase() === cleanName); if(foundMun) return { ...foundMun, category: 'Munições' };
+            const foundMed = ITEM_DB.itens_medicos.find(i => i.nome.toLowerCase() === cleanName); if(foundMed) return { ...foundMed, category: 'Médicos' };
+            const foundKit = ITEM_DB.kits.find(i => i.nome.toLowerCase() === cleanName); if(foundKit) return { ...foundKit, category: 'Kits' };
+            for (const cat in ITEM_DB.equipamentos_gerais) { const found = ITEM_DB.equipamentos_gerais[cat].find(i => i.nome.toLowerCase() === cleanName); if(found) return { ...found, category: 'Gerais', sub: cat }; }
+            return null;
+        }
+
         // --- NEW CONTROLLERS FOR INVENTORY ---
-        function toggleInvMode(mode) {
-            state.invMode = mode;
-            state.searchTerm = ''; 
-            render(true);
-        }
+        function toggleInvMode(mode) { state.invMode = mode; state.searchTerm = ''; render(true); }
+        function setShopCategory(cat) { state.shopCategory = cat; state.shopSubFilter = null; render(true); }
+        function setShopSubFilter(sub) { state.shopSubFilter = sub; render(true); }
+        function buyItem(name, cost) { if (state.currentChar.money >= cost) { state.currentChar.money -= cost; const existingItem = state.currentChar.inventory.find(i => i.name === name); if (existingItem) { existingItem.qty += 1; } else { state.currentChar.inventory.push({ name: name, qty: 1 }); } saveCharacter(state.currentChar); render(true); } else { alert("Dinheiro insuficiente!"); } }
+        function sellItem(idx) { if(confirm("Vender este item por 50% do valor original?")) { const item = state.currentChar.inventory[idx]; const data = findItemData(item.name); const value = data ? Math.floor(data.custo / 2) : 0; state.currentChar.money += value; if (item.qty > 1) { item.qty -= 1; } else { state.currentChar.inventory.splice(idx, 1); } saveCharacter(state.currentChar); render(true); } }
 
-        function setShopCategory(cat) {
-            state.shopCategory = cat;
-            state.shopSubFilter = null; 
-            render(true);
-        }
-
-        function setShopSubFilter(sub) {
-            state.shopSubFilter = sub;
-            render(true);
-        }
-
-        function buyItem(name, cost) {
-            if (state.currentChar.money >= cost) {
-                state.currentChar.money -= cost;
-                
-                const existingItem = state.currentChar.inventory.find(i => i.name === name);
-                if (existingItem) {
-                    existingItem.qty += 1;
-                } else {
-                    state.currentChar.inventory.push({ name: name, qty: 1 });
-                }
-                
-                saveCharacter(state.currentChar);
-                render(true); 
-            } else {
-                alert("Dinheiro insuficiente!");
-            }
-        }
-
-        function sellItem(idx) {
-            if(confirm("Vender este item por 50% do valor original?")) {
-                const item = state.currentChar.inventory[idx];
-                const data = findItemData(item.name);
-                const value = data ? Math.floor(data.custo / 2) : 0;
-                
-                state.currentChar.money += value;
-                
-                if (item.qty > 1) {
-                    item.qty -= 1;
-                } else {
-                    state.currentChar.inventory.splice(idx, 1);
-                }
-                
-                saveCharacter(state.currentChar);
-                render(true);
-            }
+        // --- NEW HELPER FOR CHIMERA OPTIONS ---
+        function updateTraitDetail(traitName, value) {
+            if (!state.tempChar.traitDetails) state.tempChar.traitDetails = {};
+            state.tempChar.traitDetails[traitName] = value;
         }
 
         // --- CONTROLLERS ---
         function selectChar(id) { state.currentChar = state.characters.find(c => c.id === id); state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function startCreator() { state.creatorStep = 0; state.tempChar = null; state.attrMethodLocked = false; state.allocations = {}; state.view = 'CREATOR'; render(); }
         function selectNenType(cls) { state.tempChar.class = cls; const clsData = SYSTEM_DB.classes.find(c => c.id === cls); if(clsData) setThemeColor(clsData.color); render(true); }
-        
-        function selectBackground(bgName) {
-            if (state.tempChar.background === bgName) {
-            } else {
-                state.tempChar.background = bgName;
-                state.tempChar.backgroundFeature = null;
-            }
-            render(true);
-        }
-
-        function selectBackgroundFeature(featureName) {
-            state.tempChar.backgroundFeature = featureName;
-        }
-
-        function toggleInclination(type, name, value) {
-            const list = state.tempChar.inclinations[type];
-            const existsIdx = list.findIndex(i => i.nome === name);
-            if (existsIdx >= 0) { list.splice(existsIdx, 1); } 
-            else { list.push({ nome: name, [type === 'positive' ? 'custo' : 'valor']: value }); }
-            render(true);
-        }
-
-        function selectRace(raceName) {
-            state.tempChar.race = raceName;
-            state.allocations = {}; 
-            SYSTEM_DB.racas.forEach(r => {
-                const card = document.getElementById(`race-card-${r.nome.replace(/\s/g,'-')}`);
-                const content = document.getElementById(`race-content-${r.nome.replace(/\s/g,'-')}`);
-                const checkWrapper = document.getElementById(`check-${r.nome.replace(/\s/g,'-')}`);
-                const chevronWrapper = document.getElementById(`chevron-${r.nome.replace(/\s/g,'-')}`);
-                
-                if (r.nome === raceName) {
-                    card.classList.remove('border-gray-800', 'bg-gray-900');
-                    card.classList.add('border-neon-theme', 'ring-2', 'ring-neon-theme/20', 'bg-neon-theme/5');
-                    const h3 = card.querySelector('h3');
-                    h3.classList.remove('text-white');
-                    h3.classList.add('text-neon-theme');
-                    checkWrapper.classList.remove('opacity-0');
-                    checkWrapper.classList.add('opacity-100');
-                    chevronWrapper.classList.remove('-rotate-90', 'text-gray-600');
-                    chevronWrapper.classList.add('rotate-0', 'text-neon-theme');
-                    content.classList.add('open', 'pb-4');
-                } else {
-                    card.classList.remove('border-neon-theme', 'ring-2', 'ring-neon-theme/20', 'bg-neon-theme/5');
-                    card.classList.add('border-gray-800', 'bg-gray-900');
-                    const h3 = card.querySelector('h3');
-                    h3.classList.remove('text-neon-theme');
-                    h3.classList.add('text-white');
-                    checkWrapper.classList.remove('opacity-100');
-                    checkWrapper.classList.add('opacity-0');
-                    chevronWrapper.classList.remove('rotate-0', 'text-neon-theme');
-                    chevronWrapper.classList.add('-rotate-90', 'text-gray-600');
-                    content.classList.remove('open', 'pb-4');
-                }
-            });
-        }
-
-        function toggleRaceTrait(traitName) {
-            const list = state.tempChar.raceTraits || [];
-            const idx = list.indexOf(traitName);
-            if (idx >= 0) list.splice(idx, 1);
-            else { if (list.length >= 3) { alert("Você só pode escolher até 3 características."); return; } list.push(traitName); }
-            state.tempChar.raceTraits = list;
-            render(true);
-        }
-
-        function toggleCreatorSkill(skill, type = 'main') {
-            const list = type === 'main' ? state.tempChar.skills : state.tempChar.otherSkills;
-            const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : "";
-            const isBgSkill = type === 'main' && bgSkillsText.includes(skill);
-            let limit = type === 'main' ? 5 : 4;
-            if (type === 'other') { if (bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta")) { limit = 5; } }
-            const idx = list.indexOf(skill);
-            if (idx >= 0) { list.splice(idx, 1); } 
-            else { if (!isBgSkill) { const currentManualCount = list.filter(s => !bgSkillsText.includes(s)).length; if (currentManualCount >= limit) { alert(`Limite de ${limit} escolhas manuais atingido.`); return; } } list.push(skill); }
-            render(true); 
-        }
-
-        function rollDice(attrName, mod) { 
-            const roll = getRollResult(state.rollMode);
-            const total = roll.total + mod; 
-            const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${attrName} (${roll.label})`, dice: roll.dice.join(', '), mod: mod, total: total }; 
-            state.currentChar.history.push(entry); 
-            if (state.currentChar.history.length > 50) state.currentChar.history.shift(); 
-            saveCharacter(state.currentChar); 
-            
-            state.rollResult = { 
-                name: attrName, 
-                total: total, 
-                diceVal: roll.total, 
-                mod: mod, 
-                label: roll.label 
-            };
-            
-            if (state.activeTab !== 'DADOS') {
-                state.unreadRolls = true;
-            }
-            
-            render(true); 
-        }
-        
-        function rollSkill(skillName, attrKey) {
-            const char = state.currentChar;
-            const mod = getMod(char.attributes[attrKey].value);
-            const isTrained = char.skills.includes(skillName);
-            const isExpert = (char.expertise || []).includes(skillName);
-            const pb = getProficiencyBonus(char.level);
-            let totalMod = mod;
-            if (isExpert) { totalMod += (pb * 2); } 
-            else if (isTrained) { totalMod += pb; } 
-            
-            const roll = getRollResult(state.rollMode);
-            const total = roll.total + totalMod;
-            const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${skillName} ${isExpert ? "(Exp)" : ""} (${roll.label})`, dice: roll.dice.join(', '), mod: totalMod, total: total };
-            state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar);
-            
-            state.rollResult = { 
-                name: skillName, 
-                total: total, 
-                diceVal: roll.total, 
-                mod: totalMod, 
-                label: roll.label 
-            };
-
-            if (state.activeTab !== 'DADOS') {
-                state.unreadRolls = true;
-            }
-
-            render(true);
-        }
-
-        function closeRollModal() {
-            state.rollResult = null;
-            render(true);
-        }
-        
-        function copyToClipboard(idx) {
-            const h = state.currentChar.history[idx];
-            if(!h) return;
-            const text = `**${h.label}**\nRolagem: [${h.dice}] ${h.mod>=0?'+':''}${h.mod} = **${h.total}**`;
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.activeElement;
-                if(btn && btn.tagName === 'BUTTON') {
-                    const originalHTML = btn.innerHTML;
-                    btn.innerHTML = '<i data-lucide="check" size="14"></i>';
-                    btn.classList.add('text-green-500');
-                    setTimeout(() => {
-                        btn.innerHTML = originalHTML;
-                        btn.classList.remove('text-green-500');
-                        lucide.createIcons();
-                    }, 1000);
-                }
-            });
-        }
-
+        function selectBackground(bgName) { if (state.tempChar.background !== bgName) { state.tempChar.background = bgName; state.tempChar.backgroundFeature = null; } render(true); }
+        function selectBackgroundFeature(featureName) { state.tempChar.backgroundFeature = featureName; }
+        function toggleInclination(type, name, value) { const list = state.tempChar.inclinations[type]; const existsIdx = list.findIndex(i => i.nome === name); if (existsIdx >= 0) { list.splice(existsIdx, 1); } else { list.push({ nome: name, [type === 'positive' ? 'custo' : 'valor']: value }); } render(true); }
+        function selectRace(raceName) { state.tempChar.race = raceName; state.allocations = {}; render(true); }
+        function toggleRaceTrait(traitName) { const list = state.tempChar.raceTraits || []; const idx = list.indexOf(traitName); if (idx >= 0) { list.splice(idx, 1); if(state.tempChar.traitDetails && state.tempChar.traitDetails[traitName]) { delete state.tempChar.traitDetails[traitName]; } } else { if (list.length >= 3) { alert("Você só pode escolher até 3 características."); return; } list.push(traitName); } state.tempChar.raceTraits = list; render(true); }
+        function toggleCreatorSkill(skill, type = 'main') { const list = type === 'main' ? state.tempChar.skills : state.tempChar.otherSkills; const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : ""; const isBgSkill = type === 'main' && bgSkillsText.includes(skill); let limit = type === 'main' ? 5 : 4; if (type === 'other') { if (bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta")) { limit = 5; } } const idx = list.indexOf(skill); if (idx >= 0) { list.splice(idx, 1); } else { if (!isBgSkill) { const currentManualCount = list.filter(s => !bgSkillsText.includes(s)).length; if (currentManualCount >= limit) { alert(`Limite de ${limit} escolhas manuais atingido.`); return; } } list.push(skill); } render(true); }
+        function rollDice(attrName, mod) { const roll = getRollResult(state.rollMode); const total = roll.total + mod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${attrName} (${roll.label})`, dice: roll.dice.join(', '), mod: mod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: attrName, total: total, diceVal: roll.total, mod: mod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; render(true); }
+        function rollSkill(skillName, attrKey) { const char = state.currentChar; const mod = getMod(char.attributes[attrKey].value); const isTrained = char.skills.includes(skillName); const isExpert = (char.expertise || []).includes(skillName); const pb = getProficiencyBonus(char.level); let totalMod = mod; if (isExpert) { totalMod += (pb * 2); } else if (isTrained) { totalMod += pb; } const roll = getRollResult(state.rollMode); const total = roll.total + totalMod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${skillName} ${isExpert ? "(Exp)" : ""} (${roll.label})`, dice: roll.dice.join(', '), mod: totalMod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: skillName, total: total, diceVal: roll.total, mod: totalMod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; render(true); }
+        function closeRollModal() { state.rollResult = null; render(true); }
+        function copyToClipboard(idx) { const h = state.currentChar.history[idx]; if(!h) return; const text = `**${h.label}**\nRolagem: [${h.dice}] ${h.mod>=0?'+':''}${h.mod} = **${h.total}**`; navigator.clipboard.writeText(text).then(() => { const btn = document.activeElement; if(btn && btn.tagName === 'BUTTON') { const originalHTML = btn.innerHTML; btn.innerHTML = '<i data-lucide="check" size="14"></i>'; btn.classList.add('text-green-500'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.remove('text-green-500'); lucide.createIcons(); }, 1000); } }); }
         function getRollResult(mode) { const r1 = Math.floor(Math.random() * 20) + 1; const r2 = Math.floor(Math.random() * 20) + 1; if (mode === 'NORMAL') return { total: r1, dice: [r1], label: 'Normal' }; if (mode === 'VANTAGEM') return { total: Math.max(r1, r2), dice: [r1, r2], label: 'Vantagem' }; if (mode === 'DESVANTAGEM') return { total: Math.min(r1, r2), dice: [r1, r2], label: 'Desvantagem' }; if (mode === 'ÊNFASE') { const dist1 = Math.abs(r1 - 10.5); const dist2 = Math.abs(r2 - 10.5); return { total: dist1 > dist2 ? r1 : r2, dice: [r1, r2], label: 'Ênfase' }; } return { total: r1, dice: [r1], label: 'Normal' }; }
         function buyStat(attr, delta) { lockAttributeMethod(); const current = state.tempChar.attributes[attr]; const next = current + delta; if (next >= 1 && next <= 30) { const currentCost = calculateTotalCost(state.tempChar.attributes); const costDiff = getPointBuyCost(next) - getPointBuyCost(current); const MAX = 20; if (costDiff > 0 && (currentCost + costDiff > MAX)) { const totalEl = document.getElementById('buy-total'); totalEl.classList.add('text-red-500', 'shake'); setTimeout(() => totalEl.classList.remove('shake'), 500); return; } state.tempChar.attributes[attr] = next; render(true); } }
         function setAttrTab(mode) { if (state.attrMethodLocked) return; state.attrTab = mode; state.selectedPoolIdx = null; if(mode === 'COMPRA') { Object.keys(state.tempChar.attributes).forEach(k => state.tempChar.attributes[k] = 10); state.attrPool = []; } else { Object.keys(state.tempChar.attributes).forEach(k => state.tempChar.attributes[k] = null); state.attrPool = []; } render(true); }
@@ -1935,7 +1125,10 @@
         function returnToPool(attr) { const val = state.tempChar.attributes[attr]; if (val !== null) { state.attrPool.push(val); state.attrPool.sort((a,b) => b-a); state.tempChar.attributes[attr] = null; render(true); } }
         function applyBackgroundProficiencies() { if (!state.tempChar.background) return; const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); if (!bgData) return; const profText = bgData.proficiencias; SYSTEM_DB.skills.forEach(skill => { if (profText.includes(skill) && !state.tempChar.skills.includes(skill)) { state.tempChar.skills.push(skill); } }); if (profText.includes("Kit") || profText.includes("Ferramenta")) { if (!state.tempChar.otherSkills.includes("Kits")) { state.tempChar.otherSkills.push("Kits"); } } }
         function nextCreatorStep() { if (state.creatorStep === 0 && !state.tempChar.name) { alert("Dê um nome ao personagem!"); return; } if (state.creatorStep === 2) { if (state.attrTab === 'COMPRA') { const cost = calculateTotalCost(state.tempChar.attributes); if (cost > 20) { alert("Você excedeu o limite de pontos de compra (20)!"); return; } } else { const values = Object.values(state.tempChar.attributes); if (values.some(v => v === null)) { alert("Aloque todos os valores do pool para os atributos!"); return; } } } if (state.creatorStep === 3) { if (!state.tempChar.background) { alert("Selecione um Antecedente!"); return; } if (!state.tempChar.backgroundFeature) { alert("Escolha uma característica do Antecedente!"); return; } } if (state.creatorStep === 4) { const posCost = state.tempChar.inclinations.positive.reduce((acc, i) => acc + i.custo, 0); const negVal = state.tempChar.inclinations.negative.reduce((acc, i) => acc + i.valor, 0); const sortedPos = [...state.tempChar.inclinations.positive].sort((a,b) => b.custo - a.custo); const freeCost = sortedPos.length > 0 ? sortedPos[0].custo : 0; const paidCost = Math.max(0, posCost - freeCost); const balance = negVal - paidCost; if (balance < 0) { alert("Suas inclinações não estão balanceadas! Adicione negativas ou remova positivas extras."); return; } if (negVal > 10) { alert("O máximo de compensação negativa é 10 pontos."); return; } applyBackgroundProficiencies(); } if (state.creatorStep === 5) { const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : ""; const currentManualCount = state.tempChar.skills.filter(s => !bgSkillsText.includes(s)).length; if (currentManualCount !== 5) { alert(`Você deve selecionar exatamente 5 perícias manuais (além das concedidas pelo antecedente). Atualmente: ${currentManualCount}`); return; } } state.creatorStep++; render(); }
-        function finishCreator() { Object.entries(state.allocations).forEach(([key, val]) => { state.tempChar.attributes[key] += val; }); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : []; const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race); const finalAttrs = { ...state.tempChar.attributes }; if (raceData && typeof raceData.aumento_atributo === 'object') { const req = getBonusRequirements(state.tempChar.race); if (!req) { Object.entries(raceData.aumento_atributo).forEach(([key, val]) => { if (finalAttrs[key] !== undefined) { finalAttrs[key] += val; } }); } } const modCon = getMod(finalAttrs.CON || 10); const modInt = getMod(finalAttrs.INT || 10); const modSab = getMod(finalAttrs.SAB || 10); const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); let hpInitial = 15 + modCon; if (hasGiantBody) hpInitial += 5; const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: state.tempChar.raceTraits || [], vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
+        function finishCreator() { Object.entries(state.allocations).forEach(([key, val]) => { state.tempChar.attributes[key] += val; }); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : []; const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race); const finalAttrs = { ...state.tempChar.attributes }; if (raceData && typeof raceData.aumento_atributo === 'object') { const req = getBonusRequirements(state.tempChar.race); if (!req) { Object.entries(raceData.aumento_atributo).forEach(([key, val]) => { if (finalAttrs[key] !== undefined) { finalAttrs[key] += val; } }); } } const modCon = getMod(finalAttrs.CON || 10); const modInt = getMod(finalAttrs.INT || 10); const modSab = getMod(finalAttrs.SAB || 10); const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); let hpInitial = 15 + modCon; if (hasGiantBody) hpInitial += 5; 
+            // Merge traits with details
+            const mergedTraits = (state.tempChar.raceTraits || []).map(t => { const detail = state.tempChar.traitDetails && state.tempChar.traitDetails[t]; return detail ? `${t}: ${detail}` : t; });
+            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' } }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function setTab(tab) { state.activeTab = tab; if(tab === 'DADOS') state.unreadRolls = false; render(true); }
         function setRollMode(mode) { state.rollMode = mode; render(true); }
         function updateSheetAttr(key, delta) { state.currentChar.attributes[key].value += delta; saveCharacter(state.currentChar); render(true); }
@@ -1955,6 +1148,8 @@
         function updateItemQty(idx, delta) { const item = state.currentChar.inventory[idx]; item.qty += delta; if (item.qty <= 0) state.currentChar.inventory.splice(idx, 1); saveCharacter(state.currentChar); render(true); }
         function updateMoney(val) { state.currentChar.money = parseInt(val) || 0; saveCharacter(state.currentChar); render(true); }
         function clearHistory() { if(confirm('Limpar histórico?')) { state.currentChar.history = []; saveCharacter(state.currentChar); render(true); } }
+        function toggleBioAccordion(id) { state.bioAccordionOpen = state.bioAccordionOpen === id ? null : id; render(true); }
+        function updateBio(field, val) { if (!state.currentChar.bio) state.currentChar.bio = {}; state.currentChar.bio[field] = val; saveCharacter(state.currentChar); render(true); }
 
         window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); render(); });
     </script>
