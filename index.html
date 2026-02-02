@@ -29,6 +29,11 @@
               'neon-theme': 'var(--theme-color-hex, #00ff9d)',
               'neon-dark': '#0a0a0f',
               'neon-card': '#0e0e14',
+              'discord': '#5865F2', 
+              'discord-dark': '#4752C4'
+            },
+            animation: {
+                'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
             }
           }
         }
@@ -187,6 +192,20 @@
 
     <!-- DB e Lógica -->
     <script>
+        // --- CONFIGURAÇÃO DISCORD (PREENCHA AQUI) ---
+        const DISCORD_CONFIG = {
+            clientId: 'SEU_CLIENT_ID', // Substitua pelo ID do seu App Discord
+            guildId: 'SEU_GUILD_ID',   // ID do Servidor Discord
+            roleId: 'SEU_ROLE_ID',     // ID do Cargo necessário
+            redirectUri: window.location.origin + window.location.pathname // URL atual
+        };
+
+        // Lista de IDs de usuários que pagaram (Acesso liberado sem cargo)
+        const PAID_USERS = [
+            "ID_USUARIO_1",
+            "ID_USUARIO_2"
+        ];
+
         // --- DADOS DO SISTEMA ---
         const ITEM_DB = {
             armas: {
@@ -558,7 +577,7 @@
 
         // --- ESTADO GLOBAL ---
         const state = {
-            view: 'LIST', // LIST, CREATOR, SHEET
+            view: 'LOGIN', // Inicia em LOGIN agora
             activeTab: 'FICHA',
             characters: [],
             currentChar: null,
@@ -584,7 +603,10 @@
             shopCategory: 'armas', // Default Shop Category
             shopSubFilter: null, // Default subfilter
             searchTerm: '', // Search filter
-            bioAccordionOpen: null // Novo estado para a aba BIO
+            bioAccordionOpen: null, // Novo estado para a aba BIO
+            // Auth State
+            user: null,
+            authorized: false
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -823,6 +845,119 @@
             `;
         }
 
+        // --- AUTH & LOGIN ---
+        function loginDiscord() {
+            const scope = 'identify guilds.members.read';
+            const url = `https://discord.com/api/oauth2/authorize?client_id=${DISCORD_CONFIG.clientId}&redirect_uri=${encodeURIComponent(DISCORD_CONFIG.redirectUri)}&response_type=token&scope=${encodeURIComponent(scope)}`;
+            window.location.href = url;
+        }
+
+        function logoutDiscord() {
+            localStorage.removeItem('discord_access_token');
+            state.user = null;
+            state.authorized = false;
+            state.view = 'LOGIN';
+            render();
+        }
+
+        async function checkDiscordAuth() {
+            // Check for token in URL hash (Callback from Discord)
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            let accessToken = fragment.get('access_token');
+
+            if (accessToken) {
+                // Clear hash from URL for cleanliness
+                window.history.replaceState(null, null, window.location.pathname);
+                localStorage.setItem('discord_access_token', accessToken);
+            } else {
+                accessToken = localStorage.getItem('discord_access_token');
+            }
+
+            if (!accessToken) {
+                state.authorized = false;
+                state.view = 'LOGIN';
+                render();
+                return;
+            }
+
+            try {
+                // Fetch User Profile
+                const userRes = await fetch('https://discord.com/api/users/@me', {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+
+                if (!userRes.ok) throw new Error('Invalid Token');
+                const user = await userRes.json();
+                state.user = user;
+
+                // Check Whitelist (Paid Users) - Bypass Server Check
+                if (PAID_USERS.includes(user.id)) {
+                    state.authorized = true;
+                    state.view = 'LIST';
+                    render();
+                    return;
+                }
+
+                // Check Guild Membership & Roles
+                const memberRes = await fetch(`https://discord.com/api/users/@me/guilds/${DISCORD_CONFIG.guildId}/member`, {
+                    headers: { Authorization: `Bearer ${accessToken}` }
+                });
+
+                if (memberRes.ok) {
+                    const member = await memberRes.json();
+                    if (member.roles && member.roles.includes(DISCORD_CONFIG.roleId)) {
+                        state.authorized = true;
+                        state.view = 'LIST';
+                    } else {
+                        alert('Acesso Negado: Você não possui o cargo necessário no servidor.');
+                        logoutDiscord();
+                        return;
+                    }
+                } else {
+                    alert('Acesso Negado: Você não é membro do servidor oficial.');
+                    logoutDiscord();
+                    return;
+                }
+                render();
+
+            } catch (e) {
+                console.error("Auth Error", e);
+                logoutDiscord();
+            }
+        }
+
+        function renderLogin(container) {
+            container.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center p-6 bg-[#0a0a0f] relative overflow-hidden">
+                    <div class="absolute inset-0 bg-[url('https://i.pinimg.com/originals/2b/86/e6/2b86e680506079632730605937965050.gif')] bg-cover bg-center opacity-10"></div>
+                    <div class="relative z-10 w-full max-w-sm bg-gray-900/80 backdrop-blur-xl border border-gray-700 rounded-2xl p-8 text-center shadow-[0_0_50px_rgba(88,101,242,0.15)] animate-in zoom-in duration-500">
+                        <div class="mb-6 flex justify-center">
+                            <div class="w-20 h-20 rounded-2xl bg-gray-800 flex items-center justify-center border border-gray-700 shadow-lg relative">
+                                <i data-lucide="shield" size="40" class="text-neon-green absolute animate-pulse-slow"></i>
+                                <i data-lucide="swords" size="24" class="text-white relative z-10"></i>
+                            </div>
+                        </div>
+                        <h1 class="font-display font-black text-3xl text-white tracking-widest mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">HUNTER ARCHIVE</h1>
+                        <p class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-8">Acesso Restrito ao Sistema</p>
+                        
+                        <div class="space-y-4">
+                            <button onclick="loginDiscord()" class="w-full py-4 bg-[#5865F2] hover:bg-[#4752C4] text-white font-black font-display tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(88,101,242,0.4)] flex items-center justify-center gap-3 group">
+                                <i data-lucide="gamepad-2" class="group-hover:rotate-12 transition-transform"></i>
+                                LOGIN COM DISCORD
+                            </button>
+                            <p class="text-[9px] text-gray-500 leading-relaxed px-4">
+                                Requer cargo <strong>Hunter</strong> no servidor oficial<br>
+                                <span class="text-gray-600">ou licença vitalícia adquirida.</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-6 text-[8px] text-gray-700 font-mono tracking-widest">
+                        SYSTEM VERSION 5.0 // AUTHORIZED PERSONNEL ONLY
+                    </div>
+                </div>
+            `;
+        }
+
         // --- RENDERIZADORES ---
         function render(preserveScroll = false) {
             const app = document.getElementById('app');
@@ -834,7 +969,12 @@
 
             app.innerHTML = '';
             
-            if (state.view === 'LIST') renderList(app);
+            if (state.view === 'LOGIN') {
+                renderLogin(app);
+            } else if (state.view === 'LIST') {
+                if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+                renderList(app);
+            }
             else if (state.view === 'CREATOR') renderCreator(app);
             else if (state.view === 'SHEET') renderSheet(app);
             
@@ -870,9 +1010,26 @@
             setThemeColor('#00ff9d');
             const level0 = state.characters.filter(c => c.level === 0);
             const levelHigh = state.characters.filter(c => c.level > 0);
+            const userAvatar = state.user && state.user.avatar 
+                ? `https://cdn.discordapp.com/avatars/${state.user.id}/${state.user.avatar}.png` 
+                : null;
+
             let html = `
                 <div class="p-6 flex flex-col h-full">
-                    <div class="text-center mb-8 mt-4">
+                    <div class="flex justify-between items-center mb-6 mt-2">
+                        <div class="flex items-center gap-3">
+                            ${userAvatar ? `<img src="${userAvatar}" class="w-10 h-10 rounded-full border border-gray-700">` : `<div class="w-10 h-10 rounded-full bg-gray-800 border border-gray-700 flex items-center justify-center"><i data-lucide="user" size="16"></i></div>`}
+                            <div>
+                                <span class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Bem-vindo</span>
+                                <span class="text-sm font-display font-bold text-white uppercase tracking-wide">${state.user ? state.user.username : 'Hunter'}</span>
+                            </div>
+                        </div>
+                        <button onclick="logoutDiscord()" class="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-lg border border-transparent hover:border-red-900/30 hover:bg-red-900/10">
+                            <i data-lucide="log-out" size="18"></i>
+                        </button>
+                    </div>
+
+                    <div class="text-center mb-8">
                         <h1 class="font-display font-black text-3xl tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">HxH 5e RPG</h1>
                         <p class="text-xs text-gray-500 uppercase tracking-widest font-bold">Banco de Dados</p>
                     </div>
@@ -1317,7 +1474,7 @@
         function toggleBioAccordion(id) { state.bioAccordionOpen = state.bioAccordionOpen === id ? null : id; render(true); }
         function updateBio(field, val) { if (!state.currentChar.bio) state.currentChar.bio = {}; state.currentChar.bio[field] = val; saveCharacter(state.currentChar); render(true); }
 
-        window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); render(); });
+        window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); checkDiscordAuth(); });
     </script>
 </body>
 </html>
