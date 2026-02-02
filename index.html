@@ -883,7 +883,18 @@
             else {
                 level0.forEach(char => {
                     const color = SYSTEM_DB.classes.find(c => c.id === char.class)?.color || '#fff';
-                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-gray-600 transition-all cursor-pointer relative group mb-2" onclick="selectChar('${char.id}')"><div class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500"><i data-lucide="user" size="16"></i></div><div class="flex-1"><h3 class="font-display font-bold text-white text-base">${char.name}</h3><p class="text-[10px] text-gray-400 uppercase">${char.race} • <span style="color:${color}">${char.class}</span></p></div><button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button></div>`;
+                    const avatar = char.imageUrl 
+                        ? `<img src="${char.imageUrl}" class="w-12 h-12 rounded-full object-cover border border-gray-700 bg-gray-800" alt="${char.name}">`
+                        : `<div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500"><i data-lucide="user" size="20"></i></div>`;
+                    
+                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-gray-600 transition-all cursor-pointer relative group mb-2" onclick="selectChar('${char.id}')">
+                        ${avatar}
+                        <div class="flex-1">
+                            <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
+                            <p class="text-[10px] text-gray-400 uppercase">${char.race} • <span style="color:${color}">${char.class}</span></p>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                    </div>`;
                 });
             }
             html += `</div><div><div class="flex items-center gap-2 mb-3"><i data-lucide="zap" class="text-neon-green w-4 h-4"></i><h2 class="text-xs font-bold text-neon-green uppercase tracking-widest">Usuários de Nen (Nível 1-12)</h2></div>`;
@@ -891,7 +902,18 @@
             else {
                 levelHigh.forEach(char => {
                     const color = SYSTEM_DB.classes.find(c => c.id === char.class)?.color || '#fff';
-                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-[${color}] transition-all cursor-pointer relative group mb-2" onclick="selectChar('${char.id}')" style="border-left: 3px solid ${color}"><div class="w-10 h-10 rounded bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500"><i data-lucide="shield" size="16"></i></div><div class="flex-1"><h3 class="font-display font-bold text-white text-base">${char.name}</h3><p class="text-[10px] text-gray-400 uppercase">LVL ${char.level} • <span style="color:${color}">${char.class}</span></p></div><button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button></div>`;
+                    const avatar = char.imageUrl 
+                        ? `<img src="${char.imageUrl}" class="w-12 h-12 rounded-full object-cover border border-gray-700 bg-gray-800" alt="${char.name}">`
+                        : `<div class="w-12 h-12 rounded bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500"><i data-lucide="shield" size="20"></i></div>`;
+
+                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-[${color}] transition-all cursor-pointer relative group mb-2" onclick="selectChar('${char.id}')" style="border-left: 3px solid ${color}">
+                        ${avatar}
+                        <div class="flex-1">
+                            <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
+                            <p class="text-[10px] text-gray-400 uppercase">LVL ${char.level} • <span style="color:${color}">${char.class}</span></p>
+                        </div>
+                        <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
+                    </div>`;
                 });
             }
             html += `</div></div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
