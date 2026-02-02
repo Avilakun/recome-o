@@ -860,6 +860,13 @@
             render();
         }
 
+        function bypassLogin() {
+            state.user = { username: 'Tester', id: '000000', avatar: null }; // Dummy user
+            state.authorized = true;
+            state.view = 'LIST';
+            render();
+        }
+
         async function checkDiscordAuth() {
             // Check for token in URL hash (Callback from Discord)
             const fragment = new URLSearchParams(window.location.hash.slice(1));
@@ -937,7 +944,7 @@
                                 <i data-lucide="swords" size="24" class="text-white relative z-10"></i>
                             </div>
                         </div>
-                        <h1 class="font-display font-black text-3xl text-white tracking-widest mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)]">HUNTER ARCHIVE</h1>
+                        <h1 class="font-display font-black text-3xl text-white tracking-widest mb-2 drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] leading-tight">FICHA<br>HxH5e<br>RPG</h1>
                         <p class="text-xs text-gray-400 uppercase tracking-widest font-bold mb-8">Acesso Restrito ao Sistema</p>
                         
                         <div class="space-y-4">
@@ -945,9 +952,11 @@
                                 <i data-lucide="gamepad-2" class="group-hover:rotate-12 transition-transform"></i>
                                 LOGIN COM DISCORD
                             </button>
+                            <button onclick="bypassLogin()" class="w-full py-3 bg-transparent border border-gray-700 text-gray-500 font-bold uppercase tracking-wider rounded-xl hover:text-white hover:border-gray-500 transition-all text-[10px]">
+                                Modo de Teste (Sem Login)
+                            </button>
                             <p class="text-[9px] text-gray-500 leading-relaxed px-4">
-                                Requer cargo <strong>Hunter</strong> no servidor oficial<br>
-                                <span class="text-gray-600">ou licença vitalícia adquirida.</span>
+                                Requer cargo de <strong class="text-white">Playtester</strong> ou <strong class="text-white">Apoiador</strong>
                             </p>
                         </div>
                     </div>
