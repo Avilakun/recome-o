@@ -563,7 +563,255 @@
                 'Armas de Cerco',
                 'Kits'
             ],
-            pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 }
+            pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 },
+            dominioNen: {
+  "capitulo": "Domínio de NEN",
+  "regra_geral_aura": "Independentemente do nível, todos os personagens utilizam aura em porcentagem (%). Conforme o domínio aumenta, o gasto diminui ou o efeito aumenta por um mesmo gasto, mantendo o equilíbrio através da mecânica de Eficiência de Aura [1].",
+  "principios_fundamentais": {
+    "TEN": {
+      "nome": "TEN (Proteção / Envolver)",
+      "descricao_completa": "O TEN é a técnica de envolver o corpo em uma camada de aura para diminuir a perda gradual de energia vital e servir como uma proteção física. Uma vez mantida, a aura serve como uma segunda pele, protegendo contra os golpes mais básicos que utilizam NEN [1].",
+      "tabela_dominio": [
+        {
+          "nivel": "1º Nível (Básico)",
+          "custo": "20% Aura + 1 Reação",
+          "efeito": "+2 RD (Redução de Dano) contra cortes, impacto (incluindo quedas) e explosões"
+        },
+        {
+          "nivel": "2º Nível (Intermediário)",
+          "custo": "20% Aura + 1 Reação",
+          "efeito": "+4 RD contra os danos citados"
+        },
+        {
+          "nivel": "3º Nível (Maestria)",
+          "custo": "20% Aura + 1 Reação",
+          "efeito": "+6 RD; Permite a utilização do princípio avançado SHU"
+        }
+      ],
+      "mecanicas_complementares": {
+        "interrupcao_de_medo": "O TEN permite interromper o efeito de intimidação causado por aura (não em Hatsus) sem a necessidade de superar uma rolagem de intimidação de um inimigo [1].",
+        "gasto_extra": "É possível gastar mais aura para aumentar a RD proporcionalmente. Exemplo: 40% de aura e 2 reações para +4 RD se o domínio for nível básico [1]."
+      },
+      "balao_nota": {
+        "titulo": "Nota para Reforçadores",
+        "conteudo": "Reforçadores possuem um domínio superior no TEN. Eles gastam apenas 10% de aura e 1 reação para +2 RD no básico; 5% de aura e 1 reação para +4 RD no intermediário; e 10% de aura e 1 reação para +6 RD na maestria [1]."
+      }
+    },
+    "REN": {
+      "nome": "REN (Praticar / Controlar)",
+      "descricao_completa": "O REN foca em expandir a aura ao máximo possível para fora do corpo, aumentando as capacidades físicas e intimidatórias do usuário. É a base para técnicas ofensivas e interação com materiais controlados por NEN [2].",
+      "tabela_dominio": [
+        {
+          "nivel": "1º Nível (Básico)",
+          "custo": "5% Aura + Ação Bônus",
+          "efeito": "Aumento no Grau/Passo de dano de armas; Interação com materiais NEN; Proteção contra REN inimigo (Reação)"
+        },
+        {
+          "nivel": "2º Nível (Intermediário)",
+          "custo": "10% Aura + Ação Bônus",
+          "efeito": "Efeito Básico + 3 em Intimidação ou Arcanismo/Religião; Abre o princípio avançado EN"
+        },
+        {
+          "nivel": "3º Nível (Maestria)",
+          "custo": "10% Aura + Ação Bônus",
+          "efeito": "Efeito Intermediário + 1 vez por dia adiciona +6 em Intimidação; Utiliza REN sem gastar aura; Abre GYO (requer Zetsu 2º nível)"
+        }
+      ],
+      "mecanicas_complementares": {
+        "uso_em_armas": "O efeito de aumento de dano se estende para mais de um ataque conforme a Eficiência de Aura 2 [2].",
+        "contestacao_de_aura": "Um usuário de NEN pode sair de uma intimidação por REN de duas formas: 1. Contestando a intimidação gastando 1 Reação e superando o inimigo; 2. Ativando o TEN consumindo Ação Principal ou Reação para se proteger [2].",
+        "usuarios_vs_nao_usuarios": "Alguém que não utiliza NEN tem sua vontade subjugada automaticamente por um usuário, mesmo que o alvo esteja consciente da imposição. O alvo sente a hostilidade como uma pressão física esmagadora [2]."
+      },
+      "balao_nota": {
+        "titulo": "Uso Estratégico do REN",
+        "conteudo": "Saber o básico de REN capacita o indivíduo a, pelo menos, tentar se proteger e não falhar automaticamente em embates mentais e de intimidação [2]."
+      }
+    },
+    "ZETSU": {
+      "nome": "ZETSU (Anular / Suprimir)",
+      "descricao_completa": "O ZETSU é utilizado para suprimir o fluxo externo da aura, fechando os nós de aura (poros). Isso oculta a presença do usuário e alivia a fadiga, recuperando energias mais rapidamente, mas deixa o corpo completamente desprotegido contra ataques de NEN [3].",
+      "tabela_dominio": [
+        {
+          "nivel": "1º Nível (Básico)",
+          "tempo": "3 Rodadas em Zetsu",
+          "efeito": "+5% Aura; +1 Reação; +3 Furtividade (Atenção: Sofre Dano Crítico se atingido por NEN)"
+        },
+        {
+          "nivel": "2º Nível (Intermediário)",
+          "tempo": "2 Rodadas em Zetsu",
+          "efeito": "+10% Aura; +1 Reação; +3 Furtividade; Abre o princípio avançado IN"
+        },
+        {
+          "nivel": "3º Nível (Maestria)",
+          "tempo": "1 Rodada em Zetsu",
+          "efeito": "+10% Aura; +2 Reação; +6 Furtividade; Criaturas não inteligentes ignoram sua presença; Abre GYO (requer Maestria em REN)"
+        }
+      ],
+      "mecanicas_complementares": {
+        "circunstancias_em_combate": "Pode ser usado para: 1. Restrição de Hatsu (cumprindo condições); 2. Recuperar aura arriscando-se ao tempo de ativação; 3. Ativação automática após a aura se esvair totalmente (gera Exaustão nível 1) [3].",
+        "fora_de_combate": "Usado em situações de furtividade eminente, descanso curto/longo ou sob a condição Selado [3].",
+        "desativacao_livre": "O ZETSU pode ser desativado livremente, mas se feito para evitar danos grandes, os benefícios de recuperação não serão recebidos [3]."
+      },
+      "balao_nota": {
+        "titulo": "Detecção de Zetsu",
+        "conteudo": "Transformadores têm vantagem em detectar alguém em Zetsu, enquanto Reforçadores e Emissores têm desvantagem [3]."
+      }
+    }
+  },
+  "principios_avancados": {
+    "EN": {
+      "nome": "EN (Envolver)",
+      "descricao_completa": "Aplicação avançada onde o usuário expande seu Ren e utiliza Ten simultaneamente para dar forma à aura, geralmente uma esfera. Permite sentir a forma e o movimento de qualquer coisa que entre na área [4].",
+      "mecanica": "Gasta 10% de aura e 2 reações para 3m de raio. Dura até o início do próximo turno. Manter o EN é extremamente cansativo e o gasto é cobrado em aura e reações a cada turno [4].",
+      "beneficios": "Funciona contra ilusões, detectando se algo não possui matéria real [4]. Se múltiplos inimigos estiverem na área, permite atacar todos de uma vez (mesma rolagem) ao custo de um nível de exaustão [4].",
+      "balao_nota": {
+        "titulo": "Vantagem de Emissores",
+        "conteudo": "Emissores podem manter o EN por um turno a mais sem custo adicional de aura ou reações [4]."
+      }
+    },
+    "SHU": {
+      "nome": "SHU (Agregar / Proteger)",
+      "descricao_completa": "Aplicação de aura em um objeto, tornando-o uma extensão do corpo. Aumenta a durabilidade, proteção e letalidade do item [5].",
+      "mecanica": "Gasta 10% de aura para aplicar +1d4 no Dano e CA de um item de até 1m por uma rodada. Itens maiores exigem +5% de aura por metro adicional [5].",
+      "mecanicas_complementares": {
+        "indestrutibilidade": "Um item envolvido em SHU só pode ser destruído ou danificado por ataques de HATSU, SHU, KO ou RYU [5].",
+        "objetos_de_cerco": "Permite aplicar a propriedade de Arma de Cerco (Dano x2 em constructos) em objetos comuns [5]."
+      },
+      "balao_nota": {
+        "titulo": "Benefício de Emissores, Manipuladores e Reforçadores",
+        "conteudo": "Essas categorias (adjacentes à Emissão) podem manter a aura fora do corpo por 1 rodada a mais por uso do SHU [5]."
+      }
+    },
+    "IN": {
+      "nome": "IN (Ocultar)",
+      "descricao_completa": "É um Princípio Avançado do Zetsu usado para esconder quase completamente um objeto, arma, equipamento ou substância feitos com o seu próprio NEN [1]. Este objeto/material só pode ser visto inevitavelmente com o uso de GYO [1].",
+      "requisitos": "2º Nível em ZETSU [1]",
+      "mecanica": {
+        "custo_padrao": "5% de aura por rodada [1]",
+        "duracao": "Até o início do seu PRÓXIMO TURNO (1 rodada) [1]",
+        "maestria_zetsu": "Aumenta a duração em uma rodada ou diminui o custo em 5% [1]"
+      },
+      "balao_nota": {
+        "titulo": "Penalidade por Assimilação",
+        "conteudo": "Para Reforçadores, Manipuladores e Especialistas, o custo do IN é de 10% por rodada devido à distância no Diagrama de NEN [1]."
+      }
+    },
+    "GYO": {
+      "nome": "GYO (Focar)",
+      "descricao_completa": "Aplicação avançada de REN e ZETSU pela qual o usuário concentra uma maior parte de sua aura em uma parte específica do corpo [2]. Quando usado nos olhos, permite ver a aura de outros usuários e objetos escondidos com IN [2].",
+      "requisitos": "2º Nível em ZETSU e Maestria em REN [2]",
+      "mecanica": {
+        "olhos_ou_ouvidos": "Gasta 10% de aura. Soma +5 nos testes de Investigação ou Percepção [2].",
+        "outras_partes_corpo": "Gasta 30% de aura. Concede +3 temporário aos modificadores de FOR, DES ou CON por 1 rodada [2].",
+        "efeito_passivo": "Ataques com GYO provocam automaticamente um TR de FOR ou CON (CD = Valor do Ataque) para o alvo não ser empurrado 6m [2]."
+      },
+      "balao_nota": {
+        "titulo": "GYO Superior",
+        "conteudo": "Gastar 1 ponto de domínio permite: 1. Cancelar condições impostas por golpes mirados ao defender a parte atacada; 2. Multiplicar distância/altura de salto em 1,5m pelo valor de força/atletismo [2]."
+      }
+    }
+  },
+  "tecnicas_avancadas_de_combate": {
+    "KEN": {
+      "nome": "KEN (Fortificar)",
+      "descricao_completa": "Técnica defensiva onde o usuário mantém um estado de REN fora de todo o corpo, mas exercendo proteção com TEN para se defender de ataques de qualquer direção sem usar GYO [3]. É exaustivo e difícil de manter por muito tempo [3].",
+      "requisitos": "Maestria em TEN e REN [3]",
+      "mecanica": {
+        "custo_basico": "Gasta o dobro de aura e reações para triplicar a CA original [3].",
+        "manutencao": "Dobra a CA por duas rodadas ao custo de 4 reações e 30% de aura [3].",
+        "queda": "Se a CA for igual à altura da queda, o alvo sofre 50% de dano; se superar, não sofre dano [3]."
+      },
+      "balao_nota": {
+        "titulo": "KEN Superior",
+        "conteudo": "Permite triplicar a RD de TEN na maestria (Ex: 3x6 = 18 RD) ou aumentar a CA em +5 até o início do próximo turno [3]."
+      }
+    },
+    "KO": {
+      "nome": "KO (Endurecer)",
+      "descricao_completa": "Versão avançada do Gyo onde toda a aura do corpo é concentrada em uma única parte [3]. Utiliza Zetsu para interromper o fluxo no resto do corpo, tornando o golpe excepcionalmente potente, mas deixando o restante do corpo totalmente desprotegido [3].",
+      "requisitos": "Maestria em REN, ZETSU e 1º Nível de TEN [3]",
+      "mecanica": {
+        "custo": "30% de aura [3]",
+        "efeito_ofensivo": "Triplica o dano do ataque [3].",
+        "penalidade_defensiva": "Reduz a CA em 80% até o início do próximo turno (ver tabela de impacto na pág. 56) [3]."
+      }
+    },
+    "RYU": {
+    "nome": "RYU (Fluir)",
+    "descricao_completa": "É a técnica detida apenas por mestres no domínio de NEN. Utiliza-se Gyo em tempo real na batalha em diferen-tes partes do corpo de forma simultânea. **Está acessível no nível 6 , mas o domínio superior, apenas no nível 12.**",
+    "requisitos": "Maestria em REN, ZETSU e TEN (Acessível Nível 6)",
+      "mecanica": {
+        "custo": "30% de aura e acesso às tabelas 1-3 antes do nível 12. [3]"
+        },
+      "balao_nota": {
+        "titulo": "ryu_superior",
+    "nivel_desbloqueio": 12,
+    "beneficios": [
+      "+3 Reações Extras (Aumenta a imprevisibilidade)",
+      "+1 Grau/Passo de dano em ataques ou TRs"
+    ]
+  },
+  "tabelas_de_fluidez": [
+    {
+      "exemplo": 1,
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 3, "bonus_ataque_tr": 2 },
+        { "turno": "5º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
+        { "turno": "6º", "bonus_ca": 5, "bonus_ataque_tr": 5 }
+      ]
+    },
+    {
+      "exemplo": 2,
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
+        { "turno": "5º", "bonus_ca": 5, "bonus_ataque_tr": 5 },
+        { "turno": "6º", "bonus_ca": 3, "bonus_ataque_tr": 2 }
+      ]
+    },
+    {
+      "exemplo": 3,
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 5, "bonus_ataque_tr": 5 },
+        { "turno": "5º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
+        { "turno": "6º", "bonus_ca": 3, "bonus_ataque_tr": 2 }
+      ]
+    },
+    {
+      "exemplo": 4,
+      "comentario": "Inclui gestão de reações",
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
+        { "turno": "5º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 },
+        { "turno": "6º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 }
+      ]
+    },
+    {
+      "exemplo": 5,
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 },
+        { "turno": "5º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
+        { "turno": "6º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 }
+      ]
+    },
+    {
+      "exemplo": 6,
+      "progresso": [
+        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
+        { "turno": "4º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 },
+        { "turno": "5º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
+        { "turno": "6º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 }
+      ]
+    }
+  ],
+  "fonte": "Página 57 das fontes"
+}
+    }
+  }
         };
 
         const SKILL_MAP = {
