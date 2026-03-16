@@ -7,7 +7,9 @@
     
     <!-- Fontes Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="style.css">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
@@ -44,6 +46,49 @@
     <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
+         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
+        .btn-hatsu-container {
+                margin-top: 10px;
+                width: 250px;
+                display: flex;
+                justify-content: center;
+                border: 1px solid #00FF9D;
+                background-color: #00FF9D;
+                border-radius: 4px;             
+            }
+            .btn-hatsu-container:hover{
+                transform: scale(1.01);
+                transition: 0.5s;
+                background-color: #01e68e;
+            }
+
+            .btn-hatsu {
+              
+                color: #000000;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 14px;
+                font-weight: bold;
+                text-transform: uppercase;
+                letter-spacing: 1px;
+                padding: 12px 24px;
+                border: none;
+                border-radius: 10px;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+
+            .btn-hatsu:hover {
+                filter: brightness(1.1);
+              
+            }
+
+           
         :root {
             --theme-color-hex: #00ff9d;
             --theme-rgb: 0, 255, 157;
@@ -563,255 +608,7 @@
                 'Armas de Cerco',
                 'Kits'
             ],
-            pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 },
-            dominioNen: {
-  "capitulo": "Domínio de NEN",
-  "regra_geral_aura": "Independentemente do nível, todos os personagens utilizam aura em porcentagem (%). Conforme o domínio aumenta, o gasto diminui ou o efeito aumenta por um mesmo gasto, mantendo o equilíbrio através da mecânica de Eficiência de Aura [1].",
-  "principios_fundamentais": {
-    "TEN": {
-      "nome": "TEN (Proteção / Envolver)",
-      "descricao_completa": "O TEN é a técnica de envolver o corpo em uma camada de aura para diminuir a perda gradual de energia vital e servir como uma proteção física. Uma vez mantida, a aura serve como uma segunda pele, protegendo contra os golpes mais básicos que utilizam NEN [1].",
-      "tabela_dominio": [
-        {
-          "nivel": "1º Nível (Básico)",
-          "custo": "20% Aura + 1 Reação",
-          "efeito": "+2 RD (Redução de Dano) contra cortes, impacto (incluindo quedas) e explosões"
-        },
-        {
-          "nivel": "2º Nível (Intermediário)",
-          "custo": "20% Aura + 1 Reação",
-          "efeito": "+4 RD contra os danos citados"
-        },
-        {
-          "nivel": "3º Nível (Maestria)",
-          "custo": "20% Aura + 1 Reação",
-          "efeito": "+6 RD; Permite a utilização do princípio avançado SHU"
-        }
-      ],
-      "mecanicas_complementares": {
-        "interrupcao_de_medo": "O TEN permite interromper o efeito de intimidação causado por aura (não em Hatsus) sem a necessidade de superar uma rolagem de intimidação de um inimigo [1].",
-        "gasto_extra": "É possível gastar mais aura para aumentar a RD proporcionalmente. Exemplo: 40% de aura e 2 reações para +4 RD se o domínio for nível básico [1]."
-      },
-      "balao_nota": {
-        "titulo": "Nota para Reforçadores",
-        "conteudo": "Reforçadores possuem um domínio superior no TEN. Eles gastam apenas 10% de aura e 1 reação para +2 RD no básico; 5% de aura e 1 reação para +4 RD no intermediário; e 10% de aura e 1 reação para +6 RD na maestria [1]."
-      }
-    },
-    "REN": {
-      "nome": "REN (Praticar / Controlar)",
-      "descricao_completa": "O REN foca em expandir a aura ao máximo possível para fora do corpo, aumentando as capacidades físicas e intimidatórias do usuário. É a base para técnicas ofensivas e interação com materiais controlados por NEN [2].",
-      "tabela_dominio": [
-        {
-          "nivel": "1º Nível (Básico)",
-          "custo": "5% Aura + Ação Bônus",
-          "efeito": "Aumento no Grau/Passo de dano de armas; Interação com materiais NEN; Proteção contra REN inimigo (Reação)"
-        },
-        {
-          "nivel": "2º Nível (Intermediário)",
-          "custo": "10% Aura + Ação Bônus",
-          "efeito": "Efeito Básico + 3 em Intimidação ou Arcanismo/Religião; Abre o princípio avançado EN"
-        },
-        {
-          "nivel": "3º Nível (Maestria)",
-          "custo": "10% Aura + Ação Bônus",
-          "efeito": "Efeito Intermediário + 1 vez por dia adiciona +6 em Intimidação; Utiliza REN sem gastar aura; Abre GYO (requer Zetsu 2º nível)"
-        }
-      ],
-      "mecanicas_complementares": {
-        "uso_em_armas": "O efeito de aumento de dano se estende para mais de um ataque conforme a Eficiência de Aura 2 [2].",
-        "contestacao_de_aura": "Um usuário de NEN pode sair de uma intimidação por REN de duas formas: 1. Contestando a intimidação gastando 1 Reação e superando o inimigo; 2. Ativando o TEN consumindo Ação Principal ou Reação para se proteger [2].",
-        "usuarios_vs_nao_usuarios": "Alguém que não utiliza NEN tem sua vontade subjugada automaticamente por um usuário, mesmo que o alvo esteja consciente da imposição. O alvo sente a hostilidade como uma pressão física esmagadora [2]."
-      },
-      "balao_nota": {
-        "titulo": "Uso Estratégico do REN",
-        "conteudo": "Saber o básico de REN capacita o indivíduo a, pelo menos, tentar se proteger e não falhar automaticamente em embates mentais e de intimidação [2]."
-      }
-    },
-    "ZETSU": {
-      "nome": "ZETSU (Anular / Suprimir)",
-      "descricao_completa": "O ZETSU é utilizado para suprimir o fluxo externo da aura, fechando os nós de aura (poros). Isso oculta a presença do usuário e alivia a fadiga, recuperando energias mais rapidamente, mas deixa o corpo completamente desprotegido contra ataques de NEN [3].",
-      "tabela_dominio": [
-        {
-          "nivel": "1º Nível (Básico)",
-          "tempo": "3 Rodadas em Zetsu",
-          "efeito": "+5% Aura; +1 Reação; +3 Furtividade (Atenção: Sofre Dano Crítico se atingido por NEN)"
-        },
-        {
-          "nivel": "2º Nível (Intermediário)",
-          "tempo": "2 Rodadas em Zetsu",
-          "efeito": "+10% Aura; +1 Reação; +3 Furtividade; Abre o princípio avançado IN"
-        },
-        {
-          "nivel": "3º Nível (Maestria)",
-          "tempo": "1 Rodada em Zetsu",
-          "efeito": "+10% Aura; +2 Reação; +6 Furtividade; Criaturas não inteligentes ignoram sua presença; Abre GYO (requer Maestria em REN)"
-        }
-      ],
-      "mecanicas_complementares": {
-        "circunstancias_em_combate": "Pode ser usado para: 1. Restrição de Hatsu (cumprindo condições); 2. Recuperar aura arriscando-se ao tempo de ativação; 3. Ativação automática após a aura se esvair totalmente (gera Exaustão nível 1) [3].",
-        "fora_de_combate": "Usado em situações de furtividade eminente, descanso curto/longo ou sob a condição Selado [3].",
-        "desativacao_livre": "O ZETSU pode ser desativado livremente, mas se feito para evitar danos grandes, os benefícios de recuperação não serão recebidos [3]."
-      },
-      "balao_nota": {
-        "titulo": "Detecção de Zetsu",
-        "conteudo": "Transformadores têm vantagem em detectar alguém em Zetsu, enquanto Reforçadores e Emissores têm desvantagem [3]."
-      }
-    }
-  },
-  "principios_avancados": {
-    "EN": {
-      "nome": "EN (Envolver)",
-      "descricao_completa": "Aplicação avançada onde o usuário expande seu Ren e utiliza Ten simultaneamente para dar forma à aura, geralmente uma esfera. Permite sentir a forma e o movimento de qualquer coisa que entre na área [4].",
-      "mecanica": "Gasta 10% de aura e 2 reações para 3m de raio. Dura até o início do próximo turno. Manter o EN é extremamente cansativo e o gasto é cobrado em aura e reações a cada turno [4].",
-      "beneficios": "Funciona contra ilusões, detectando se algo não possui matéria real [4]. Se múltiplos inimigos estiverem na área, permite atacar todos de uma vez (mesma rolagem) ao custo de um nível de exaustão [4].",
-      "balao_nota": {
-        "titulo": "Vantagem de Emissores",
-        "conteudo": "Emissores podem manter o EN por um turno a mais sem custo adicional de aura ou reações [4]."
-      }
-    },
-    "SHU": {
-      "nome": "SHU (Agregar / Proteger)",
-      "descricao_completa": "Aplicação de aura em um objeto, tornando-o uma extensão do corpo. Aumenta a durabilidade, proteção e letalidade do item [5].",
-      "mecanica": "Gasta 10% de aura para aplicar +1d4 no Dano e CA de um item de até 1m por uma rodada. Itens maiores exigem +5% de aura por metro adicional [5].",
-      "mecanicas_complementares": {
-        "indestrutibilidade": "Um item envolvido em SHU só pode ser destruído ou danificado por ataques de HATSU, SHU, KO ou RYU [5].",
-        "objetos_de_cerco": "Permite aplicar a propriedade de Arma de Cerco (Dano x2 em constructos) em objetos comuns [5]."
-      },
-      "balao_nota": {
-        "titulo": "Benefício de Emissores, Manipuladores e Reforçadores",
-        "conteudo": "Essas categorias (adjacentes à Emissão) podem manter a aura fora do corpo por 1 rodada a mais por uso do SHU [5]."
-      }
-    },
-    "IN": {
-      "nome": "IN (Ocultar)",
-      "descricao_completa": "É um Princípio Avançado do Zetsu usado para esconder quase completamente um objeto, arma, equipamento ou substância feitos com o seu próprio NEN [1]. Este objeto/material só pode ser visto inevitavelmente com o uso de GYO [1].",
-      "requisitos": "2º Nível em ZETSU [1]",
-      "mecanica": {
-        "custo_padrao": "5% de aura por rodada [1]",
-        "duracao": "Até o início do seu PRÓXIMO TURNO (1 rodada) [1]",
-        "maestria_zetsu": "Aumenta a duração em uma rodada ou diminui o custo em 5% [1]"
-      },
-      "balao_nota": {
-        "titulo": "Penalidade por Assimilação",
-        "conteudo": "Para Reforçadores, Manipuladores e Especialistas, o custo do IN é de 10% por rodada devido à distância no Diagrama de NEN [1]."
-      }
-    },
-    "GYO": {
-      "nome": "GYO (Focar)",
-      "descricao_completa": "Aplicação avançada de REN e ZETSU pela qual o usuário concentra uma maior parte de sua aura em uma parte específica do corpo [2]. Quando usado nos olhos, permite ver a aura de outros usuários e objetos escondidos com IN [2].",
-      "requisitos": "2º Nível em ZETSU e Maestria em REN [2]",
-      "mecanica": {
-        "olhos_ou_ouvidos": "Gasta 10% de aura. Soma +5 nos testes de Investigação ou Percepção [2].",
-        "outras_partes_corpo": "Gasta 30% de aura. Concede +3 temporário aos modificadores de FOR, DES ou CON por 1 rodada [2].",
-        "efeito_passivo": "Ataques com GYO provocam automaticamente um TR de FOR ou CON (CD = Valor do Ataque) para o alvo não ser empurrado 6m [2]."
-      },
-      "balao_nota": {
-        "titulo": "GYO Superior",
-        "conteudo": "Gastar 1 ponto de domínio permite: 1. Cancelar condições impostas por golpes mirados ao defender a parte atacada; 2. Multiplicar distância/altura de salto em 1,5m pelo valor de força/atletismo [2]."
-      }
-    }
-  },
-  "tecnicas_avancadas_de_combate": {
-    "KEN": {
-      "nome": "KEN (Fortificar)",
-      "descricao_completa": "Técnica defensiva onde o usuário mantém um estado de REN fora de todo o corpo, mas exercendo proteção com TEN para se defender de ataques de qualquer direção sem usar GYO [3]. É exaustivo e difícil de manter por muito tempo [3].",
-      "requisitos": "Maestria em TEN e REN [3]",
-      "mecanica": {
-        "custo_basico": "Gasta o dobro de aura e reações para triplicar a CA original [3].",
-        "manutencao": "Dobra a CA por duas rodadas ao custo de 4 reações e 30% de aura [3].",
-        "queda": "Se a CA for igual à altura da queda, o alvo sofre 50% de dano; se superar, não sofre dano [3]."
-      },
-      "balao_nota": {
-        "titulo": "KEN Superior",
-        "conteudo": "Permite triplicar a RD de TEN na maestria (Ex: 3x6 = 18 RD) ou aumentar a CA em +5 até o início do próximo turno [3]."
-      }
-    },
-    "KO": {
-      "nome": "KO (Endurecer)",
-      "descricao_completa": "Versão avançada do Gyo onde toda a aura do corpo é concentrada em uma única parte [3]. Utiliza Zetsu para interromper o fluxo no resto do corpo, tornando o golpe excepcionalmente potente, mas deixando o restante do corpo totalmente desprotegido [3].",
-      "requisitos": "Maestria em REN, ZETSU e 1º Nível de TEN [3]",
-      "mecanica": {
-        "custo": "30% de aura [3]",
-        "efeito_ofensivo": "Triplica o dano do ataque [3].",
-        "penalidade_defensiva": "Reduz a CA em 80% até o início do próximo turno (ver tabela de impacto na pág. 56) [3]."
-      }
-    },
-    "RYU": {
-    "nome": "RYU (Fluir)",
-    "descricao_completa": "É a técnica detida apenas por mestres no domínio de NEN. Utiliza-se Gyo em tempo real na batalha em diferen-tes partes do corpo de forma simultânea. **Está acessível no nível 6 , mas o domínio superior, apenas no nível 12.**",
-    "requisitos": "Maestria em REN, ZETSU e TEN (Acessível Nível 6)",
-      "mecanica": {
-        "custo": "30% de aura e acesso às tabelas 1-3 antes do nível 12. [3]"
-        },
-      "balao_nota": {
-        "titulo": "ryu_superior",
-    "nivel_desbloqueio": 12,
-    "beneficios": [
-      "+3 Reações Extras (Aumenta a imprevisibilidade)",
-      "+1 Grau/Passo de dano em ataques ou TRs"
-    ]
-  },
-  "tabelas_de_fluidez": [
-    {
-      "exemplo": 1,
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 3, "bonus_ataque_tr": 2 },
-        { "turno": "5º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
-        { "turno": "6º", "bonus_ca": 5, "bonus_ataque_tr": 5 }
-      ]
-    },
-    {
-      "exemplo": 2,
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
-        { "turno": "5º", "bonus_ca": 5, "bonus_ataque_tr": 5 },
-        { "turno": "6º", "bonus_ca": 3, "bonus_ataque_tr": 2 }
-      ]
-    },
-    {
-      "exemplo": 3,
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 5, "bonus_ataque_tr": 5 },
-        { "turno": "5º", "bonus_ca": 4, "bonus_ataque_tr": 2 },
-        { "turno": "6º", "bonus_ca": 3, "bonus_ataque_tr": 2 }
-      ]
-    },
-    {
-      "exemplo": 4,
-      "comentario": "Inclui gestão de reações",
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
-        { "turno": "5º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 },
-        { "turno": "6º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 }
-      ]
-    },
-    {
-      "exemplo": 5,
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 },
-        { "turno": "5º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
-        { "turno": "6º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 }
-      ]
-    },
-    {
-      "exemplo": 6,
-      "progresso": [
-        { "turno": "3 Iniciais", "bonus_ca": 3, "reacoes_disponiveis": 3, "bonus_ataque_tr": 3 },
-        { "turno": "4º", "bonus_ca": 5, "reacoes_disponiveis": 0, "bonus_ataque_tr": 5 },
-        { "turno": "5º", "bonus_ca": 3, "reacoes_disponiveis": 1, "bonus_ataque_tr": 2 },
-        { "turno": "6º", "bonus_ca": 4, "reacoes_disponiveis": 2, "bonus_ataque_tr": 2 }
-      ]
-    }
-  ],
-  "fonte": "Página 57 das fontes"
-}
-    }
-  }
+            pointBuyCosts: { 30:50, 29:47, 28:44, 27:41, 26:38, 25:35, 24:32, 23:29, 22:26, 21:23, 20:20, 19:17, 18:14, 17:11, 16:8, 15:6, 14:4, 13:3, 12:2, 11:1, 10:0, 9:-1, 8:-2, 7:-4, 6:-6, 5:-8, 4:-11, 3:-14, 2:-17, 1:-20 }
         };
 
         const SKILL_MAP = {
@@ -1216,52 +1013,40 @@
         }
 
         // --- RENDERIZADORES ---
-        function render(preserveScroll = false) {
-            const app = document.getElementById('app');
-            let scrollTop = 0;
-            if (preserveScroll) {
-                const scrollEl = app.querySelector('.custom-scrollbar');
-                if (scrollEl) scrollTop = scrollEl.scrollTop;
-            }
+       function render(preserveScroll = false) {
+    const app = document.getElementById('app');
+    let scrollTop = 0;
+    if (preserveScroll) {
+        const scrollEl = app.querySelector('.custom-scrollbar');
+        if (scrollEl) scrollTop = scrollEl.scrollTop;
+    }
 
-            app.innerHTML = '';
-            
-            if (state.view === 'LOGIN') {
-                renderLogin(app);
-            } else if (state.view === 'LIST') {
-                if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
-                renderList(app);
-            }
-            else if (state.view === 'CREATOR') renderCreator(app);
-            else if (state.view === 'SHEET') renderSheet(app);
-            
-            // Roll Popup Overlay
-            if (state.rollResult) {
-                const r = state.rollResult;
-                const themeColor = 'var(--theme-color-hex)';
-                const displayColor = r.diceVal === 20 ? '#ffe600' : (r.diceVal === 1 ? '#ff0055' : themeColor);
-                
-                const modalHtml = `
-                <div class="fixed inset-0 z-[200] bg-black flex flex-col items-center justify-center animate-in fade-in zoom-in duration-300" onclick="closeRollModal()">
-                    <div class="mb-4 text-[${displayColor}] drop-shadow-[0_0_15px_${displayColor}] animate-bounce"><i data-lucide="dices" size="48"></i></div>
-                    <h2 class="font-display font-black text-2xl text-white uppercase tracking-widest mb-6 drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">${r.name}</h2>
-                    <div class="relative w-48 h-48 flex items-center justify-center mb-8 pulse-ring">
-                        <div class="absolute inset-0 rounded-full border-4 border-[${displayColor}] shadow-[0_0_30px_${displayColor}] opacity-100 bg-black/50 backdrop-blur-md"></div>
-                        <span class="font-display font-black text-7xl text-[${displayColor}] relative z-10 drop-shadow-[0_0_10px_${displayColor}]">${r.total}</span>
-                    </div>
-                    <div class="flex items-center gap-2 bg-gray-900 border border-gray-700 rounded-full px-6 py-2 mb-12 shadow-lg"><span class="text-xs font-bold text-gray-400 uppercase tracking-widest">d20 (${r.diceVal}) ${r.mod >= 0 ? '+' : ''} Mod (${r.mod})</span></div>
-                    <p class="text-[10px] text-gray-600 uppercase font-bold tracking-[0.2em] animate-pulse">Toque em qualquer lugar para fechar</p>
-                </div>`;
-                app.insertAdjacentHTML('beforeend', modalHtml);
-            }
+    app.innerHTML = '';
+    
+    if (state.view === 'LOGIN') {
+        renderLogin(app);
+    } else if (state.view === 'LIST') {
+        if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+        renderList(app);
+    }
+    else if (state.view === 'CREATOR') renderCreator(app);
+    else if (state.view === 'SHEET') renderSheet(app);
+    // ADICIONE AQUI:
+    else if (state.view === 'HATSU_CREATOR') renderHatsuCreator(app);
+    else if (state.view === 'HATSU_DETAIL') renderHatsuDetail(app);
+    
+    // Roll Popup Overlay (O restante do seu código continua igual...)
+    if (state.rollResult) {
+        // ... (seu código do modal de rolagem)
+    }
 
-            if (preserveScroll && scrollTop > 0) {
-                const newScrollEl = app.querySelector('.custom-scrollbar');
-                if (newScrollEl) newScrollEl.scrollTop = scrollTop;
-            }
+    if (preserveScroll && scrollTop > 0) {
+        const newScrollEl = app.querySelector('.custom-scrollbar');
+        if (newScrollEl) newScrollEl.scrollTop = scrollTop;
+    }
 
-            if (window.lucide) lucide.createIcons();
-        }
+    if (window.lucide) lucide.createIcons();
+}
 
         function renderList(container) {
             setThemeColor('#00ff9d');
@@ -1333,7 +1118,807 @@
             html += `</div></div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
             container.innerHTML = html;
         }
+        //HATSU CREATOR — baseado no Manual de Hatsus HxH5e RPG 2.0
 
+window.calcularPHBase = function(level) {
+    const lvl = parseInt(level) || 1;
+    if (lvl >= 12) return 25;  // 6+2+2+2+2+3+3+3+1 (aprox)
+    if (lvl >= 11) return 22;
+    if (lvl >= 10) return 19;
+    if (lvl >= 9)  return 16;
+    if (lvl >= 8)  return 13;
+    if (lvl >= 7)  return 10;
+    if (lvl >= 6)  return 7;
+    if (lvl >= 5)  return 14; // nível 5 = 6+2+2+2+2 = 14
+    if (lvl >= 4)  return 12;
+    if (lvl >= 3)  return 10;
+    if (lvl >= 2)  return 8;
+    return 6; // nível 1
+};
+
+// ══════════════════════════════════════════════════════════
+//  HATSU_DB — todos os dados direto do manual
+// ══════════════════════════════════════════════════════════
+window.HATSU_DB = {
+
+  // ── RESTRIÇÕES GERAIS ──────────────────────────────────
+  restricoes_gerais: {
+    leves: [
+      { id:'rg_l1',  nome:"Cálculo Pensado 1",         desc:"Gasta +10% de aura na ativação",                                              bnf:"+1 em Jogadas de Acerto ou +1 Grau/Passo de Dano/Cura" },
+      { id:'rg_l2',  nome:"Cálculo Pensado 2",         desc:"Reduz 2 Graus/Passos de dano",                                               bnf:"Reduz em 5% o custo de aura do Hatsu" },
+      { id:'rg_l3',  nome:"Cálculo Pensado 3",         desc:"-1 Grau de Potência",                                                        bnf:"+1 em Testes de Concentração (TR de CON)" },
+      { id:'rg_l4',  nome:"Conhecimento do Alvo",      desc:"Saber nome/histórico ou ter interação prévia (mín. 1 min.)",                  bnf:"+1 na CD do TR" },
+      { id:'rg_l5',  nome:"Calibragem",                desc:"Impõe Teste ou TR próprio para ativar o Hatsu",                              bnf:"+1 em Testes e TRs Realizados" },
+      { id:'rg_l6',  nome:"Dano Antes de Usar",        desc:"A cada 15% de dano sofrido em Vida ou Sanidade",                             bnf:"+1 em Testes de Concentração (TR de CON)" },
+      { id:'rg_l7',  nome:'"Diálogo"',                 desc:"Ativação ou duração depende de uma Arma Específica",                         bnf:"+1 Grau/Passo de Dano com esta arma no Hatsu" },
+      { id:'rg_l8',  nome:"Efeitos Neg. Pré-Ativação 1",desc:"Receber condições leves/fracas",                                            bnf:"Após TR falho: condição age 1 rodada sem testes de escape" },
+      { id:'rg_l9',  nome:"Efeitos Neg. Exaustão 1",   desc:"Receber 1 nível de exaustão após/durante/antes da ativação",                 bnf:"+1 Grau/Passo no Alcance ou +1 Grau/Passo na Área" },
+      { id:'rg_l10', nome:"Interação Sensorial Simples",desc:"Ver, ouvir, tocar (não hostil) ou ser visto, ouvido, tocado",               bnf:"Aplica +3m no Alcance ou +1,5m na Área" },
+      { id:'rg_l11', nome:"Limitação de Alvos",        desc:"Limitar alvos entre 3–5 com Hatsus contínuos ou de alcance/área > 6m",       bnf:"+1 Dado de dano/cura (o menor) ou Aplica +1 condição" },
+      { id:'rg_l12', nome:"Limitação de Movimento 1",  desc:"Cumprir ação livre e não se mover no turno",                                 bnf:"+1 em Jogadas de Acerto" },
+      { id:'rg_l13', nome:"Limitação de Movimento 2",  desc:"Consome movimento + Teste de Aptidão (perícia)",                             bnf:"+1 em Jogadas de Acerto ou +1 na CD do TR" },
+      { id:'rg_l14', nome:"Objeto Canalizador",        desc:"Só ativa com objeto específico em mãos",                                     bnf:"Objeto recebe +2 CA ou +5 PV" },
+      { id:'rg_l15', nome:"Posição Corporal",          desc:"Manter pose específica para ativar ou durante o uso",                        bnf:"+1 em TRs para manter o efeito" },
+      { id:'rg_l16', nome:"Tempo de Carregamento",     desc:"Ativa 1 rodada após declaração de ativação",                                 bnf:"+1 Dado de dano/cura (o maior) ou +1 em Testes de Concentração" },
+    ],
+    moderadas: [
+      { id:'rg_m1',  nome:"Alvo Único em Combate",     desc:"Só pode usar o Hatsu em um único alvo (até vencê-lo ou acabar o combate)",   bnf:"+2 Grau/Passo de Dano/Cura" },
+      { id:'rg_m2',  nome:"Área Definida",             desc:"Hatsu só funciona em 1/3 ou menos da área/alcance total",                    bnf:"Reduz custo em 10% ou Anula manutenção" },
+      { id:'rg_m3',  nome:"Chuck Norris",              desc:"Não pode usar armas dentro ou fora do Hatsu",                                bnf:"Golpes Desarmados recebem propriedade Mortal x4" },
+      { id:'rg_m4',  nome:"Conhecimento Profundo",     desc:"Entender funcionamento do objeto/criatura do Hatsu (pode requerer Teste)",   bnf:"Habilita Conjuração com Alterações Físicas de Funções" },
+      { id:'rg_m5',  nome:"Conhecimento Prof. do Alvo",desc:"Entender/descobrir o funcionamento do Hatsu do alvo",                        bnf:"Ignora Resistências Físicas ou +2 na CD do TR" },
+      { id:'rg_m6',  nome:"Efeitos Neg. Pré-Ativação 2",desc:"Estar amedrontado, imobilizado ou qualquer condição prejudicial (consciente)",bnf:"Pode refazer 2 rolagens de ataque ou 2 de defesa" },
+      { id:'rg_m7',  nome:"Efeitos Neg. Exaustão 2",   desc:"Receber 2 níveis de exaustão após/durante/antes da ativação",               bnf:"Pode escolher 1 Efeito novo de até 2 níveis acima" },
+      { id:'rg_m8',  nome:"Explicar o Hatsu",          desc:"Explicar funcionamento e restrições antes da ativação (1 turno mín.)",       bnf:"Após acerto/TR bem-sucedido: Aplica Condição Média coerente" },
+      { id:'rg_m9',  nome:"Golpe/Toque",               desc:"Depende de acertar/receber golpe físico ou toque hostil para ativar",        bnf:"+2 na CD do TR" },
+      { id:'rg_m10', nome:"Limite de Uso Definitivo",  desc:"Só pode ser usado 1x por combate",                                          bnf:"+2 Rodadas ou -10% de aura" },
+      { id:'rg_m11', nome:"Limite Emocional",          desc:"Só ativa com emoção intensa (falha em TR individual de SAB)",                bnf:"+2 em Jogadas de Acerto" },
+      { id:'rg_m12', nome:"Tempo Marcado",             desc:"Só pode ser ativado após 4 rodadas em combate",                              bnf:"Dobra o alcance ou a duração do Hatsu" },
+      { id:'rg_m13', nome:"Zetsu Protetivo",           desc:"O alvo usar Zetsu interrompe ou anula o efeito do Hatsu",                    bnf:"+2 Grau/Passo em: Rodadas, Acerto ou Dano (escolha uma)" },
+    ],
+    pesadas: [
+      { id:'rg_p1',  nome:"Alto Risco...",             desc:"Perder 50% do PV para ativar o Hatsu",                                       bnf:"Ativação com até 3 dados de dano cheios" },
+      { id:'rg_p2',  nome:"Boneca Russa",              desc:"Hatsu depende de outro Hatsu para ativar (ou vice-versa)",                   bnf:"+3 rodadas de duração ao Hatsu dependente/dependido" },
+      { id:'rg_p3',  nome:"Dano Permanente",           desc:"Perder 1d10 de vida/sanidade permanentemente",                               bnf:"+3 efeitos gerais ou da categoria (com pré-requisito)" },
+      { id:'rg_p4',  nome:"Efeito Rebote",             desc:"Usuário sofre até 3 efeitos/condições do Hatsu",                             bnf:"Por até 3 rodadas, alvos rolam com desvantagem em TRs impostos" },
+      { id:'rg_p5',  nome:"Efeitos Aleatórios",        desc:"Efeitos pré-definidos mas ativados aleatoriamente",                          bnf:"Margem de Crítico passa a 18 ou Objetos recebem +15 PV" },
+      { id:'rg_p6',  nome:"Limite de Ef. de Aura",     desc:"Não aplica eficiência de aura em princípios e técnicas de Nen",             bnf:"Hatsu ignora efeitos defensivos de Nen com RD ou CA" },
+      { id:'rg_p7',  nome:"Limite de Princ. de Nen",   desc:"Não pode usar princípios na Maestria ou modo Superior",                     bnf:"+3 ou -3 na CD de TRs Impostos ou Enfrentados" },
+      { id:'rg_p8',  nome:"Local/Condição Específica", desc:"Hatsu só funciona em local ou condição específica",                          bnf:"Aura usada reduzida à metade (mínimo 5%)" },
+      { id:'rg_p9',  nome:"Perda de Membros",          desc:"Perder/inutilizar membro (com efeitos mecânicos)",                           bnf:"+3 grau de potência na ativação" },
+      { id:'rg_p10', nome:"Produto Frágil",            desc:"Vulnerável a 3 tipos de dano (mesmo fora do Hatsu)",                         bnf:"Usuário e alvos do Hatsu ficam resistentes a um tipo de dano" },
+      { id:'rg_p11', nome:"Proibição Permanente",      desc:"Após duração, não pode usá-lo no combate/dia",                               bnf:"Crítico durante o uso: utiliza sem custo de aura" },
+      { id:'rg_p12', nome:"Segredo Mortal",            desc:"Se descoberto/percebido, fica inutilizável contra o alvo",                   bnf:"Enquanto secreto: Acerto e Concentração com vantagem" },
+      { id:'rg_p13', nome:"Zetsu Penalizante",         desc:"Após duração, fica em Zetsu por horas equivalentes à duração",               bnf:"Reduz em 3 os resultados de TR dos alvos" },
+    ],
+    variaveis: [
+      { id:'rg_v1',  nome:"Canalizar Rodadas em Zetsu",desc:"Ficar X rodadas em Zetsu antes de ativar (sem recuperar aura)",              bnf:"+X Grau de Potência (variável por uso)" },
+      { id:'rg_v2',  nome:"Canalizar com Concentração",desc:"Canalizar por X rodadas sem ser interrompido",                               bnf:"+X Rodadas na Duração ou +X Grau/Passo de Dano/Cura" },
+      { id:'rg_v3',  nome:"Confirmação de Duas Etapas",desc:"Hatsu só ativa/mantém se alvo estiver sob condição específica",              bnf:"Leve: +1r | Moderada: +2r | Pesada: +3r | Extrema: +4r duração" },
+      { id:'rg_v4',  nome:"Contrato Simples",          desc:"Acordo verbal/escrito — descumprir resulta em Zetsu-maldição",               bnf:"Peso do acordo definido pelos jogadores" },
+      { id:'rg_v5',  nome:"Dano Momentâneo Variável",  desc:"Perder 1d10 de vida/sanidade máxima temporariamente para ativar",            bnf:"a) Em um Ataque (incluso TR) ou b) A cada ataque" },
+      { id:'rg_v6',  nome:"Exposição Desnecessária",   desc:"Alvos recebem +X em 2 características (Acerto, CA, Reação ou TR)",           bnf:"+X Grau de Potência no Hatsu (Máx. 10)" },
+      { id:'rg_v7',  nome:"Limite de Uso Contínuo",    desc:"Hatsu só pode ser usado X vezes (até 4) pela duração",                       bnf:"X=1→4 P.N | X=2→3 P.N | X=3→2 P.N | X=4→1 P.N" },
+      { id:'rg_v8',  nome:"Sorte ou Revés",            desc:"Falha crítica: rol 1d4 de consequência; crítico: rol 1d4 de bônus",          bnf:"Crítico: uso extra, recupera aura, usa princípio ou -5 sanidade alvo" },
+      { id:'rg_v9',  nome:"Troca Perigosa (Reações)",  desc:"Hatsu consome suas reações como recurso além de aura",                       bnf:"Custo de aura ±5% por reação ou +1 Alvo por 2 reações" },
+      { id:'rg_v10', nome:"Zetsu por Falha",           desc:"Impõe Zetsu no usuário se objetivo não for cumprido com sucesso",            bnf:"Graus/Passo em Alcance/Área = Rodadas de Zetsu após falha" },
+    ],
+    extremas: [
+      { id:'rg_e1',  nome:"Condição Alheia/Simbiótica",desc:"Só ativa/mantém utilizando aura de aliado (pode superar 100%)",              bnf:"+4 Rodadas por membro ou -10% de custo por membro" },
+      { id:'rg_e2',  nome:"Condição Hostil",           desc:"Só ativa se aliado morrer ou sofrer dano pré-letal",                         bnf:"Dados de dano maximizados (não rolados) e área dobrada" },
+      { id:'rg_e3',  nome:"Condição Única de Ativação",desc:"Hatsu só pode ser usado UMA VEZ em toda a vida do usuário",                  bnf:"Permite ao Hatsu uma Reencarnação" },
+      { id:'rg_e4',  nome:"Dano Permanente Constante", desc:"Perder 5 de vida/sanidade permanentemente por ativação",                     bnf:"+5 Concentração ou +5 Rodadas ou recupera aura a cada acerto/TR" },
+      { id:'rg_e5',  nome:"Juramento Imutável",        desc:"Voto público, inviolável e absoluto — quebra causa morte instantânea",       bnf:"+4 Graus de potência em TODAS as características (após 3 níveis)" },
+      { id:'rg_e6',  nome:"Kamikaze",                  desc:"Acertos com Desvantagem E TRs rolados com vantagem pelos alvos",             bnf:"Ignore pré-requisitos de efeitos" },
+      { id:'rg_e7',  nome:"Sacrifício de Nen",         desc:"Perde permanentemente todos os princípios e técnicas de Nen (exceto o Hatsu)",bnf:"O efeito ignora qualquer regra de resistência ou imunidade" },
+      { id:'rg_e8',  nome:"Vida ou Morte",             desc:"Só ativa com menos de 10% de PV ou Sanidade",                               bnf:"Dobra todos os dados de dano (dano contado como crítico)" },
+      { id:'rg_e9',  nome:"Vida por Poder",            desc:"Regride 1 nível ao usar (P.N mantidos, efeitos do nível superior bloqueados)",bnf:"Selecione 4 Efeitos da Categoria e 3 Efeitos Gerais" },
+    ],
+  },
+
+  // ── EFEITOS GERAIS ─────────────────────────────────────
+  efeitos_gerais: [
+    { id:'eg1',  nome:"Aumento de Alcance",      desc:"Aumenta o alcance em +1,5m (Máx. 3 usos). Em níveis superiores: +1,5m",               req:"Nível 1", pn:1 },
+    { id:'eg2',  nome:"Aumento de Duração",      desc:"+1 rodada extra de duração por escolha. Ao atingir 10 rodadas: evolui em minutos",     req:"Nível 1", pn:1 },
+    { id:'eg3',  nome:"Condição Perigosa",       desc:"Aplica 1 condição por 1 rodada (mín.). Níveis sup.: outra condição ou +1 rodada",       req:"Nível 1", pn:1 },
+    { id:'eg4',  nome:"Efeito Alternativo",      desc:"Cria diferentes 'modos' de uso do Hatsu (ex: Gon — Pedra, Papel, Tesoura). 1 P.N cria o modo", req:"Nível 1", pn:1 },
+    { id:'eg5',  nome:"Esforço Sacrificial",     desc:"Acessa graus de potência de outra categoria: gasta 15% aura ou 5 de sanidade por grau", req:"Nível 1", pn:1 },
+    { id:'eg6',  nome:"Poder é Intenção",        desc:"O efeito adicionado é direcionado a inimigo(s). 1 P.N nesse efeito já permite a compra do efeito desejado", req:"Nível 1", pn:1 },
+    { id:'eg7',  nome:"Poder Valioso",           desc:"+1 Grau de potência na ativação (respeitando a Mecânica da Categoria)",                req:"Nível 1", pn:2 },
+    { id:'eg8',  nome:"Redução de Custo",        desc:"Reduz 5% do custo do Hatsu. Com 2+ Restr. Pesadas: -10%. Com Extrema: -25%",            req:"Nível 1 — custo > 10%", pn:1 },
+    { id:'eg9',  nome:"Ajuste de Forma (Área)",  desc:"Aplica área de 1,5m (cone, linha ou esfera). Máx. 3 usos. Evolui em +1,5m ou nova forma", req:"Nível 2", pn:1 },
+    { id:'eg10', nome:"Flagelo da Mente",        desc:"O Hatsu causa 1d8 de dano psíquico (reduz sanidade)",                                  req:"Nível 2", pn:1 },
+    { id:'eg11', nome:"Ativação Rápida",         desc:"Usa o Hatsu como Ação Bônus em vez de Ação Principal, à escolha",                      req:"Nível 3 (ou Nível 1 via 5 Graus iniciais)", pn:1 },
+    { id:'eg12', nome:"Efeito Cuidadoso",        desc:"Hatsu em área pode selecionar alvos específicos dentro dela",                           req:"Nível 3", pn:1 },
+    { id:'eg13', nome:"Reação Defensiva",        desc:"Usa o Hatsu como reação para se defender ou proteger aliado",                           req:"Nível 3 — SAB 3+", pn:1 },
+    { id:'eg14', nome:"Reação Ofensiva",         desc:"Usa o Hatsu como reação ao ser atacado, causando efeito imediatamente",                 req:"Nível 3 — SAB 4+", pn:1 },
+    { id:'eg15', nome:"Dano/Cura Focal",         desc:"+1 grau/passo no dano/cura básico do Hatsu (base: 2d6+Atributo)",                      req:"Nível 5 ou Acesso a Reforço", pn:1 },
+    { id:'eg16', nome:"Exército de um Homem Só", desc:"Alterna efeitos entre alvos marcados ou divide dano/cura entre alvos afetados",         req:"Nível 5 + efeito de Emissão ou Manipulação", pn:1 },
+    { id:'eg17', nome:"Dor pra Disgrama!",       desc:"Último dano torna-se contínuo (repete/acumula). Reduz duração em 1/3 ou -5 no TR de Concentração", req:"Nível 5 — duração > 3 rodadas", pn:1 },
+    { id:'eg18', nome:"Experiência Comprovada",  desc:"Evolui a duração: Minutos → Horas → Dias → Semanas → Meses → Anos",                    req:"Nível 6", pn:3 },
+    { id:'eg19', nome:"Visão Seletiva",          desc:"Propriedade Furtiva passiva: oculto para alvo específico ou visível só para ele",       req:"Nível 7", pn:1 },
+  ],
+
+  // ── DADOS POR CATEGORIA ────────────────────────────────
+  categorias: {
+
+    // ─── INTENSIFICAÇÃO / REFORÇO ────────────────────────
+    'INTENSIFICAÇÃO': {
+      cor: '#22c55e',
+      attr_princ: 'FORÇA',
+      attr_sec: 'DES / SAB / CON',
+      graus: 'Acerto | Atributos e Perícias | Redução de Custo',
+      desc: 'Aumentar habilidades naturais do próprio corpo ou de um objeto. Categoria mais equilibrada entre ataque e defesa.',
+      restricoes: [
+        { id:'ri_l1', peso:'leve',    nome:"PV < 75%",                  desc:"Só pode usar com menos de 75% dos PV",                              bnf:"+1 grau/passo no dano do Hatsu" },
+        { id:'ri_l2', peso:'leve',    nome:"Corpo a Corpo Obrigatório",  desc:"Exige ataque corpo a corpo para ativar o Hatsu",                    bnf:"Alvo sofre desvantagem em reação contra o Hatsu" },
+        { id:'ri_l3', peso:'leve',    nome:"Sem Defesas",                desc:"Não pode usar habilidades ou reações defensivas durante o uso",     bnf:"+1 na jogada de ataque com o Hatsu" },
+        { id:'ri_m1', peso:'moderada',nome:"Aumento por Rodada",         desc:"Efeitos de atributo, dano, cura ou RD ativados parcialmente (não de uma vez)", bnf:"+2 Graus de Potência no total de cada efeito similar" },
+        { id:'ri_m2', peso:'moderada',nome:"Sem Buffs Ativos",           desc:"Só pode ser usado sem buffs ativos",                                bnf:"Ignora resistências a dano físico (uso/dia = proficiência)" },
+        { id:'ri_m3', peso:'moderada',nome:"Inutilizável c/ +50% Aura",  desc:"Não pode usar com mais de 50% da aura",                            bnf:"+1 Grau de Potência no Hatsu" },
+        { id:'ri_p1', peso:'pesada',  nome:"Dano de Aura",               desc:"Causa 5% da aura como dano ao usuário (≈1d6 com REN)",              bnf:"Pode rerrolar um dos dados de dano" },
+        { id:'ri_p2', peso:'pesada',  nome:"Desvantagem em TRs Pós-Uso", desc:"Desvantagem em resistências após uso (resto do dia)",               bnf:"Hatsu ignora imunidade a dano (uso/dia = proficiência)" },
+        { id:'ri_p3', peso:'pesada',  nome:"1x por Combate",             desc:"Só pode ser usado 1x por combate",                                  bnf:"+3 Pontos de Nen (P.N)" },
+      ],
+      efeitos: [
+        { id:'ri_e1',  nome:"Aumento de Atributo",    desc:"Aumenta valor de atributo em 2 (mod. +1). Máximo: bônus +5",                 req:"Nível 1",  pn:1 },
+        { id:'ri_e2',  nome:"Intensificação",          desc:"+1 Grau de Potência no Hatsu",                                               req:"Nível 1",  pn:1 },
+        { id:'ri_e3',  nome:"Recuperação Veloz",       desc:"Cura 1d8 + CON de um alvo",                                                 req:"Nível 1",  pn:1 },
+        { id:'ri_e4',  nome:"Mais de 8000",            desc:"Poder transbordante compartilhado: divida 5% por escolha com outros seres",  req:"Nível 1",  pn:1 },
+        { id:'ri_e5',  nome:"Estabilizar Aliado",      desc:"Impede morte de aliado adjacente, mantendo-o em 1 PV (consome 1 Reação)",   req:"Nível 2 — Recuperação Veloz", pn:1 },
+        { id:'ri_e6',  nome:"Impacto Pesado",          desc:"TR de FOR: empurra em 3m alvo(s) que falhem, independente do dano",         req:"Nível 2",  pn:1 },
+        { id:'ri_e7',  nome:"Pele de Pedra",           desc:"3 RD contra danos de Impacto, Perfurante e Cortante",                       req:"Nível 2",  pn:1 },
+        { id:'ri_e8',  nome:"Postura de Ferro",        desc:"Imune a ser empurrado ou derrubado",                                        req:"Nível 2",  pn:1 },
+        { id:'ri_e9',  nome:"Aura Afiada",             desc:"Reduz margem de crítico em 1 (máx. 2 usos)",                                req:"Nível 3",  pn:1 },
+        { id:'ri_e10', nome:"Explosão de Aura",        desc:"Causa dano em área de pelo menos 1,5m ao redor",                            req:"Nível 3",  pn:1 },
+        { id:'ri_e11', nome:"Golpe Reforçado",         desc:"Adiciona 1d8 extra ao dano do Hatsu",                                       req:"Nível 3",  pn:1 },
+        { id:'ri_e12', nome:"Penetração Dolorosa",     desc:"+5 dano perfurante e desvantagem na próxima resistência física do alvo",    req:"Nível 3",  pn:1 },
+        { id:'ri_e13', nome:"Onda Surda",              desc:"Alvo sofre +1 dado de dano (maior) mesmo ao bloquear com sucesso",          req:"Nível 4",  pn:1 },
+        { id:'ri_e14', nome:"Socos e Chutes",          desc:"a) Perfurante nos punhos ou b) Aplica Atordoado ao tirar 18+ no acerto",    req:"Nível 4",  pn:1 },
+        { id:'ri_e15', nome:"Concentração Total",      desc:"+1 rodada por acerto ininterrupto ou +1 Grau/Passo de dano por acerto",     req:"Nível 4 — SAB 3+", pn:1 },
+        { id:'ri_e16', nome:"Barreira Interna",        desc:"5 RD contra danos de Energia e Elementais (+2 a cada nova escolha)",        req:"Nível 5",  pn:1 },
+        { id:'ri_e17', nome:"Cérebro Evoluído",        desc:"Durante o uso: efeitos de um atributo evoluído (INT, SAB ou PRE)",          req:"Nível 5",  pn:1 },
+        { id:'ri_e18', nome:"Estabilização de Aura",   desc:"Diminui custo de aura do Hatsu em 15% (mínimo 10%)",                        req:"Nível 5",  pn:1 },
+        { id:'ri_e19', nome:"Soco Demolidor",          desc:"Gasta 10% aura: vantagem no próximo ataque e ignora resistências físicas",  req:"Nível 5",  pn:1 },
+        { id:'ri_e20', nome:"Fúria Potencializada",    desc:"Ataques causam +1d6 de dano",                                               req:"Nível 6",  pn:1 },
+        { id:'ri_e21', nome:"Fôlego Infinito",         desc:"Imunidade à condição de Exaustão até o fim do combate",                     req:"Nível 6",  pn:1 },
+        { id:'ri_e22', nome:"Equiparação",             desc:"Equipara um atributo escolhido ao do alvo engajado pela duração",           req:"Nível 7 — INT ou SAB 3+ ou 3 restrições pesadas", pn:1 },
+        { id:'ri_e23', nome:"Vigor Contínuo",          desc:"Reduz 1 grau de Exaustão em combate e adiciona 2 Reações",                  req:"Nível 7",  pn:1 },
+        { id:'ri_e24', nome:"Carga de Energia",        desc:"Armazena energia e dobra dano do próximo ataque (1x por combate)",          req:"Nível 8",  pn:1 },
+        { id:'ri_e25', nome:"Corpo de Aço",            desc:"10 RD contra Explosivo, Balístico ou Mortal (escolha um)",                  req:"Nível 8",  pn:1 },
+        { id:'ri_e26', nome:"Vitalidade Extra",        desc:"Recupera 1d6+CON PV ao cair abaixo de 50% (1x por combate)",                req:"Nível 8",  pn:1 },
+        { id:'ri_e27', nome:"Força Titânica",          desc:"Ataques físicos recebem +5 de dano",                                        req:"Nível 9",  pn:1 },
+        { id:'ri_e28', nome:"Trabalho em Equipe",      desc:"Usa aura de aliados (10%) para ampliar dano/cura ou concede atributos a aliado", req:"Nível 9", pn:1 },
+        { id:'ri_e29', nome:"Dano Fragilizante",       desc:"Dano >20: a)-3 durabilidade armadura b)-2 ataques c)-2 reações defensivas", req:"Nível 10", pn:1 },
+        { id:'ri_e30', nome:"Potencial Liberado",      desc:"Escolha por uso qualquer efeito da tabela de Potencial Liberado (físico/sentidos)", req:"Nível 10", pn:1 },
+        { id:'ri_e31', nome:"Força Descomunal",        desc:"Gasta 15% aura: dobra Força (bônus) em Testes ou Ataques",                  req:"Nível 12", pn:1 },
+        { id:'ri_e32', nome:"Resiliência Suprema",     desc:"1x/dia: ao cair a 0 PV, recupera imediatamente 30% da vida máxima",         req:"Nível 12", pn:1 },
+      ]
+    },
+
+    // ─── TRANSMUTAÇÃO ────────────────────────────────────
+    'TRANSMUTAÇÃO': {
+      cor: '#3b82f6',
+      attr_princ: 'SAB / INT',
+      attr_sec: 'FOR / CAR',
+      graus: 'Dano | Redução de Custo',
+      desc: 'Mudar as propriedades da aura para imitar outra substância. Transmutadores são caprichosos e adaptáveis.',
+      restricoes: [
+        { id:'rt_l1', peso:'leve',    nome:"Material Natural Obrigatório", desc:"Hatsu só funciona quando o material natural está presente", bnf:"+1 Grau no Efeito Elemental principal" },
+        { id:'rt_m1', peso:'moderada',nome:"Dor Reflexiva Elemental",      desc:"Dano elemental que parte de si provoca dor no usuário",     bnf:"+2 Graus de Dano Elemental" },
+        { id:'rt_p1', peso:'pesada',  nome:"Forma Fixa",                   desc:"A transmutação assume sempre a mesma forma (não pode alterar)", bnf:"+3 no efeito de dano/condição da forma fixa" },
+      ],
+      efeitos: [
+        { id:'rt_e1',  nome:"Aura Perigosa Comum",       desc:"Propriedade de combate: Cortante, Perfurante, Concussivo ou Energia (Aura pura)", req:"Nível 1", pn:1 },
+        { id:'rt_e2',  nome:"Memory Card",               desc:"Grava até 5s de estímulo sensorial e reproduz. Máx. 3 gravações",               req:"Nível 1", pn:1 },
+        { id:'rt_e3',  nome:"Polígrafo",                 desc:"Percebe micro-oscilações de emoções e mentiras. Vantagem em Intuição",           req:"Nível 1", pn:1 },
+        { id:'rt_e4',  nome:"Transmutação Elemental",    desc:"Escolha um elemento adicionando sua propriedade inicial. Evolui com novas compras", req:"Nível 1", pn:1 },
+        { id:'rt_e5',  nome:"Transmutação Versátil",     desc:"Escolha uma Propriedade de Utilidade (máx. 2). Evolui com novas compras",        req:"Nível 1", pn:1 },
+        { id:'rt_e6',  nome:"Forma Esculpida Maleável",  desc:"Aura assume forma de até 1,5mx1,5m com densidade dos estados físicos",           req:"Nível 2", pn:1 },
+        { id:'rt_e7',  nome:"Superfície Adesiva",        desc:"Aura 'cola' superfícies. Escala vertical (9m, 5% aura/3m) e cria Terreno Difícil", req:"Nível 2", pn:1 },
+        { id:'rt_e8',  nome:"Anticoagulante",            desc:"Golpe aplica Sangramento Leve (2d4) em alvo ferido",                             req:"Nível 3", pn:1 },
+        { id:'rt_e9',  nome:"Concussão Leve",            desc:"TR de CON após golpe. Falha: -2 em Percepção e Reações",                         req:"Nível 3 + Aura Perigosa (Concussivo)", pn:1 },
+        { id:'rt_e10', nome:"Corte Irritante",           desc:"Feridas causam ardência: -2 em Concentração por corte",                          req:"Nível 3 + Aura Perigosa (Cortante)", pn:1 },
+        { id:'rt_e11', nome:"Estaca Furadeira",          desc:"Ignora RD em 5 e 1/2 Cobertura",                                                 req:"Nível 3 + Aura Perigosa (Perfurante)", pn:1 },
+        { id:'rt_e12', nome:"Pegar ou Largar",           desc:"Adiciona Agarrar/Prender ao Hatsu (TR de FOR)",                                  req:"Nível 3 + Superfície Adesiva ou Forma Esculpida", pn:1 },
+        { id:'rt_e13', nome:"Condutividade de Aura",     desc:"Hatsu percorre superfícies (5% aura a cada 3m em linha, Cone ou Esfera)",         req:"Nível 4", pn:1 },
+        { id:'rt_e14', nome:"Aura Perigosa Incomum",     desc:"Rigidez (Bloqueio+1), Dispersão (Spray 1,5m) ou Explosivo (TR para não cair)",    req:"Nível 6", pn:1 },
+        { id:'rt_e15', nome:"Hemorragia Oculta",         desc:"Ferimentos parecem leves mas causam hemorragia interna (2d8)",                    req:"Nível 6 + Anticoagulante", pn:1 },
+        { id:'rt_e16', nome:"Ferida Interna",            desc:"Alvo com <50% PV: +5 dano e TR de CON. Falha: Sangramento Forte (2d10)",          req:"Nível 8 + Anticoagulante", pn:1 },
+        { id:'rt_e17', nome:"Golpe Perfurante Mortal",   desc:"Ao superar CA em 5: prende parte do alvo em superfície adjacente",               req:"Nível 10 + Aura Perigosa (Perfurante)", pn:1 },
+      ]
+    },
+
+    // ─── MATERIALIZAÇÃO / CONJURAÇÃO ─────────────────────
+    'MATERIALIZAÇÃO': {
+      cor: '#a855f7',
+      attr_princ: 'INT',
+      attr_sec: 'SAB / FOR',
+      graus: 'Alcance/Área | Duração | Redução de Custo',
+      desc: 'Criar objetos físicos a partir da aura. Materializadores são perfeccionistas e obstinados.',
+      restricoes: [
+        { id:'rm_l1', peso:'leve',    nome:"Objeto Específico",   desc:"A Conjuração só ativa a partir de um objeto específico", bnf:"Objeto criado recebe +3 CA" },
+        { id:'rm_m1', peso:'moderada',nome:"Vínculo Emocional",   desc:"Só conjura com estado emocional específico",             bnf:"+1d6 de PV para a Conjuração" },
+        { id:'rm_p1', peso:'pesada',  nome:"Custo de Sanidade",   desc:"Cada ativação custa 10 de Sanidade ao usuário",          bnf:"+2 Ataques para a Conjuração ou dobra os PV" },
+      ],
+      efeitos: [
+        { id:'rm_e1',  nome:"Materialização Simples",  desc:"Conjura objeto simples de até 30cm que pode atacar (1d4 de dano)",                req:"Nível 1", pn:1 },
+        { id:'rm_e2',  nome:"Forma Evoluída 1",        desc:"Conjuração recebe +5 PV e +1 CA",                                                req:"Nível 1", pn:1 },
+        { id:'rm_e3',  nome:"Propriedade Elemental",   desc:"A Conjuração recebe propriedade elemental básica (fogo, gelo, elétrico...)",      req:"Nível 2", pn:1 },
+        { id:'rm_e4',  nome:"Conjuração Independente", desc:"O objeto conjurado pode se mover/agir por conta própria",                        req:"Nível 3", pn:1 },
+        { id:'rm_e5',  nome:"Forma Evoluída 2",        desc:"+10 PV, +2 CA e uma Característica de Invocação adicional",                      req:"Nível 4 + Forma Evoluída 1", pn:1 },
+        { id:'rm_e6',  nome:"Escudo Material",         desc:"Conjuração pode interromper ataques (Reação): absorve dano até seus PV",         req:"Nível 4", pn:1 },
+        { id:'rm_e7',  nome:"Forma Evoluída 3",        desc:"+10 PV, +2 CA e Característica de Invocação adicional",                          req:"Nível 6 + Forma Evoluída 2", pn:1 },
+        { id:'rm_e8',  nome:"Ataque Independente",     desc:"A Conjuração realiza 1 Ataque por rodada usando INT do usuário",                 req:"Nível 6 + Conjuração Independente", pn:1 },
+        { id:'rm_e9',  nome:"Alteração Corporal",      desc:"Materializa membros/armas no próprio corpo (1d8 de dano)",                       req:"Nível 7", pn:1 },
+        { id:'rm_e10', nome:"Forma Evoluída 4",        desc:"+15 PV, +2 CA e duas Características de Invocação adicionais",                   req:"Nível 8 + Forma Evoluída 3", pn:1 },
+        { id:'rm_e11', nome:"Constructo Complexo",     desc:"Conjura criatura com atributos próprios baseados em INT do usuário",             req:"Nível 9", pn:1 },
+        { id:'rm_e12', nome:"Espaço Dimensional",      desc:"Cria espaço dimensional simples para armazenamento ou armadilha",                req:"Nível 10", pn:1 },
+        { id:'rm_e13', nome:"Forma Suprema",           desc:"+20 PV, +3 CA, 2 Ataques extras e Invulnerabilidade a 1 tipo de dano",           req:"Nível 12 + Forma Evoluída 4", pn:1 },
+      ]
+    },
+
+    // ─── ESPECIALIZAÇÃO ──────────────────────────────────
+    'ESPECIALIZAÇÃO': {
+      cor: '#f59e0b',
+      attr_princ: 'CAR / INT',
+      attr_sec: 'SAB',
+      graus: 'Alcance/Área | Dano | Duração | CD do TR | Redução de Custo',
+      desc: 'Categoria única — habilidades completamente únicas que não se enquadram em nenhuma outra. A mais misteriosa e imprevisível.',
+      restricoes: [
+        { id:'re_l1', peso:'leve',    nome:"Ritual Específico",   desc:"Exige ritual ou sequência de ações específica para ativar", bnf:"+1 dado de dano extra (o menor)" },
+        { id:'re_m1', peso:'moderada',nome:"Uso Único por Sessão", desc:"Só pode ser usado 1 vez por sessão de jogo",               bnf:"Pode ignorar até 2 pré-requisitos de nível" },
+        { id:'re_p1', peso:'pesada',  nome:"Esquece o Hatsu",     desc:"Após usar, esquece como ativar por 1 dia (sessão participada)", bnf:"Dados de dano maximizados na ativação" },
+      ],
+      efeitos: [
+        { id:'re_e1',  nome:"Previsão Limitada",      desc:"+2 CA e Reações no próximo turno (vê 1 turno à frente para 1 alvo)",        req:"Nível 1", pn:1 },
+        { id:'re_e2',  nome:"Combinação Perigosa",    desc:"Combina 2 efeitos já selecionados em novo efeito único (aprovação do Mestre)", req:"Nível 1", pn:1 },
+        { id:'re_e3',  nome:"Maldição Simples",       desc:"Maldição leve: -1 em todos os testes por 24h (TR de CAR para resistir)",     req:"Nível 2", pn:1 },
+        { id:'re_e4',  nome:"Distorção da Realidade", desc:"Cria ilusão convincente de objeto ou cena (máx. 3x3m). Dura 1 rodada/nível", req:"Nível 3", pn:1 },
+        { id:'re_e5',  nome:"Transferência de Hatsu", desc:"Permite que aliado use este Hatsu por 1 rodada com bônus intactos",          req:"Nível 4", pn:1 },
+        { id:'re_e6',  nome:"Maldição Média",         desc:"Afeta 2 atributos/perícias por 1 semana (TR de CAR com CD aumentada)",       req:"Nível 5 + Maldição Simples", pn:1 },
+        { id:'re_e7',  nome:"Subversão de Princípios",desc:"Por 2 rodadas, alvo não pode usar princípios de Nen (TR de INT)",            req:"Nível 6", pn:1 },
+        { id:'re_e8',  nome:"Eco Imprevisível",       desc:"Copia o último efeito de Hatsu usado pelo alvo (1x por combate)",            req:"Nível 7", pn:1 },
+        { id:'re_e9',  nome:"Maldição Pesada",        desc:"Maldição poderosa com efeitos únicos e duração longa. Difícil de remover",   req:"Nível 8 + Maldição Média", pn:1 },
+        { id:'re_e10', nome:"Paradoxo do Destino",    desc:"Cria condição de 'destino': alvo sofre dano massivo se não cumprir ação em X rodadas", req:"Nível 9", pn:1 },
+        { id:'re_e11', nome:"Maldição Extrema",       desc:"A mais poderosa das maldições. Efeitos permanentes até desfazimento ativo",  req:"Nível 12 + Maldição Pesada", pn:1 },
+      ]
+    },
+
+    // ─── MANIPULAÇÃO ─────────────────────────────────────
+    'MANIPULAÇÃO': {
+      cor: '#06b6d4',
+      attr_princ: 'CAR / SAB',
+      attr_sec: 'INT',
+      graus: 'Alcance/Área | Número de Alvos | Duração | CD do TR | Redução de Custo',
+      desc: 'Controlar seres vivos ou objetos inanimados. Manipuladores são analíticos e tendem a seguir regras rígidas.',
+      restricoes: [
+        { id:'rma_l1', peso:'leve',    nome:"Contato Visual",              desc:"Precisa manter contato visual com o alvo manipulado",           bnf:"+1 na CD do TR de Manipulação" },
+        { id:'rma_m1', peso:'moderada',nome:"Condição de Gatilho",         desc:"O alvo só pode ser manipulado após cumprir condição específica", bnf:"+2 na CD do TR e +1 rodada de duração" },
+        { id:'rma_p1', peso:'pesada',  nome:"Custo de Aura Compartilhado", desc:"O alvo manipulado gasta parte de sua própria aura para manter a manipulação", bnf:"Duração da manipulação dobrada" },
+      ],
+      efeitos: [
+        { id:'ma_e1',  nome:"Controle Simples",     desc:"Manipula 1 ser com TR de CAR. Alvo obedece 1 comando simples por rodada",     req:"Nível 1", pn:1 },
+        { id:'ma_e2',  nome:"Marionete de Objeto",  desc:"Controla objeto inanimado a distância (máx. 9m, velocidade = INT do usuário)", req:"Nível 1", pn:1 },
+        { id:'ma_e3',  nome:"Comando Composto",     desc:"O alvo pode receber até 3 comandos em sequência",                              req:"Nível 2 + Controle Simples", pn:1 },
+        { id:'ma_e4',  nome:"Roubo de Percepção",   desc:"Vê e ouve através dos sentidos do alvo manipulado",                           req:"Nível 3 + Controle Simples", pn:1 },
+        { id:'ma_e5',  nome:"Marionete Múltipla",   desc:"Controla até 3 objetos simultaneamente (10% aura por objeto extra)",          req:"Nível 4 + Marionete de Objeto", pn:1 },
+        { id:'ma_e6',  nome:"Manipulação Coerciva", desc:"Alvo manipulado age contra aliados sem TR adicional por 2 rodadas",           req:"Nível 5 + Controle Simples", pn:1 },
+        { id:'ma_e7',  nome:"Selagem de Nen",       desc:"Impede o alvo de usar Nen por X rodadas após TR bem-sucedido",                req:"Nível 6", pn:1 },
+        { id:'ma_e8',  nome:"Domínio Expandido",    desc:"Manipula até 5 alvos simultaneamente (20% aura por alvo extra)",              req:"Nível 7 + Manipulação Coerciva", pn:1 },
+        { id:'ma_e9',  nome:"Memória Falsa",        desc:"Implanta memória falsa simples. Dura dias (TR de INT para reconhecer)",       req:"Nível 8", pn:1 },
+        { id:'ma_e10', nome:"Possessão",            desc:"Habita o corpo do alvo por até 3 rodadas, controlando-o completamente",       req:"Nível 10 + Manipulação Coerciva", pn:1 },
+        { id:'ma_e11', nome:"Arquiteto da Mente",   desc:"Reestrutura memória e personalidade do alvo (efeito permanente, cura mágica)", req:"Nível 12 + Memória Falsa", pn:1 },
+      ]
+    },
+
+    // ─── EMISSÃO ─────────────────────────────────────────
+    'EMISSÃO': {
+      cor: '#ef4444',
+      attr_princ: 'INT / FOR',
+      attr_sec: 'DES / CON',
+      graus: 'Acerto | Alcance/Área | Redução de Custo',
+      desc: 'Destacar a aura do corpo e projetá-la a distâncias. Emissores são impulsivos e extrovertidos.',
+      restricoes: [
+        { id:'em_l1', peso:'leve',    nome:"Trajetória Fixa",     desc:"A aura emitida sempre segue a mesma trajetória (linha reta)", bnf:"+2 no Acerto de longa distância" },
+        { id:'em_m1', peso:'moderada',nome:"Capacidade Limitada", desc:"Só pode emitir X unidades de aura por combate",              bnf:"+3 de dano por unidade emitida" },
+        { id:'em_p1', peso:'pesada',  nome:"Vínculo Físico",      desc:"Não pode se mover enquanto emite aura (velocidade = 0)",     bnf:"Alcance dobrado e +2d6 de dano na emissão" },
+      ],
+      efeitos: [
+        { id:'em_e1',  nome:"Projétil de Aura",    desc:"Emite projétil que causa 1d8 de dano. Alcance: 18m. Acerto com INT ou DES", req:"Nível 1", pn:1 },
+        { id:'em_e2',  nome:"Distância Segura",    desc:"Ativa o Hatsu a 6m de distância. Cada compra posterior: +1,5m",            req:"Nível 1", pn:1 },
+        { id:'em_e3',  nome:"Disparo Potente",     desc:"+2d6 de dano e alcance 18m no projétil de aura",                           req:"Nível 2 + Projétil de Aura", pn:1 },
+        { id:'em_e4',  nome:"Rajada de Aura",      desc:"Até 3 alvos, 1d6 cada. Mesmo alcance do projétil",                         req:"Nível 3 + Projétil de Aura", pn:1 },
+        { id:'em_e5',  nome:"Aura Persistente",    desc:"A aura emitida permanece no espaço por 2 rodadas (área perigosa de 1,5m)", req:"Nível 3", pn:1 },
+        { id:'em_e6',  nome:"Canhão de Aura",      desc:"Disparo em linha (3m larg., 18m): 3d6 de dano, TR de DES para metade",     req:"Nível 4 + Disparo Potente", pn:1 },
+        { id:'em_e7',  nome:"Emissão Guiada",      desc:"Projétil guiado mentalmente até o alvo (sem penalidade por cobertura)",    req:"Nível 5 + Projétil de Aura", pn:1 },
+        { id:'em_e8',  nome:"Barreira de Aura",    desc:"Emite escudo de aura: +4 CA por 2 rodadas (30% de aura)",                  req:"Nível 6", pn:1 },
+        { id:'em_e9',  nome:"Bomba de Aura",       desc:"Detonação em área: 4d6 de dano, 6m de raio. TR de DES para metade",        req:"Nível 7 + Canhão de Aura", pn:1 },
+        { id:'em_e10', nome:"Satélite de Aura",    desc:"3 orbes orbitando o usuário atacam alvos próximos (1d8 cada por rodada)",  req:"Nível 8 + Emissão Guiada", pn:1 },
+        { id:'em_e11', nome:"Emissão Total",       desc:"Canaliza TODA a aura em um único disparo devastador",                      req:"Nível 10", pn:1 },
+        { id:'em_e12', nome:"Maestria da Emissão", desc:"A aura emitida ignora cobertura, invisibilidade e barreiras de Nen",       req:"Nível 12 + Emissão Guiada", pn:1 },
+      ]
+    },
+
+  } // fim categorias
+}; // fim HATSU_DB
+
+
+// ══════════════════════════════════════════════════════════
+//  renderHatsuCreator — wizard multi-etapas
+// ══════════════════════════════════════════════════════════
+function renderHatsuCreator(container) {
+    const char = state.currentChar;
+    const cls  = char.class;
+    const catDB = window.HATSU_DB.categorias[cls] || window.HATSU_DB.categorias['INTENSIFICAÇÃO'];
+    const tc   = catDB.cor || '#00ff88';
+
+    // Inicializa o builder
+    if (!state.hatsuBuilder) {
+        state.hatsuBuilder = { step:0, nome:'', descricao:'', tipo:'', rg:[], rc:[], eg:[], ec:[] };
+    }
+    const hb = state.hatsuBuilder;
+
+    const pnMax = window.calcularPHBase(char.level);
+    let pnUsed = 0;
+    hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed += e.pn; });
+    hb.ec.forEach(id => { const e = catDB.efeitos.find(x=>x.id===id); if(e) pnUsed += e.pn; });
+    const pnLeft = pnMax - pnUsed;
+
+    const STEPS = ['CONCEITO','TIPO','REST. GERAIS','REST. CATEG.','EFEITOS GERAIS','EFEITOS CATEG.','RESUMO'];
+
+    // ── barra de progresso ──
+    const progressBar = STEPS.map((s,i) => {
+        const active = i === hb.step, done = i < hb.step;
+        const circleStyle = active ? `background:${tc};color:#000;box-shadow:0 0 8px ${tc}88` : done ? 'background:#374151;color:#9ca3af' : 'background:#111827;color:#4b5563;border:1px solid #1f2937';
+        return `<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;">
+            <div style="width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900;flex-shrink:0;${circleStyle}">${done?'✓':i+1}</div>
+        </div>${i<STEPS.length-1?`<div style="flex:1;height:1px;background:#1f2937;margin-top:10px;max-width:6px;"></div>`:''}`;
+    }).join('');
+
+    // ── helpers ──
+    const palR = {
+        leve:    { bs:'#22c55e', bun:'#14532d55', bg:'#22c55e18', badge:'#4ade8055', bt:'#4ade80' },
+        moderada:{ bs:'#eab308', bun:'#71350055', bg:'#eab30818', badge:'#fbbf2455', bt:'#fbbf24' },
+        pesada:  { bs:'#ef4444', bun:'#7f1d1d55', bg:'#ef444418', badge:'#f8717155', bt:'#f87171' },
+        variavel:{ bs:'#a855f7', bun:'#3b076455', bg:'#a855f718', badge:'#c084fc55', bt:'#c084fc' },
+        extrema: { bs:'#f97316', bun:'#7c2d1255', bg:'#f9731618', badge:'#fb923c55', bt:'#fb923c' },
+    };
+
+    function renderR(items, arr, tipo) {
+        return items.map(item => {
+            const sel = arr.includes(item.id);
+            const pw = item.peso || 'leve';
+            const p  = palR[pw] || palR.leve;
+            return `<div onclick="window._hToggleR('${item.id}','${tipo}')"
+                style="padding:8px;border-radius:10px;border:2px solid ${sel?p.bs:p.bun};background:${sel?p.bg:'transparent'};cursor:pointer;margin-bottom:8px;transition:all .15s">
+                <div style="display:flex;align-items:flex-start;gap:8px;">
+                    <span style="font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;background:${p.badge};color:${p.bt};text-transform:uppercase;flex-shrink:0;margin-top:2px">${pw.substring(0,3).toUpperCase()}</span>
+                    <div style="flex:1;min-width:0">
+                        <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel?p.bs:'#d1d5db'};line-height:1.2">${item.nome} ${sel?`<span style="color:${p.bt}">✓</span>`:''}</div>
+                        <div style="font-size:8px;color:#6b7280;font-style:italic;margin-top:3px;line-height:1.4">${item.desc}</div>
+                        <div style="font-size:8px;font-weight:700;color:${p.bt};margin-top:4px">⚡ ${item.bnf}</div>
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    function renderE(items, arr, tipo, color) {
+        return items.map(item => {
+            const sel = arr.includes(item.id);
+            const afford = pnLeft >= item.pn || sel;
+            const costColor = item.pn >= 3 ? '#f87171' : item.pn >= 2 ? '#fbbf24' : '#6b7280';
+            return `<div onclick="${afford?`window._hToggleE('${item.id}','${tipo}',${item.pn})`:'void(0)'}"
+                style="padding:8px 10px;border-radius:10px;border:2px solid ${sel?color:'#1f2937'};background:${sel?color+'18':'#0f1117'};cursor:${afford?'pointer':'not-allowed'};opacity:${afford?'1':'0.3'};margin-bottom:8px;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
+                    <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel?color:'#d1d5db'}">${item.nome}</span>
+                    <span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${costColor}22;color:${costColor}">${item.pn} P.N</span>
+                    ${sel?`<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${color}33;color:${color}">✓</span>`:''}
+                </div>
+                <div style="font-size:8px;color:#6b7280;line-height:1.4">${item.desc}</div>
+                <div style="font-size:7px;color:#374151;font-style:italic;margin-top:3px">Req: ${item.req}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // ── conteúdo por etapa ──
+    let content = '', canNext = false;
+
+    // ETAPA 0 — CONCEITO
+    if (hb.step === 0) {
+        canNext = hb.nome.trim().length > 0;
+        content = `
+        <div style="padding:16px;background:${tc}0f;border:2px solid ${tc}44;border-radius:14px;text-align:center;margin-bottom:20px">
+            <div style="font-size:24px;margin-bottom:4px">✦</div>
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;color:#fff;text-transform:uppercase;letter-spacing:3px">Conceito do Hatsu</div>
+            <div style="font-size:9px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:2px">Defina a identidade do seu poder</div>
+        </div>
+        <div style="margin-bottom:16px">
+            <label style="display:block;font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">Nome do Hatsu *</label>
+            <input type="text" id="hatsu-nome-input" value="${hb.nome.replace(/"/g,'&quot;')}" placeholder="Ex: Corrente do Aprisionamento..."
+                style="width:100%;background:#0f1117;border:2px solid ${hb.nome?tc:'#1f2937'};border-radius:10px;padding:12px;color:#fff;font-family:'Orbitron',sans-serif;font-weight:700;font-size:12px;text-transform:uppercase;outline:none;box-sizing:border-box;letter-spacing:1px"
+                oninput="window._hUpdateNome(this.value,'${tc}',this)">
+        </div>
+        <div style="margin-bottom:16px">
+            <label style="display:block;font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">Descrição narrativa <span style="color:#374151;font-weight:400;text-transform:none">(opcional)</span></label>
+            <textarea rows="3" placeholder="Como se manifesta? Qual a origem deste poder..."
+                style="width:100%;background:#0f1117;border:2px solid #1f2937;border-radius:10px;padding:12px;color:#9ca3af;font-size:11px;resize:none;outline:none;box-sizing:border-box;line-height:1.5"
+                oninput="state.hatsuBuilder.descricao=this.value">${hb.descricao}</textarea>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Categoria</div>
+                <div style="font-size:10px;font-weight:900;color:${tc}">${cls}</div>
+            </div>
+            <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Nível</div>
+                <div style="font-size:10px;font-weight:900;color:#fff">${char.level}</div>
+            </div>
+            <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Total</div>
+                <div style="font-size:10px;font-weight:900;color:#fff">${pnMax}</div>
+            </div>
+        </div>`;
+    }
+
+    // ETAPA 1 — TIPO
+    else if (hb.step === 1) {
+        canNext = hb.tipo !== '';
+        const tipos = [
+            { id:'hostil',        icon:'⚔️', label:'HOSTIL',        sub:'Dano direto e condições negativas', tip:'Começa com 2d6+Atributo. Focado em ofensa.' },
+            { id:'suporte',       icon:'🛡️', label:'SUPORTE',       sub:'Cura, buffs, sem dano direto',      tip:'Sem 2d6 inicial. Curas: 2d6+CON do alvo.' },
+            { id:'versatil',      icon:'🌀', label:'VERSÁTIL',       sub:'Mescla hostil e suporte',           tip:'Pode causar dano E suportar. Equilibrado.' },
+            { id:'instantaneo',   icon:'⚡', label:'INSTANTÂNEO',    sub:'Efeito no mesmo turno',             tip:'Investe em dano, alcance ou área.' },
+            { id:'longa_duracao', icon:'⏳', label:'LONGA DURAÇÃO',  sub:'Persiste por rodadas',              tip:'Investe em duração, alcance ou CD do TR.' },
+        ];
+        content = `
+        <div style="text-align:center;margin-bottom:16px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Tipo de Hatsu</div>
+            <div style="font-size:9px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Define o foco e o dano inicial</div>
+        </div>
+        ${tipos.map(t => {
+            const sel = hb.tipo === t.id;
+            return `<div onclick="state.hatsuBuilder.tipo='${t.id}';render()"
+                style="padding:12px;border-radius:12px;border:2px solid ${sel?tc:'#1f2937'};background:${sel?tc+'18':'#0f1117'};cursor:pointer;margin-bottom:8px;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
+                    <div style="flex:1">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;color:${sel?tc:'#d1d5db'}">${t.label}</span>
+                            ${sel?`<span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:20px;background:${tc}33;color:${tc}">✓ Selecionado</span>`:''}
+                        </div>
+                        <div style="font-size:9px;color:#6b7280;margin-top:2px">${t.sub}</div>
+                    </div>
+                </div>
+                ${sel?`<div style="font-size:9px;color:${tc}cc;margin-top:8px;padding-left:28px;line-height:1.5">${t.tip}</div>`:''}
+            </div>`;
+        }).join('')}`;
+    }
+
+    // ETAPA 2 — RESTRIÇÕES GERAIS
+    else if (hb.step === 2) {
+        canNext = true;
+        const db = window.HATSU_DB.restricoes_gerais;
+        const grupos = [
+            { key:'leves',    label:'LEVES',    peso:'leve',    cor:'#4ade80', cb:'#22c55e33' },
+            { key:'moderadas',label:'MODERADAS',peso:'moderada',cor:'#fbbf24', cb:'#eab30833' },
+            { key:'pesadas',  label:'PESADAS',  peso:'pesada',  cor:'#f87171', cb:'#ef444433' },
+            { key:'variaveis',label:'VARIÁVEIS',peso:'variavel',cor:'#c084fc', cb:'#a855f733' },
+            { key:'extremas', label:'EXTREMAS', peso:'extrema', cor:'#fb923c', cb:'#f9731633' },
+        ];
+        const totalSel = hb.rg.length;
+        content = `
+        <div style="text-align:center;margin-bottom:12px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições Gerais</div>
+            <div style="font-size:9px;color:#6b7280;margin-top:4px">Disponíveis para qualquer categoria de Nen</div>
+        </div>
+        <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;margin-bottom:12px;font-size:9px;color:#6b7280;line-height:1.5">
+            💡 <span style="color:#fb923c;font-weight:700">Restrições Extremas</span> concedem acesso a efeitos 2 níveis acima. Restrições <span style="font-weight:700;color:#9ca3af">puras</span> convertem o benefício em P.N.
+            <br>Total selecionadas: <span style="color:#fff;font-weight:900">${totalSel}</span>
+        </div>
+        ${grupos.map(g => {
+            const items = (db[g.key]||[]).map(i => ({...i, peso:g.peso}));
+            const cnt = items.filter(i => hb.rg.includes(i.id)).length;
+            return `<details style="margin-bottom:6px" ${cnt>0?'open':''}>
+                <summary style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid ${g.cb};cursor:pointer;list-style:none;border-radius:8px;background:${g.cb}44;margin-bottom:8px">
+                    <span style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:${g.cor}">${g.label}</span>
+                    ${cnt?`<span style="font-size:9px;font-weight:900;padding:2px 8px;border-radius:20px;background:${g.cb};color:${g.cor}">${cnt} sel.</span>`:'<span style="font-size:9px;color:#4b5563">▸</span>'}
+                </summary>
+                ${renderR(items, hb.rg, 'rg')}
+            </details>`;
+        }).join('')}`;
+    }
+
+    // ETAPA 3 — RESTRIÇÕES DA CATEGORIA
+    else if (hb.step === 3) {
+        canNext = true;
+        const items = catDB.restricoes || [];
+        const cnt = hb.rc.length;
+        content = `
+        <div style="text-align:center;margin-bottom:16px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições de ${cls}</div>
+            <div style="font-size:9px;margin-top:4px;font-weight:700;color:${tc}">Específicas para sua categoria · ${cnt} selecionada(s)</div>
+        </div>
+        <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;margin-bottom:12px;font-size:9px;color:#6b7280;line-height:1.5">
+            <span style="color:${tc};font-weight:700">Attr. Principal:</span> ${catDB.attr_princ} &nbsp;•&nbsp;
+            <span style="color:#6b7280">Graus de Potência:</span> ${catDB.graus}
+        </div>
+        ${items.length === 0
+            ? `<div style="text-align:center;color:#374151;font-style:italic;padding:40px 0">Nenhuma restrição específica para ${cls}.</div>`
+            : renderR(items, hb.rc, 'rc')}`;
+    }
+
+    // ETAPA 4 — EFEITOS GERAIS
+    else if (hb.step === 4) {
+        canNext = true;
+        content = `
+        <div style="text-align:center;margin-bottom:12px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Efeitos Gerais</div>
+            <div style="font-size:9px;color:#6b7280;margin-top:3px">Disponíveis para qualquer categoria</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
+            <div>
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Selecionados</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:#fff">${hb.eg.length}</div>
+            </div>
+        </div>
+        ${renderE(window.HATSU_DB.efeitos_gerais, hb.eg, 'eg', '#9ca3af')}`;
+    }
+
+    // ETAPA 5 — EFEITOS DA CATEGORIA
+    else if (hb.step === 5) {
+        canNext = true;
+        content = `
+        <div style="text-align:center;margin-bottom:12px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:2px">Efeitos de ${cls}</div>
+            <div style="font-size:9px;font-weight:700;margin-top:3px;color:${tc}">${catDB.graus}</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
+            <div>
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Attr. Principal</div>
+                <div style="font-size:13px;font-weight:900;color:${tc}">${catDB.attr_princ}</div>
+                <div style="font-size:9px;color:#4b5563">${catDB.attr_sec}</div>
+            </div>
+        </div>
+        ${renderE(catDB.efeitos, hb.ec, 'ec', tc)}`;
+    }
+
+    // ETAPA 6 — RESUMO
+    else if (hb.step === 6) {
+        canNext = hb.nome.trim().length > 0;
+        const allRDB = [
+            ...(window.HATSU_DB.restricoes_gerais.leves||[]).map(r=>({...r,peso:'leve'})),
+            ...(window.HATSU_DB.restricoes_gerais.moderadas||[]).map(r=>({...r,peso:'moderada'})),
+            ...(window.HATSU_DB.restricoes_gerais.pesadas||[]).map(r=>({...r,peso:'pesada'})),
+            ...(window.HATSU_DB.restricoes_gerais.variaveis||[]).map(r=>({...r,peso:'variavel'})),
+            ...(window.HATSU_DB.restricoes_gerais.extremas||[]).map(r=>({...r,peso:'extrema'})),
+        ];
+        const rGSel = hb.rg.map(id => allRDB.find(r=>r.id===id)).filter(Boolean);
+        const rCSel = hb.rc.map(id => catDB.restricoes.find(r=>r.id===id)).filter(Boolean);
+        const efGSel = hb.eg.map(id => window.HATSU_DB.efeitos_gerais.find(e=>e.id===id)).filter(Boolean);
+        const efCSel = hb.ec.map(id => catDB.efeitos.find(e=>e.id===id)).filter(Boolean);
+        const allR = [...rGSel, ...rCSel];
+        const allE = [...efGSel, ...efCSel];
+        const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+        const tipoNames = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+
+        content = `
+        <!-- Cabeçalho do Hatsu -->
+        <div style="text-align:center;padding:20px;border-radius:16px;border:2px solid ${tc};background:${tc}0a;margin-bottom:16px">
+            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;letter-spacing:3px;color:${tc};text-transform:uppercase">${hb.nome||'SEM NOME'}</div>
+            <div style="font-size:9px;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-top:4px">${cls}</div>
+            <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:8px">
+                <span style="font-size:14px">${tipoIcons[hb.tipo]||'✦'}</span>
+                <span style="font-size:10px;font-weight:700;color:#d1d5db">${tipoNames[hb.tipo]||'—'}</span>
+                <span style="color:#374151">•</span>
+                <span style="font-size:10px;color:#6b7280">Nível ${char.level}</span>
+            </div>
+            ${hb.descricao?`<div style="font-size:9px;color:#6b7280;font-style:italic;margin-top:10px;line-height:1.6">"${hb.descricao}"</div>`:''}
+        </div>
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:16px">
+            <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Usados</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:#fff">${pnUsed}<span style="font-size:9px;color:#374151">/${pnMax}</span></div>
+            </div>
+            <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Restrições</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:#fff">${allR.length}</div>
+            </div>
+            <div style="background:#0f1117;border:1px solid ${tc}44;border-radius:10px;padding:10px;text-align:center">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Efeitos</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:${tc}">${allE.length}</div>
+            </div>
+        </div>
+        <!-- Custo base de aura -->
+        <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center">
+            <div>
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700">Tempo de Ativação</div>
+                <div style="font-size:10px;color:#d1d5db;font-weight:700;margin-top:2px">Ação Principal</div>
+            </div>
+            <div style="text-align:right">
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700">Custo de Aura Base</div>
+                <div style="font-size:10px;color:#d1d5db;font-weight:700;margin-top:2px">50% <span style="font-size:8px;color:#4b5563">(ajustado pelas restrições)</span></div>
+            </div>
+        </div>
+        <!-- Restrições -->
+        ${allR.length ? `<div style="margin-bottom:16px">
+            <div style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">⛓ Restrições (${allR.length})</div>
+            ${allR.map(r=>`<div style="display:flex;align-items:flex-start;gap:8px;background:#0f1117;border-radius:8px;padding:8px;border:1px solid #1f2937;margin-bottom:6px">
+                <span style="color:#ef4444;font-size:11px;flex-shrink:0;margin-top:1px">⛓</span>
+                <div>
+                    <div style="font-size:9px;font-weight:700;color:#d1d5db">${r.nome} <span style="font-size:7px;color:#4b5563">(${r.peso||'geral'})</span></div>
+                    <div style="font-size:8px;color:#6b7280;font-style:italic;margin-top:2px">${r.bnf||r.desc}</div>
+                </div>
+            </div>`).join('')}
+        </div>` : ''}
+        <!-- Efeitos -->
+        ${allE.length ? `<div>
+            <div style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">⚡ Efeitos (${allE.length})</div>
+            ${allE.map(e=>`<div style="display:flex;align-items:flex-start;gap:8px;background:#0f1117;border-radius:8px;padding:8px;border:2px solid ${tc}22;margin-bottom:6px">
+                <span style="color:${tc};font-size:11px;flex-shrink:0;margin-top:1px">⚡</span>
+                <div>
+                    <div style="font-size:9px;font-weight:700;color:${tc}">${e.nome} <span style="font-size:8px;color:#4b5563;font-weight:400">(${e.pn} P.N)</span></div>
+                    <div style="font-size:8px;color:#6b7280;margin-top:2px;line-height:1.4">${e.desc}</div>
+                </div>
+            </div>`).join('')}
+        </div>` : ''}`;
+    }
+
+    // ── botões de nav ──
+    const isLast = hb.step === STEPS.length - 1;
+    const btnNext = `<button id="hatsu-next-btn" onclick="window._hNext()"
+        style="${canNext?`background:${tc};color:#000;box-shadow:0 0 18px ${tc}66`:'background:#1f2937;color:#4b5563;opacity:0.55'};flex:1;padding:14px;border-radius:12px;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:2px;border:none;cursor:pointer;transition:all .15s">
+        ${isLast ? '⚔️ FINALIZAR HATSU' : 'PRÓXIMO →'}
+    </button>`;
+    const btnPrev = hb.step > 0
+        ? `<button onclick="window._hPrev()" style="padding:14px 18px;border-radius:12px;background:#111827;color:#9ca3af;border:1px solid #374151;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← VOLTAR</button>`
+        : '';
+
+    // ── render final ──
+    container.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;background:#030712;color:#d1d5db;font-family:'Rajdhani',sans-serif">
+        <!-- HEADER -->
+        <div style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid #111827;background:#0a0f1a;flex-shrink:0">
+            <button onclick="closeHatsuCreator()"
+                style="flex-shrink:0;width:28px;height:28px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#111827;border:1px solid #1f2937;cursor:pointer;color:#6b7280;font-size:14px">✕</button>
+            <div style="display:flex;align-items:center;gap:2px;flex:1">${progressBar}</div>
+            <div style="flex-shrink:0;text-align:right">
+                <div style="font-size:7px;color:#4b5563;text-transform:uppercase;font-weight:700">P.N</div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;line-height:1;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}</div>
+            </div>
+        </div>
+        <!-- STEP LABEL -->
+        <div style="padding:6px 14px;background:#0a0f1a;border-bottom:1px solid #0f1117;flex-shrink:0;display:flex;align-items:center;justify-content:space-between">
+            <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:#4b5563">Etapa ${hb.step+1} / ${STEPS.length}</span>
+            <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:${tc}">${STEPS[hb.step]}</span>
+        </div>
+        <!-- CONTEÚDO -->
+        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar">${content}</div>
+        <!-- RODAPÉ -->
+        <div style="display:flex;gap:10px;padding:14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0">
+            ${btnPrev}${btnNext}
+        </div>
+    </div>`;
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// ── Handlers globais do Hatsu Creator ──
+window._hUpdateNome = function(val, tc, el) {
+    if (!state.hatsuBuilder) return;
+    state.hatsuBuilder.nome = val;
+    if (el) el.style.borderColor = val.trim() ? tc : '#1f2937';
+    // Atualiza visual do botão sem re-renderizar toda a tela
+    const btn = document.querySelector('#hatsu-next-btn');
+    if (btn) {
+        if (val.trim()) {
+            btn.style.background = tc;
+            btn.style.color = '#000';
+            btn.style.opacity = '1';
+            btn.style.boxShadow = '0 0 18px ' + tc + '66';
+        } else {
+            btn.style.background = '#1f2937';
+            btn.style.color = '#4b5563';
+            btn.style.opacity = '0.55';
+            btn.style.boxShadow = 'none';
+        }
+    }
+};
+
+window._hNext = function() {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    // Validação por etapa
+    if (hb.step === 0 && !hb.nome.trim()) {
+        const input = document.getElementById('hatsu-nome-input');
+        if (input) { input.focus(); input.style.borderColor = '#ef4444'; }
+        return;
+    }
+    if (hb.step === 1 && !hb.tipo) {
+        return; // usuário precisa selecionar um tipo — os cards são clicáveis
+    }
+    if (hb.step === 6) {
+        // Salva o hatsu
+        const char = state.currentChar;
+        if (!char.hatsus) char.hatsus = [];
+        const catDB = window.HATSU_DB.categorias[char.class];
+        let pnUsed = 0;
+        hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed+=e.pn; });
+        hb.ec.forEach(id => { if(catDB){ const e=catDB.efeitos.find(x=>x.id===id); if(e) pnUsed+=e.pn; } });
+        const hatsuData = {
+            id: (hb.editingIdx !== undefined ? char.hatsus[hb.editingIdx].id : null) || ('hatsu_' + Date.now()),
+            nome: hb.nome,
+            descricao: hb.descricao,
+            tipo: hb.tipo,
+            restricoes: [...hb.rg, ...hb.rc],
+            efeitos: [...hb.eg, ...hb.ec],
+            pnUsados: pnUsed,
+            nivel: char.level,
+            classe: char.class,
+            criadoEm: (hb.editingIdx !== undefined ? char.hatsus[hb.editingIdx].criadoEm : null) || new Date().toLocaleDateString('pt-BR')
+        };
+        if (hb.editingIdx !== undefined) {
+            char.hatsus[hb.editingIdx] = hatsuData;
+        } else {
+            char.hatsus.push(hatsuData);
+        }
+        saveCharacter(char);
+        state.hatsuBuilder = null;
+        state.view = 'SHEET';
+        state.activeTab = 'NEN';
+        render();
+        return;
+    }
+    hb.step++;
+    render();
+};
+window._hPrev = function() {
+    const hb = state.hatsuBuilder; if (!hb || hb.step === 0) return;
+    hb.step--;
+    render();
+};
+window._hToggleR = function(id, tipo) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    const arr = tipo === 'rg' ? hb.rg : hb.rc;
+    const idx = arr.indexOf(id);
+    if (idx > -1) arr.splice(idx, 1); else arr.push(id);
+    render();
+};
+window._hToggleE = function(id, tipo, pn) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    const arr = tipo === 'eg' ? hb.eg : hb.ec;
+    const idx = arr.indexOf(id);
+    if (idx > -1) {
+        arr.splice(idx, 1);
+    } else {
+        // Verifica P.N
+        let used = 0;
+        hb.eg.forEach(eid => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===eid); if(e) used+=e.pn; });
+        const cls = state.currentChar.class;
+        hb.ec.forEach(eid => { const cat = window.HATSU_DB.categorias[cls]; if(cat){ const e=cat.efeitos.find(x=>x.id===eid); if(e) used+=e.pn; } });
+        if (used + pn > window.calcularPHBase(state.currentChar.level)) return;
+        arr.push(id);
+    }
+    render();
+};
+
+// ── renderCard (legado — mantido para compatibilidade) ──
+function renderCard(item, color) {
+    return `<div style="padding:8px;border-radius:8px;border:1px solid #1f2937;background:#0f1117">
+        <div style="font-size:9px;font-weight:700;color:#d1d5db;text-transform:uppercase;margin-bottom:4px">${item.nome}</div>
+        <div style="font-size:8px;color:#6b7280;font-style:italic;margin-bottom:4px">${item.desc}</div>
+        ${item.bnf?`<div style="font-size:8px;font-weight:700;color:#9ca3af">⚡ ${item.bnf}</div>`:''}
+    </div>`;
+}
         function renderCreator(container) {
              if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] }, fagogenese: null }; }
             const step = state.creatorStep;
@@ -1493,7 +2078,64 @@
                 
                 let bonusHtml = '';
                 if (bonusReq) {
-                    bonusHtml = `<div class="bg-gray-900 rounded-xl p-4 border border-neon-theme shadow-[0_0_15px_rgba(var(--theme-rgb),0.1)] mb-4 animate-in fade-in zoom-in duration-300"><div class="flex items-center gap-2 mb-3 text-neon-theme border-b border-neon-theme/30 pb-2"><i data-lucide="gift" size="18"></i><h3 class="font-bold uppercase text-xs tracking-widest">Alocação de Bônus (${state.tempChar.race})</h3></div>${bonusReq.type === 'wildcard' ? `<p class="text-[10px] text-gray-400 mb-3">Distribua <span class="text-white font-bold">${bonusReq.amount}</span> pontos entre seus atributos.</p><div class="grid grid-cols-3 gap-2">${Object.keys(state.tempChar.attributes).map(attr => { const current = state.allocations[attr] || 0; return `<div class="flex flex-col items-center bg-black/30 rounded p-2 border border-gray-800"><span class="text-[9px] text-gray-500 font-bold mb-1">${attr}</span><div class="flex items-center gap-2"><button onclick="updateAllocation('${attr}', -1, ${bonusReq.amount})" class="text-gray-500 hover:text-white ${current <= 0 ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="minus" size="12"></i></button><span class="font-bold text-white text-sm w-3 text-center">${current}</span><button onclick="updateAllocation('${attr}', 1, ${bonusReq.amount})" class="text-neon-theme hover:brightness-125 ${allocatedTotal >= bonusReq.amount ? 'opacity-20 cursor-not-allowed' : ''}"><i data-lucide="plus" size="12"></i></button></div></div>`; }).join('')}</div><div class="mt-2 text-right text-[10px] font-bold ${allocatedTotal === bonusReq.amount ? 'text-neon-green' : 'text-neon-yellow'}">${allocatedTotal} / ${bonusReq.amount} Pontos</div>` : ''}${bonusReq.type === 'choice' ? `<p class="text-[10px] text-gray-400 mb-3">Escolha onde aplicar +${bonusReq.amount}.</p><div class="flex gap-2">${bonusReq.keys.map(attr => { const isSelected = state.allocations[attr] === bonusReq.amount; return `<button onclick="updateChoiceAllocation('${attr}', ${bonusReq.amount})" class="flex-1 py-2 rounded border font-bold text-xs transition-all ${isSelected ? 'bg-neon-theme text-black border-neon-theme' : 'bg-gray-800 text-gray-400 border-gray-700 hover:bg-gray-700'}">${attr} +${bonusReq.amount}</button>`; }).join('')}</div>` : ''}</div>`;
+                    const tc2 = `var(--theme-color, #00ff9d)`;
+                    if (bonusReq.type === 'wildcard') {
+                        const remaining = bonusReq.amount - allocatedTotal;
+                        const attrs = Object.keys(state.tempChar.attributes);
+                        bonusHtml = `
+                        <div style="background:#0d1421;border:2px solid var(--theme-color,#00ff9d);border-radius:16px;padding:16px;margin-bottom:16px">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+                                <div>
+                                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;color:var(--theme-color,#00ff9d);text-transform:uppercase;letter-spacing:2px">🎁 Bônus Racial</div>
+                                    <div style="font-size:9px;color:#6b7280;margin-top:2px">Distribua os pontos entre seus atributos</div>
+                                </div>
+                                <div style="text-align:right">
+                                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;line-height:1;color:${remaining > 0 ? '#fbbf24' : '#4ade80'}">${remaining}</div>
+                                    <div style="font-size:8px;color:#4b5563;font-weight:700;text-transform:uppercase">restante${remaining !== 1 ? 's' : ''}</div>
+                                </div>
+                            </div>
+                            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                                ${attrs.map(attr => {
+                                    const cur = state.allocations[attr] || 0;
+                                    const canAdd = remaining > 0;
+                                    const canSub = cur > 0;
+                                    const baseVal = state.tempChar.attributes[attr];
+                                    return `<div style="background:#0a0f1a;border:2px solid ${cur > 0 ? 'var(--theme-color,#00ff9d)' : '#1f2937'};border-radius:12px;padding:12px 8px;text-align:center;transition:border-color .15s">
+                                        <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">${attr}</div>
+                                        <div style="font-size:9px;color:#374151;margin-bottom:8px">(base: ${baseVal})</div>
+                                        <div style="display:flex;align-items:center;justify-content:center;gap:0">
+                                            <button onclick="updateAllocation('${attr}', -1, ${bonusReq.amount})"
+                                                style="width:30px;height:30px;border-radius:8px 0 0 8px;background:${canSub ? '#1f2937' : '#0d1117'};border:1px solid ${canSub ? '#374151' : '#111827'};color:${canSub ? '#f87171' : '#1f2937'};font-size:16px;font-weight:900;cursor:${canSub ? 'pointer' : 'not-allowed'};display:flex;align-items:center;justify-content:center;line-height:1;transition:all .1s">−</button>
+                                            <div style="min-width:32px;height:30px;display:flex;align-items:center;justify-content:center;background:#060a10;border-top:1px solid #1f2937;border-bottom:1px solid #1f2937">
+                                                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;color:${cur > 0 ? 'var(--theme-color,#00ff9d)' : '#fff'}">${cur > 0 ? '+' : ''}${cur}</span>
+                                            </div>
+                                            <button onclick="updateAllocation('${attr}', 1, ${bonusReq.amount})"
+                                                style="width:30px;height:30px;border-radius:0 8px 8px 0;background:${canAdd ? '#1f2937' : '#0d1117'};border:1px solid ${canAdd ? '#374151' : '#111827'};color:${canAdd ? 'var(--theme-color,#00ff9d)' : '#1f2937'};font-size:16px;font-weight:900;cursor:${canAdd ? 'pointer' : 'not-allowed'};display:flex;align-items:center;justify-content:center;line-height:1;transition:all .1s">+</button>
+                                        </div>
+                                    </div>`;
+                                }).join('')}
+                            </div>
+                            <div style="margin-top:12px;height:6px;background:#111827;border-radius:99px;overflow:hidden">
+                                <div style="height:100%;width:${Math.round((allocatedTotal/bonusReq.amount)*100)}%;background:var(--theme-color,#00ff9d);border-radius:99px;transition:width .3s;box-shadow:0 0 8px var(--theme-color,#00ff9d)"></div>
+                            </div>
+                            <div style="margin-top:4px;text-align:right;font-size:9px;font-weight:700;color:${allocatedTotal === bonusReq.amount ? '#4ade80' : '#fbbf24'}">${allocatedTotal} / ${bonusReq.amount} pontos alocados</div>
+                        </div>`;
+                    } else if (bonusReq.type === 'choice') {
+                        bonusHtml = `
+                        <div style="background:#0d1421;border:2px solid var(--theme-color,#00ff9d);border-radius:16px;padding:16px;margin-bottom:16px">
+                            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;color:var(--theme-color,#00ff9d);text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">🎁 Bônus Racial</div>
+                            <div style="font-size:9px;color:#6b7280;margin-bottom:12px">Escolha um atributo para receber +${bonusReq.amount}</div>
+                            <div style="display:flex;flex-wrap:wrap;gap:8px">
+                                ${bonusReq.keys.map(attr => {
+                                    const isSel = (state.allocations[attr]||0) === bonusReq.amount;
+                                    return `<button onclick="updateChoiceAllocation('${attr}', ${bonusReq.amount})"
+                                        style="flex:1;min-width:60px;padding:10px 8px;border-radius:10px;border:2px solid ${isSel ? 'var(--theme-color,#00ff9d)' : '#1f2937'};background:${isSel ? 'rgba(var(--theme-rgb,0,255,157),0.15)' : '#0a0f1a'};color:${isSel ? 'var(--theme-color,#00ff9d)' : '#9ca3af'};font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;cursor:pointer;text-align:center;transition:all .15s">
+                                        ${attr}<br><span style="font-size:12px">+${bonusReq.amount}</span>
+                                    </button>`;
+                                }).join('')}
+                            </div>
+                        </div>`;
+                    }
                 }
 
                 contentHtml = `<div class="space-y-6"><div class="text-center"><h2 class="text-3xl font-display font-bold text-white mb-1">${state.tempChar.name || 'Sem Nome'}</h2><span class="bg-[${color}]/20 text-[${color}] px-3 py-1 rounded text-[10px] font-bold uppercase tracking-widest border border-[${color}]/30">${state.tempChar.class}</span></div>${bonusHtml}<div class="bg-gray-900 rounded-xl p-4 border border-gray-800 space-y-4"><div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Raça</span><span class="text-sm font-bold text-white">${state.tempChar.race}</span></div><div class="flex justify-between border-b border-gray-800 pb-2"><span class="text-xs text-gray-500 uppercase">Antecedente</span><span class="text-sm font-bold text-white">${state.tempChar.background || '-'}</span></div>${state.tempChar.raceTraits && state.tempChar.raceTraits.length > 0 ? `<div><span class="text-xs text-gray-500 uppercase block mb-2">Traços Raciais Selecionados</span><div class="flex flex-wrap gap-1">${state.tempChar.raceTraits.map(t => { 
@@ -1558,19 +2200,71 @@
                 const sections = [ { id: 'personality', label: 'Personalidade', icon: 'fingerprint' }, { id: 'history', label: 'História', icon: 'scroll' }, { id: 'organizations', label: 'Organizações', icon: 'building-2' }, { id: 'enemies', label: 'Inimigos', icon: 'skull' }, { id: 'allies', label: 'Aliados', icon: 'heart-handshake' } ];
                 tabContent = `<div class="p-4 space-y-3"><div class="text-center mb-4"><h2 class="text-lg font-display font-bold text-white uppercase tracking-widest">Biografia</h2><p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Informações Detalhadas</p></div>${sections.map(section => { const isOpen = state.bioAccordionOpen === section.id; const isPersonality = section.id === 'personality'; let hasContent = false; if (isPersonality) { hasContent = (bioData.personality_traits || bioData.personality_goals || bioData.personality_hates || bioData.personality_likes || bioData.personality); } else { hasContent = bioData[section.id] && bioData[section.id].trim().length > 0; } const borderColor = isOpen ? `border-[${themeColor}]` : 'border-gray-800'; const headerColor = isOpen ? `text-[${themeColor}]` : (hasContent ? 'text-white' : 'text-gray-500'); const renderSubField = (key, label, placeholder, legacyVal = '') => `<div class="mb-3 last:mb-0 w-full"><label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-1 block pl-1">${label}</label><textarea class="w-full h-20 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="${placeholder}" onblur="updateBio('${key}', this.value)">${bioData[key] || legacyVal || ''}</textarea></div>`; return `<div class="bg-gray-900 border ${borderColor} rounded-xl transition-all duration-300"><div onclick="toggleBioAccordion('${section.id}')" class="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-800/50 rounded-xl"><div class="flex items-center gap-3"><div class="bg-gray-950 p-2 rounded-lg border border-gray-800"><i data-lucide="${section.icon}" size="18" class="${headerColor}"></i></div><div><h3 class="font-display font-bold text-sm uppercase tracking-wider ${headerColor}">${section.label}</h3>${hasContent && !isOpen ? '<span class="text-[8px] text-gray-500 bg-gray-950 px-1.5 py-0.5 rounded border border-gray-800 font-bold uppercase tracking-widest">Preenchido</span>' : ''}</div></div><div class="transition-transform duration-300 ${isOpen ? 'rotate-180 text-white' : 'text-gray-600'}"><i data-lucide="chevron-down" size="18"></i></div></div><div class="accordion-content ${isOpen ? 'open' : ''}"><div class="px-4 pb-4"><div class="h-px w-full bg-gray-800 mb-3"></div>${isPersonality ? `${renderSubField('personality_traits', 'Traços de Personalidade', 'Descreva como seu personagem se comporta...', bioData.personality)}${renderSubField('personality_goals', 'Sonho / Objetivo', 'Qual o maior desejo do seu personagem?')}<div class="flex gap-3">${renderSubField('personality_hates', 'O que odeio', 'O que te tira do sério...')}${renderSubField('personality_likes', 'O que gosto', 'O que te agrada...')}</div>` : `<textarea class="w-full h-32 bg-gray-950 border border-gray-800 rounded-lg p-3 text-xs text-gray-300 focus:border-[${themeColor}] focus:shadow-[0_0_10px_rgba(var(--theme-rgb),0.1)] transition-all custom-scrollbar resize-none leading-relaxed" placeholder="Escreva aqui..." onblur="updateBio('${section.id}', this.value)">${bioData[section.id] || ''}</textarea>`}</div></div></div>`; }).join('')}</div>`;
             } else if (state.activeTab === 'NEN') {
+                //Menu Nen
                 const diagramHtml = renderNenHexagon(char.class, false);
                 const currentClass = SYSTEM_DB.classes.find(c => c.id === char.class);
-                
+                const catDB = window.HATSU_DB && window.HATSU_DB.categorias[char.class];
+                const catColor = catDB ? catDB.cor : themeColor;
+                const savedHatsus = char.hatsus || [];
+
+                // Build hatsus list HTML
+                let hatsuListHtml = '';
+                if (savedHatsus.length > 0) {
+                    const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+                    hatsuListHtml = `<div style="width:100%;padding:0 4px;margin-bottom:16px">
+                        <div style="font-size:9px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;text-align:center">⚡ Hatsus Criados</div>
+                        ${savedHatsus.map((h, idx) => {
+                            const pnMax = window.calcularPHBase ? window.calcularPHBase(h.nivel||1) : 6;
+                            const efTotal = (h.efeitos||[]).length;
+                            const rTotal  = (h.restricoes||[]).length;
+                            return `<div onclick="openHatsuDetail(${idx})" style="background:#0a0f1a;border:2px solid ${catColor}44;border-radius:14px;padding:14px;margin-bottom:10px;position:relative;cursor:pointer;transition:border-color .2s,box-shadow .2s" onmouseover="this.style.borderColor='${catColor}99';this.style.boxShadow='0 0 16px ${catColor}22'" onmouseout="this.style.borderColor='${catColor}44';this.style.boxShadow='none'">
+                                <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+                                    <div style="flex:1;min-width:0">
+                                        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:${catColor};text-transform:uppercase;letter-spacing:1px;line-height:1.2">${h.nome||'Sem nome'}</div>
+                                        <div style="font-size:8px;color:#4b5563;margin-top:3px">${tipoIcons[h.tipo]||'✦'} ${h.tipo||'—'} · Nível ${h.nivel||'?'} · ${h.criadoEm||''}</div>
+                                    </div>
+                                    <button onclick="event.stopPropagation();if(confirm('Remover este hatsu?')){ state.currentChar.hatsus.splice(${idx},1); saveCharacter(state.currentChar); render(true); }"
+                                        style="flex-shrink:0;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#6b7280;font-size:11px;padding:4px 8px;cursor:pointer;line-height:1">✕</button>
+                                </div>
+                                ${h.descricao?`<div style="font-size:9px;color:#6b7280;font-style:italic;margin-bottom:8px;line-height:1.5">"${h.descricao}"</div>`:''}
+                                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+                                    <div style="background:#111827;border-radius:8px;padding:6px;text-align:center">
+                                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700">P.N</div>
+                                        <div style="font-weight:900;color:#fff;font-size:13px">${h.pnUsados||0}<span style="color:#374151;font-size:8px">/${pnMax}</span></div>
+                                    </div>
+                                    <div style="background:#111827;border-radius:8px;padding:6px;text-align:center">
+                                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700">Efeit.</div>
+                                        <div style="font-weight:900;color:${catColor};font-size:13px">${efTotal}</div>
+                                    </div>
+                                    <div style="background:#111827;border-radius:8px;padding:6px;text-align:center">
+                                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700">Restr.</div>
+                                        <div style="font-weight:900;color:#ef4444;font-size:13px">${rTotal}</div>
+                                    </div>
+                                </div>
+                                <div style="text-align:right;font-size:8px;color:#374151;font-weight:700;text-transform:uppercase;letter-spacing:1px">Ver detalhes ›</div>
+                            </div>`;
+                        }).join('')}
+                    </div>`;
+                }
+
                 tabContent = `
-                    <div class="p-6 h-full flex flex-col items-center justify-center">
-                        <div class="text-center mb-6">
-                            <h3 class="text-3xl font-display font-black tracking-widest uppercase drop-shadow-[0_0_15px_${themeColor}80]" style="color: ${themeColor}; text-shadow: 0 0 10px ${themeColor}40;">${char.class}</h3>
+                    <div class="p-4 h-full flex flex-col items-center" style="overflow-y:auto">
+                        <div class="text-center mb-4" style="width:100%">
+                            <h3 class="text-2xl font-display font-black tracking-widest uppercase" style="color:${themeColor};text-shadow:0 0 10px ${themeColor}40">${char.class}</h3>
                         </div>
                         
                         ${diagramHtml}
 
-                        <div class="text-center px-4 bg-gray-900/50 p-4 rounded-xl border border-gray-800/50 max-w-sm mx-auto">
-                            <p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p>
+                        <div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50 max-w-sm mx-auto mb-6">
+                            <p class="text-xs font-medium text-gray-400 italic">"${currentClass.desc}"</p>
+                        </div>
+
+                        ${hatsuListHtml}
+
+                        <div class="btn-hatsu-container" style="width:100%;padding:0 4px">
+                            <button class="btn-hatsu" onclick="openHatsuCreator()">
+                                <span class="text-xl">+</span> CRIAR HATSU
+                            </button>
                         </div>
                     </div>`;
             } else if (state.activeTab === 'TRACOS') {
@@ -1730,6 +2424,376 @@
         function clearHistory() { if(confirm('Limpar histórico?')) { state.currentChar.history = []; saveCharacter(state.currentChar); render(true); } }
         function toggleBioAccordion(id) { state.bioAccordionOpen = state.bioAccordionOpen === id ? null : id; render(true); }
         function updateBio(field, val) { if (!state.currentChar.bio) state.currentChar.bio = {}; state.currentChar.bio[field] = val; saveCharacter(state.currentChar); render(true); }
+
+// ══════════════════════════════════════════════════════════
+//  renderHatsuDetail — tela de visualização do Hatsu
+// ══════════════════════════════════════════════════════════
+function renderHatsuDetail(container) {
+    const char  = state.currentChar;
+    const idx   = state.hatsuDetailIdx || 0;
+    const h     = (char.hatsus || [])[idx];
+    if (!h) { state.view = 'SHEET'; state.activeTab = 'NEN'; render(); return; }
+
+    const catDB = (window.HATSU_DB && window.HATSU_DB.categorias[h.classe]) ||
+                  (window.HATSU_DB && window.HATSU_DB.categorias[char.class]) || {};
+    const tc    = catDB.cor || '#00ff88';
+    const pnMax = window.calcularPHBase ? window.calcularPHBase(h.nivel||1) : 6;
+
+    const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+    const tipoNames = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+
+    // Resolve nomes completos das restrições
+    const allRDB = [];
+    if (window.HATSU_DB) {
+        const rg = window.HATSU_DB.restricoes_gerais;
+        ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => {
+            (rg[k]||[]).forEach(r => allRDB.push({...r, grupo:k}));
+        });
+        if (catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push({...r, grupo:'categoria'}));
+    }
+    const allEDB = [];
+    if (window.HATSU_DB) {
+        (window.HATSU_DB.efeitos_gerais||[]).forEach(e => allEDB.push({...e, origem:'geral'}));
+        if (catDB.efeitos) catDB.efeitos.forEach(e => allEDB.push({...e, origem:'categoria'}));
+    }
+
+    const restricoesSel = (h.restricoes||[]).map(id => allRDB.find(r=>r.id===id)).filter(Boolean);
+    const efeitosSel    = (h.efeitos||[]).map(id => allEDB.find(e=>e.id===id)).filter(Boolean);
+
+    // ── Cálculo de Dano Final ──────────────────────────────────────────────────
+    const DAMAGE_TABLE = [
+        '1d4','1d6','1d8','2d4','1d10','1d12',
+        '2d6',  // ← índice 6 (base)
+        '3d4','2d8','4d4','3d6','2d10','5d4','2d12',
+        '3d8','4d6','6d4','7d4','3d10','5d6','4d8',
+        '3d12','8d4','6d6','9d4','4d10','10d4','4d12',
+        '5d8','7d6','6d8','8d6','5d10','9d6','7d8',
+        '5d12','6d10','10d6','8d8','7d10','6d12','9d8',
+        '8d10','10d8','7d12','9d10','8d12','10d10','9d12',
+        '10d12'
+    ];
+    const BASE_DAMAGE_IDX = 6; // 2d6
+
+    // Graus de dano concedidos por restrições/efeitos específicos
+    const DANO_GRAU_MAP = {
+        // Restrições gerais
+        'rg_l1':  1,  // Cálculo Pensado 1 → +1 Grau/Passo
+        'rg_l7':  1,  // "Diálogo" → +1 Grau/Passo Dano
+        'rg_m1':  2,  // Alvo Único em Combate → +2 Grau/Passo Dano
+        'rg_m13': 2,  // Zetsu Protetivo → +2 Grau/Passo (inclui dano)
+        'rg_v2':  1,  // Canalizar com Concentração → +X (mín 1)
+        // Restrições de categoria
+        'ri_l1':  1,  // PV < 75% → +1 grau/passo dano
+        'rt_m1':  2,  // Dor Reflexiva Elemental → +2 Graus
+        // Efeitos gerais com dano
+        'eg10':   0,  // Flagelo da Mente → dano psíquico fixo 1d8 (tratado à parte)
+        'eg15':   1,  // Dano/Cura Focal → +1 grau/passo
+        // Efeitos de Intensificação (graus de dano)
+        'ri_e1':  1,'ri_e2': 1,'ri_e3': 2,'ri_e4': 2,'ri_e6': 1,'ri_e8': 2,'ri_e10': 2,
+        'ri_e12': 3,'ri_e16': 2,'ri_e20': 3,'ri_e22': 3,'ri_e24': 4,'ri_e26': 4,'ri_e30': 5,
+    };
+
+    // Efeitos que CONCEDEM dano próprio (tornam o hatsu "com dano" independente do tipo)
+    // Estrutura: id → { dado, desc }
+    const DANO_PROPRIO_MAP = {
+        'eg10':   { dado: '1d8',      tipo: 'Psíquico',   desc: 'Flagelo da Mente' },
+        'eg17':   { dado: '(contínuo)',tipo: 'Contínuo',   desc: 'Dor pra Disgrama!' },
+        'ri_e11': { dado: '+ 1d8',    tipo: 'Extra',      desc: 'Golpe Reforçado' },
+        'ri_e13': { dado: '+ 1d(maior)',tipo:'Bloquear',   desc: 'Onda Surda' },
+        'ri_e20': { dado: '+ 1d6',    tipo: 'Extra',      desc: 'Fúria Potencializada' },
+        'rm_e1':  { dado: '1d4',      tipo: 'Objeto',     desc: 'Materialização Simples' },
+        'rm_e9':  { dado: '1d8',      tipo: 'Corporal',   desc: 'Alteração Corporal' },
+        'em_e1':  { dado: '1d8',      tipo: 'Projétil',   desc: 'Projétil de Aura' },
+        'em_e3':  { dado: '2d6',      tipo: 'Potente',    desc: 'Disparo Potente' },
+        'em_e6':  { dado: '3d6',      tipo: 'Linha',      desc: 'Canhão de Aura' },
+        'em_e9':  { dado: '4d6',      tipo: 'Área',       desc: 'Bomba de Aura' },
+        'rt_e16': { dado: '+5 dano',  tipo: 'Ferida',     desc: 'Ferida Interna' },
+    };
+
+    // Tipos e categorias que têm dano base (2d6 + attr)
+    const tipoTemDano = ['hostil','versatil','instantaneo'];
+    const catTemDano  = ['INTENSIFICAÇÃO','REFORÇO','TRANSMUTAÇÃO','EMISSÃO'];
+    const isHostil    = tipoTemDano.includes(h.tipo);
+    const catDmg      = catTemDano.some(c => c === (h.classe||char.class));
+
+    // Verifica se algum efeito selecionado concede dano próprio
+    const efeitosComDanoProprio = efeitosSel.filter(e => DANO_PROPRIO_MAP[e.id] && e.id !== 'eg10');
+    const temFlagelo = efeitosSel.some(e => e.id === 'eg10');
+    const hasEfeitoDano = efeitosComDanoProprio.length > 0 || temFlagelo;
+
+    // Hatsu tem dano base se: tipo hostil/versátil/instantâneo, OU categoria ofensiva, OU tem efeito com dano
+    const hasBaseDmg = isHostil || catDmg || hasEfeitoDano;
+
+    // Calcula graus totais de dano (só aplica se há dano base)
+    let totalGraus = 0;
+    const grauSources = [];
+    [...restricoesSel, ...efeitosSel].forEach(item => {
+        const g = DANO_GRAU_MAP[item.id];
+        if (g && g > 0) {
+            totalGraus += g;
+            grauSources.push({ nome: item.nome, graus: g });
+        }
+    });
+
+    // Atributo base pelo tipo/categoria
+    const attrMap = {
+        'INTENSIFICAÇÃO':'FOR','REFORÇO':'FOR',
+        'TRANSMUTAÇÃO':'DES','EMISSÃO':'INT',
+        'MATERIALIZAÇÃO':'INT','MANIPULAÇÃO':'CAR',
+        'ESPECIALIZAÇÃO':'CAR',
+    };
+    const baseAttr = attrMap[h.classe||char.class] || 'FOR';
+
+    let calcDanoHtml = '';
+    if (hasBaseDmg) {
+        const danoColor = totalGraus > 0 ? '#f87171' : '#d1d5db';
+        const grauDelta = totalGraus > 0 ? `+${totalGraus}` : totalGraus < 0 ? `${totalGraus}` : '';
+
+        // Bloco de dano base (2d6 escalado)
+        let baseDmgSection = '';
+        if (isHostil || catDmg) {
+            const finalIdx = Math.min(BASE_DAMAGE_IDX + totalGraus, DAMAGE_TABLE.length - 1);
+            const finalDice = DAMAGE_TABLE[finalIdx];
+            baseDmgSection = `
+                <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;color:${danoColor};text-shadow:0 0 14px ${danoColor}66;line-height:1">${finalDice}</div>
+                    <div style="font-size:14px;font-weight:700;color:#6b7280">+ ${baseAttr}</div>
+                    ${totalGraus > 0 ? `<div style="font-size:9px;color:#4b5563;font-style:italic">(base 2d6)</div>` : ''}
+                </div>`;
+        }
+
+        // Danos extras de efeitos próprios
+        let extraDmgSection = '';
+        if (temFlagelo) {
+            extraDmgSection += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#a78bfa">1d8</span>
+                <span style="font-size:10px;color:#7c3aed;font-weight:700">Psíquico</span>
+                <span style="font-size:9px;color:#4b5563">Flagelo da Mente</span>
+            </div>`;
+        }
+        efeitosComDanoProprio.forEach(e => {
+            const d = DANO_PROPRIO_MAP[e.id];
+            if (!d) return;
+            const typeColors = { 'Projétil':'#38bdf8','Potente':'#38bdf8','Linha':'#38bdf8','Área':'#f87171','Objeto':'#a3e635','Corporal':'#a3e635','Extra':'#fb923c','Bloquear':'#fb923c','Contínuo':'#f43f5e','Ferida':'#f43f5e' };
+            const ec = typeColors[d.tipo] || '#9ca3af';
+            extraDmgSection += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:${ec}">${d.dado}</span>
+                <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:${ec}22;color:${ec}">${d.tipo}</span>
+                <span style="font-size:9px;color:#4b5563">${d.desc}</span>
+            </div>`;
+        });
+
+        // Chips de fontes de grau
+        const sourcesHtml = grauSources.length > 0
+            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${grauSources.map(s =>
+                `<span style="font-size:7px;font-weight:900;background:#ef444418;color:#f87171;padding:2px 6px;border-radius:4px">+${s.graus} grau · ${s.nome}</span>`
+              ).join('')}</div>`
+            : '';
+
+        calcDanoHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px">💥 Dano Final</div>
+                ${grauDelta ? `<span style="font-size:7px;font-weight:900;padding:2px 8px;border-radius:10px;background:#ef444422;color:#f87171">${grauDelta} grau${Math.abs(totalGraus)!==1?'s':''}</span>` : ''}
+            </div>
+            ${baseDmgSection}
+            ${extraDmgSection}
+            ${sourcesHtml}
+        </div>`;
+    }
+    // ── Fim cálculo de dano ────────────────────────────────────────────────────
+
+    const palBadge = {
+        leves:    {bg:'#22c55e22',tc:'#4ade80',label:'LEVE'},
+        moderadas:{bg:'#eab30822',tc:'#fbbf24',label:'MOD'},
+        pesadas:  {bg:'#ef444422',tc:'#f87171',label:'PES'},
+        variaveis:{bg:'#a855f722',tc:'#c084fc',label:'VAR'},
+        extremas: {bg:'#f9731622',tc:'#fb923c',label:'EXT'},
+        categoria:{bg:'#ffffff11',tc:'#9ca3af', label:'CAT'},
+    };
+
+    const rHtml = restricoesSel.length
+        ? restricoesSel.map(r => {
+            const p = palBadge[r.grupo] || palBadge.categoria;
+            return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:1px solid #1f2937;margin-bottom:8px">
+                <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${p.bg};color:${p.tc};text-transform:uppercase;flex-shrink:0;margin-top:2px;letter-spacing:1px">${p.label}</span>
+                <div>
+                    <div style="font-size:11px;font-weight:700;color:#e5e7eb;margin-bottom:3px">${r.nome}</div>
+                    <div style="font-size:9px;color:#6b7280;line-height:1.5;margin-bottom:4px">${r.desc}</div>
+                    <div style="font-size:9px;font-weight:700;color:${p.tc}">⚡ ${r.bnf}</div>
+                </div>
+            </div>`;
+          }).join('')
+        : `<div style="text-align:center;color:#374151;font-style:italic;font-size:11px;padding:20px">Nenhuma restrição selecionada.</div>`;
+
+    const eHtml = efeitosSel.length
+        ? efeitosSel.map(e => {
+            const isGeral = e.origem === 'geral';
+            const ec = isGeral ? '#9ca3af' : tc;
+            const costColor = (e.pn||1) >= 3 ? '#f87171' : (e.pn||1) >= 2 ? '#fbbf24' : '#6b7280';
+            return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:2px solid ${ec}22;margin-bottom:8px">
+                <div style="flex-shrink:0;margin-top:2px">
+                    <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${costColor}22;color:${costColor};letter-spacing:1px">${e.pn||1} P.N</span>
+                </div>
+                <div>
+                    <div style="font-size:11px;font-weight:700;color:${ec};margin-bottom:3px">${e.nome}</div>
+                    <div style="font-size:9px;color:#6b7280;line-height:1.5;margin-bottom:4px">${e.desc}</div>
+                    <div style="font-size:8px;color:#374151;font-style:italic">Req: ${e.req||'—'}</div>
+                </div>
+            </div>`;
+          }).join('')
+        : `<div style="text-align:center;color:#374151;font-style:italic;font-size:11px;padding:20px">Nenhum efeito selecionado.</div>`;
+
+    container.innerHTML = `
+    <div style="display:flex;flex-direction:column;height:100%;background:#030712;color:#d1d5db;font-family:'Rajdhani',sans-serif">
+        <!-- HEADER -->
+        <div style="display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid #111827;background:#0a0f1a;flex-shrink:0">
+            <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
+                style="flex-shrink:0;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#111827;border:1px solid #1f2937;cursor:pointer;color:#9ca3af;font-size:16px;font-weight:900">←</button>
+            <div style="flex:1;min-width:0">
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:${tc};text-transform:uppercase;letter-spacing:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${h.nome||'Hatsu'}</div>
+                <div style="font-size:8px;color:#4b5563;margin-top:1px">${h.classe||char.class} · ${tipoNames[h.tipo]||'—'} · Nível ${h.nivel||'?'}</div>
+            </div>
+            <button onclick="openHatsuEdit(${idx})"
+                style="flex-shrink:0;padding:7px 14px;border-radius:8px;background:${tc}22;border:1px solid ${tc}55;color:${tc};font-family:'Orbitron',sans-serif;font-weight:900;font-size:9px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">✏️ Editar</button>
+        </div>
+
+        <!-- CONTEÚDO SCROLLÁVEL -->
+        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar">
+
+            <!-- Card principal -->
+            <div style="text-align:center;padding:20px 16px;border-radius:16px;border:2px solid ${tc};background:${tc}08;margin-bottom:16px">
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:20px;color:${tc};text-transform:uppercase;letter-spacing:2px;line-height:1.2;margin-bottom:6px">${h.nome||'SEM NOME'}</div>
+                <div style="display:inline-flex;align-items:center;gap:6px;background:#ffffff08;border-radius:20px;padding:5px 12px;margin-bottom:${h.descricao?'12px':'0'}">
+                    <span style="font-size:14px">${tipoIcons[h.tipo]||'✦'}</span>
+                    <span style="font-size:10px;font-weight:700;color:#d1d5db">${tipoNames[h.tipo]||'—'}</span>
+                </div>
+                ${h.descricao?`<div style="font-size:10px;color:#6b7280;font-style:italic;line-height:1.6;margin-top:8px;padding:0 8px">"${h.descricao}"</div>`:''}
+            </div>
+
+            <!-- Stats rápidos -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+                <div style="background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                    <div style="font-size:7px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Nível</div>
+                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#fff">${h.nivel||'?'}</div>
+                </div>
+                <div style="background:#0d1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
+                    <div style="font-size:7px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N</div>
+                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#fff">${h.pnUsados||0}<span style="font-size:8px;color:#374151">/${pnMax}</span></div>
+                </div>
+                <div style="background:#0d1117;border:1px solid ${tc}33;border-radius:10px;padding:10px;text-align:center">
+                    <div style="font-size:7px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Efeitos</div>
+                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:${tc}">${efeitosSel.length}</div>
+                </div>
+                <div style="background:#0d1117;border:1px solid #ef444433;border-radius:10px;padding:10px;text-align:center">
+                    <div style="font-size:7px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Restr.</div>
+                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#ef4444">${restricoesSel.length}</div>
+                </div>
+            </div>
+
+            <!-- Mecânicas base -->
+            <div style="background:#0d1117;border:1px solid #1f2937;border-radius:12px;padding:14px;margin-bottom:20px">
+                <div style="font-size:9px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">⚙ Mecânicas Base</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Ativação</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">Ação Principal</div>
+                    </div>
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Custo Base</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">50% de Aura</div>
+                    </div>
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Alcance</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">Pessoal / Toque</div>
+                    </div>
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Duração</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">Instantâneo</div>
+                    </div>
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Categoria</div>
+                        <div style="font-size:10px;font-weight:700;color:${tc}">${h.classe||char.class}</div>
+                    </div>
+                    <div>
+                        <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Criado em</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">${h.criadoEm||'—'}</div>
+                    </div>
+                </div>
+                ${calcDanoHtml}
+            </div>
+
+            <!-- Restrições -->
+            <div style="margin-bottom:20px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <span style="font-size:14px">⛓</span>
+                    <span style="font-size:10px;font-weight:900;color:#e5e7eb;text-transform:uppercase;letter-spacing:2px">Restrições</span>
+                    <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:#ef444422;color:#f87171">${restricoesSel.length}</span>
+                </div>
+                ${rHtml}
+            </div>
+
+            <!-- Efeitos -->
+            <div style="margin-bottom:24px">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+                    <span style="font-size:14px">⚡</span>
+                    <span style="font-size:10px;font-weight:900;color:#e5e7eb;text-transform:uppercase;letter-spacing:2px">Efeitos</span>
+                    <span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;background:${tc}22;color:${tc}">${efeitosSel.length}</span>
+                </div>
+                ${eHtml}
+            </div>
+
+        </div>
+
+        <!-- RODAPÉ -->
+        <div style="padding:12px 14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0;display:flex;gap:8px">
+            <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
+                style="flex:1;padding:12px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:#9ca3af;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← Voltar</button>
+            <button onclick="openHatsuEdit(${idx})"
+                style="flex:1;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;border:none;box-shadow:0 0 16px ${tc}55">✏️ Editar Hatsu</button>
+        </div>
+    </div>`;
+
+    if (window.lucide) lucide.createIcons();
+}
+
+function openHatsuDetail(idx) {
+    state.hatsuDetailIdx = idx;
+    state.view = 'HATSU_DETAIL';
+    render();
+}
+
+function openHatsuEdit(idx) {
+    const char = state.currentChar;
+    const h = (char.hatsus||[])[idx];
+    if (!h) return;
+    // Pré-popula o builder com os dados do hatsu existente
+    state.hatsuBuilder = {
+        step: 0,
+        nome: h.nome || '',
+        descricao: h.descricao || '',
+        tipo: h.tipo || '',
+        rg: (h.restricoes||[]).filter(id => id.startsWith('rg_')),
+        rc: (h.restricoes||[]).filter(id => !id.startsWith('rg_')),
+        eg: (h.efeitos||[]).filter(id => id.startsWith('eg')),
+        ec: (h.efeitos||[]).filter(id => !id.startsWith('eg')),
+        editingIdx: idx  // marca que é edição, não criação
+    };
+    state.view = 'HATSU_CREATOR';
+    render();
+}
+
+//Criação de Nen
+function openHatsuCreator() {
+    state.view = 'HATSU_CREATOR';
+    state.hatsuBuilder = { step:0, nome:'', descricao:'', tipo:'', rg:[], rc:[], eg:[], ec:[] };
+    render();
+}
+
+function closeHatsuCreator() {
+    state.view = 'SHEET'; // Volta para a ficha
+    state.activeTab = 'NEN'; // Garante que volta na aba de Nen
+    render();
+}
 
         window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); checkDiscordAuth(); });
     </script>
