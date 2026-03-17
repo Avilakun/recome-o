@@ -1120,6 +1120,83 @@
         }
         //HATSU CREATOR — baseado no Manual de Hatsus HxH5e RPG 2.0
 
+// Calculate bonus P.N granted by selected restrictions
+window.calcPNBonusFromRestr = function(hb) {
+    if (!hb) return 0;
+    let bonus = 0;
+    const allSelected = [...(hb.rg||[]), ...(hb.rc||[])];
+
+    allSelected.forEach(id => {
+        // ri_p3: +3 P.N fixos (Restrição Pesada de Intensificação: "1x por combate")
+        if (id === 'ri_p3') bonus += 3;
+
+        // rg_v7: Limite de Uso Contínuo — P.N variável via benefício escolhido
+        if (id === 'rg_v7') {
+            const choice = hb.beneficioChoices && hb.beneficioChoices['rg_v7'];
+            // bnf: "X=1→4 P.N | X=2→3 P.N | X=3→2 P.N | X=4→1 P.N"
+            // choice will be one of those segments
+            if (choice) {
+                const m = choice.match(/(\d+)\s*P\.N/);
+                if (m) bonus += parseInt(m[1]);
+            } else {
+                bonus += 1; // minimum if not yet chosen
+            }
+        }
+
+        // rg_e9: Vida por Poder — "Selecione 4 Efeitos da Categoria e 3 Efeitos Gerais"
+        // This grants 7 extra effect slots, not P.N directly — handled via pnMax override
+        // We model it as +7 effective P.N for the effect picker
+        if (id === 'rg_e9') bonus += 7;
+
+        // rg_p3: Dano Permanente — "+3 efeitos gerais ou da categoria"
+        if (id === 'rg_p3') bonus += 3;
+    });
+    return bonus;
+};
+
+// Calcula o custo real de aura do Hatsu com base nas restrições e efeitos selecionados
+window.calcAuraCost = function(hb) {
+    if (!hb) return { pct: 50, label: '50%' };
+    let custo = 50; // base 50%
+    const allR = [...(hb.rg||[]), ...(hb.rc||[])];
+
+    // Coleta todos os pesos de restrições pesadas e extremas
+    const allRDB = [];
+    const rg = window.HATSU_DB && window.HATSU_DB.restricoes_gerais;
+    if (rg) ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => (rg[k]||[]).forEach(r => allRDB.push(r)));
+    const catDB = window.HATSU_DB && state.currentChar && window.HATSU_DB.categorias[state.currentChar.class];
+    if (catDB && catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push(r));
+
+    let numPesadas = 0, hasExtrema = false;
+
+    allR.forEach(id => {
+        const item = allRDB.find(r => r.id === id);
+        if (!item) return;
+        const peso = item.peso || 'leve';
+        if (peso === 'pesada') numPesadas++;
+        if (peso === 'extrema') { hasExtrema = true; numPesadas++; }
+
+        // rg_l2: Cálculo Pensado 2 — Reduz em 5%
+        if (id === 'rg_l2') custo -= 5;
+        // rg_m2: Área Definida — Reduz custo em 10%
+        if (id === 'rg_m2') custo -= 10;
+        // ri_e18 (Intensificação): Estabilização de Aura — Diminui 15% (mínimo 10%)
+        if (id === 'ri_e18') custo = Math.max(10, custo - 15);
+    });
+
+    // eg8: Redução de Custo (efeito geral)
+    const hasEg8 = (hb.eg||[]).includes('eg8');
+    if (hasEg8) {
+        if (hasExtrema) custo -= 25;
+        else if (numPesadas >= 2) custo -= 10;
+        else custo -= 5;
+    }
+
+    // Garante mínimo de 10%
+    custo = Math.max(10, custo);
+    return { pct: custo, label: custo + '% de Aura' };
+};
+
 window.calcularPHBase = function(level) {
     const lvl = parseInt(level) || 1;
     if (lvl >= 12) return 25;  // 6+2+2+2+2+3+3+3+1 (aprox)
@@ -1250,22 +1327,22 @@ window.HATSU_DB = {
       graus: 'Acerto | Atributos e Perícias | Redução de Custo',
       desc: 'Aumentar habilidades naturais do próprio corpo ou de um objeto. Categoria mais equilibrada entre ataque e defesa.',
       restricoes: [
-        { id:'ri_l1', peso:'leve',    nome:"PV < 75%",                  desc:"Só pode usar com menos de 75% dos PV",                              bnf:"+1 grau/passo no dano do Hatsu" },
-        { id:'ri_l2', peso:'leve',    nome:"Corpo a Corpo Obrigatório",  desc:"Exige ataque corpo a corpo para ativar o Hatsu",                    bnf:"Alvo sofre desvantagem em reação contra o Hatsu" },
-        { id:'ri_l3', peso:'leve',    nome:"Sem Defesas",                desc:"Não pode usar habilidades ou reações defensivas durante o uso",     bnf:"+1 na jogada de ataque com o Hatsu" },
-        { id:'ri_m1', peso:'moderada',nome:"Aumento por Rodada",         desc:"Efeitos de atributo, dano, cura ou RD ativados parcialmente (não de uma vez)", bnf:"+2 Graus de Potência no total de cada efeito similar" },
-        { id:'ri_m2', peso:'moderada',nome:"Sem Buffs Ativos",           desc:"Só pode ser usado sem buffs ativos",                                bnf:"Ignora resistências a dano físico (uso/dia = proficiência)" },
-        { id:'ri_m3', peso:'moderada',nome:"Inutilizável c/ +50% Aura",  desc:"Não pode usar com mais de 50% da aura",                            bnf:"+1 Grau de Potência no Hatsu" },
-        { id:'ri_p1', peso:'pesada',  nome:"Dano de Aura",               desc:"Causa 5% da aura como dano ao usuário (≈1d6 com REN)",              bnf:"Pode rerrolar um dos dados de dano" },
-        { id:'ri_p2', peso:'pesada',  nome:"Desvantagem em TRs Pós-Uso", desc:"Desvantagem em resistências após uso (resto do dia)",               bnf:"Hatsu ignora imunidade a dano (uso/dia = proficiência)" },
-        { id:'ri_p3', peso:'pesada',  nome:"1x por Combate",             desc:"Só pode ser usado 1x por combate",                                  bnf:"+3 Pontos de Nen (P.N)" },
+        { id:'ri_l1', peso:'leve',    nome:"PV < 75%",                   desc:"Só pode usar com menos de 75% dos PV",                               bnf:"+1 grau/passo no dano do Hatsu" },
+        { id:'ri_l2', peso:'leve',    nome:"Corpo a Corpo Obrigatório",   desc:"Exige ataque corpo a corpo para ativar o Hatsu",                     bnf:"Alvo sofre desvantagem em reação contra o Hatsu" },
+        { id:'ri_l3', peso:'leve',    nome:"Sem Defesas",                 desc:"Não pode usar habilidades ou reações defensivas durante o uso",      bnf:"+1 na jogada de ataque com o Hatsu" },
+        { id:'ri_m1', peso:'moderada',nome:"Aumento por Rodada",          desc:"Efeitos de atributo, dano, cura ou RD ativados parcialmente (não de uma vez)", bnf:"+2 Graus de Potência no total de cada efeito similar" },
+        { id:'ri_m2', peso:'moderada',nome:"Sem Buffs Ativos",            desc:"Só pode ser usado sem buffs ativos",                                 bnf:"Ignora resistências a dano físico do alvo (uso/dia = proficiência)" },
+        { id:'ri_m3', peso:'moderada',nome:"Inutilizável c/ +50% Aura",   desc:"Não pode usar com mais de 50% da aura",                             bnf:"+1 Grau de Potência no Hatsu" },
+        { id:'ri_p1', peso:'pesada',  nome:"Dano de Aura",                desc:"Causa 5% da aura como dano ao usuário (≈1d6 com REN). +1 grau por dado rerolado", bnf:"Pode rerrolar um dos dados de dano" },
+        { id:'ri_p2', peso:'pesada',  nome:"Desvantagem em TRs Pós-Uso",  desc:"Desvantagem em testes de resistência após uso (resto do dia)",       bnf:"Hatsu ignora imunidade a dano (uso/dia = proficiência)" },
+        { id:'ri_p3', peso:'pesada',  nome:"1x por Combate",              desc:"Só pode ser usado 1x por combate",                                   bnf:"+3 Pontos de Nen (P.N)" },
       ],
       efeitos: [
         { id:'ri_e1',  nome:"Aumento de Atributo",    desc:"Aumenta valor de atributo em 2 (mod. +1). Máximo: bônus +5",                 req:"Nível 1",  pn:1 },
-        { id:'ri_e2',  nome:"Intensificação",          desc:"+1 Grau de Potência no Hatsu",                                               req:"Nível 1",  pn:1 },
+        { id:'ri_e2',  nome:"Intensificação",          desc:"+1 Grau de Potência no Hatsu (Acerto, Atributos ou Redução de Custo)",       req:"Nível 1",  pn:1 },
         { id:'ri_e3',  nome:"Recuperação Veloz",       desc:"Cura 1d8 + CON de um alvo",                                                 req:"Nível 1",  pn:1 },
-        { id:'ri_e4',  nome:"Mais de 8000",            desc:"Poder transbordante compartilhado: divida 5% por escolha com outros seres",  req:"Nível 1",  pn:1 },
-        { id:'ri_e5',  nome:"Estabilizar Aliado",      desc:"Impede morte de aliado adjacente, mantendo-o em 1 PV (consome 1 Reação)",   req:"Nível 2 — Recuperação Veloz", pn:1 },
+        { id:'ri_e4',  nome:"Mais de 8000",            desc:"Poder transbordante compartilhado: divida 5% de aura por escolha com outros seres", req:"Nível 1",  pn:1 },
+        { id:'ri_e5',  nome:"Estabilizar Aliado",      desc:"Impede morte de aliado adjacente, mantendo-o em 1 PV ao consumir 1 Reação", req:"Nível 2 — Recuperação Veloz", pn:1 },
         { id:'ri_e6',  nome:"Impacto Pesado",          desc:"TR de FOR: empurra em 3m alvo(s) que falhem, independente do dano",         req:"Nível 2",  pn:1 },
         { id:'ri_e7',  nome:"Pele de Pedra",           desc:"3 RD contra danos de Impacto, Perfurante e Cortante",                       req:"Nível 2",  pn:1 },
         { id:'ri_e8',  nome:"Postura de Ferro",        desc:"Imune a ser empurrado ou derrubado",                                        req:"Nível 2",  pn:1 },
@@ -1277,20 +1354,20 @@ window.HATSU_DB = {
         { id:'ri_e14', nome:"Socos e Chutes",          desc:"a) Perfurante nos punhos ou b) Aplica Atordoado ao tirar 18+ no acerto",    req:"Nível 4",  pn:1 },
         { id:'ri_e15', nome:"Concentração Total",      desc:"+1 rodada por acerto ininterrupto ou +1 Grau/Passo de dano por acerto",     req:"Nível 4 — SAB 3+", pn:1 },
         { id:'ri_e16', nome:"Barreira Interna",        desc:"5 RD contra danos de Energia e Elementais (+2 a cada nova escolha)",        req:"Nível 5",  pn:1 },
-        { id:'ri_e17', nome:"Cérebro Evoluído",        desc:"Durante o uso: efeitos de um atributo evoluído (INT, SAB ou PRE)",          req:"Nível 5",  pn:1 },
+        { id:'ri_e17', nome:"Cérebro Evoluído",        desc:"Durante o uso: usa efeitos de um atributo evoluído (INT, SAB ou PRE)",      req:"Nível 5",  pn:1 },
         { id:'ri_e18', nome:"Estabilização de Aura",   desc:"Diminui custo de aura do Hatsu em 15% (mínimo 10%)",                        req:"Nível 5",  pn:1 },
         { id:'ri_e19', nome:"Soco Demolidor",          desc:"Gasta 10% aura: vantagem no próximo ataque e ignora resistências físicas",  req:"Nível 5",  pn:1 },
         { id:'ri_e20', nome:"Fúria Potencializada",    desc:"Ataques causam +1d6 de dano",                                               req:"Nível 6",  pn:1 },
-        { id:'ri_e21', nome:"Fôlego Infinito",         desc:"Imunidade à condição de Exaustão até o fim do combate",                     req:"Nível 6",  pn:1 },
+        { id:'ri_e21', nome:"Fôlego Infinito",         desc:"Imunidade à Exaustão até o fim do combate",                                 req:"Nível 6",  pn:1 },
         { id:'ri_e22', nome:"Equiparação",             desc:"Equipara um atributo escolhido ao do alvo engajado pela duração",           req:"Nível 7 — INT ou SAB 3+ ou 3 restrições pesadas", pn:1 },
         { id:'ri_e23', nome:"Vigor Contínuo",          desc:"Reduz 1 grau de Exaustão em combate e adiciona 2 Reações",                  req:"Nível 7",  pn:1 },
         { id:'ri_e24', nome:"Carga de Energia",        desc:"Armazena energia e dobra dano do próximo ataque (1x por combate)",          req:"Nível 8",  pn:1 },
         { id:'ri_e25', nome:"Corpo de Aço",            desc:"10 RD contra Explosivo, Balístico ou Mortal (escolha um)",                  req:"Nível 8",  pn:1 },
-        { id:'ri_e26', nome:"Vitalidade Extra",        desc:"Recupera 1d6+CON PV ao cair abaixo de 50% (1x por combate)",                req:"Nível 8",  pn:1 },
+        { id:'ri_e26', nome:"Vitalidade Extra",        desc:"Recupera 1d6+CON PV ao cair abaixo de 50% da vida (1x por combate)",        req:"Nível 8",  pn:1 },
         { id:'ri_e27', nome:"Força Titânica",          desc:"Ataques físicos recebem +5 de dano",                                        req:"Nível 9",  pn:1 },
-        { id:'ri_e28', nome:"Trabalho em Equipe",      desc:"Usa aura de aliados (10%) para ampliar dano/cura ou concede atributos a aliado", req:"Nível 9", pn:1 },
+        { id:'ri_e28', nome:"Trabalho em Equipe",      desc:"Usa aura de aliados (10%) para ampliar dano/cura ou concede atributos a aliado/objeto", req:"Nível 9", pn:1 },
         { id:'ri_e29', nome:"Dano Fragilizante",       desc:"Dano >20: a)-3 durabilidade armadura b)-2 ataques c)-2 reações defensivas", req:"Nível 10", pn:1 },
-        { id:'ri_e30', nome:"Potencial Liberado",      desc:"Escolha por uso qualquer efeito da tabela de Potencial Liberado (físico/sentidos)", req:"Nível 10", pn:1 },
+        { id:'ri_e30', nome:"Potencial Liberado",      desc:"Escolha por uso qualquer efeito da tabela de Potencial Liberado",           req:"Nível 10", pn:1 },
         { id:'ri_e31', nome:"Força Descomunal",        desc:"Gasta 15% aura: dobra Força (bônus) em Testes ou Ataques",                  req:"Nível 12", pn:1 },
         { id:'ri_e32', nome:"Resiliência Suprema",     desc:"1x/dia: ao cair a 0 PV, recupera imediatamente 30% da vida máxima",         req:"Nível 12", pn:1 },
       ]
@@ -1304,57 +1381,69 @@ window.HATSU_DB = {
       graus: 'Dano | Redução de Custo',
       desc: 'Mudar as propriedades da aura para imitar outra substância. Transmutadores são caprichosos e adaptáveis.',
       restricoes: [
-        { id:'rt_l1', peso:'leve',    nome:"Material Natural Obrigatório", desc:"Hatsu só funciona quando o material natural está presente", bnf:"+1 Grau no Efeito Elemental principal" },
-        { id:'rt_m1', peso:'moderada',nome:"Dor Reflexiva Elemental",      desc:"Dano elemental que parte de si provoca dor no usuário",     bnf:"+2 Graus de Dano Elemental" },
-        { id:'rt_p1', peso:'pesada',  nome:"Forma Fixa",                   desc:"A transmutação assume sempre a mesma forma (não pode alterar)", bnf:"+3 no efeito de dano/condição da forma fixa" },
+        { id:'rt_l1', peso:'leve',    nome:"Preparação Obrigatória",     desc:"Precisa preparar o Hatsu por 1 turno",                              bnf:"+1 Grau de Potência no Hatsu" },
+        { id:'rt_l2', peso:'leve',    nome:"Sem Movimento no Turno",     desc:"Não pode se mover no turno",                                        bnf:"Hatsu ganha +3m de alcance adicional" },
+        { id:'rt_l3', peso:'leve',    nome:"Alvo Único em Área",         desc:"Afeta apenas 1 alvo mesmo sendo em área",                           bnf:"Alvo afetado sofre desvantagem na resistência" },
+        { id:'rt_m1', peso:'moderada',nome:"Erra = Gasta Aura Extra",    desc:"Perde 5% de aura extra ao errar",                                   bnf:"Se atingir, causa 1 Condição fraca adicional (Abalado, Desorientado, Caído, Desprevenido ou Sangramento fraco 2d4)" },
+        { id:'rt_m2', peso:'moderada',nome:"Sem Aliados a 3m",           desc:"Não pode usar se houver aliados a 3m",                              bnf:"O Hatsu pode afetar uma área 1,5m maior" },
+        { id:'rt_m3', peso:'moderada',nome:"Condição no Usuário",        desc:"Causa 1 Condição fraca no próprio usuário",                         bnf:"+1 dado de dano (o maior se houver dados diferentes, ex: 1d6→2d6)" },
+        { id:'rt_p1', peso:'pesada',  nome:"Afeta Aliados Também",       desc:"Afeta aliados também em um Hatsu hostil",                           bnf:"Todos os alvos falham automaticamente até o valor de proficiência do usuário" },
+        { id:'rt_p2', peso:'pesada',  nome:"Abalado Após Uso",           desc:"Recebe condição Abalado após uso",                                  bnf:"O Hatsu ignora resistência de área (barreiras simples, portas, janelas, grades)" },
+        { id:'rt_p3', peso:'pesada',  nome:"Custo Duplo se Resistido",   desc:"Custa o dobro de aura se não acertar ou for resistido",             bnf:"Pode repetir a rolagem de ataque/acerto com o Hatsu" },
       ],
       efeitos: [
-        { id:'rt_e1',  nome:"Aura Perigosa Comum",       desc:"Propriedade de combate: Cortante, Perfurante, Concussivo ou Energia (Aura pura)", req:"Nível 1", pn:1 },
-        { id:'rt_e2',  nome:"Memory Card",               desc:"Grava até 5s de estímulo sensorial e reproduz. Máx. 3 gravações",               req:"Nível 1", pn:1 },
-        { id:'rt_e3',  nome:"Polígrafo",                 desc:"Percebe micro-oscilações de emoções e mentiras. Vantagem em Intuição",           req:"Nível 1", pn:1 },
-        { id:'rt_e4',  nome:"Transmutação Elemental",    desc:"Escolha um elemento adicionando sua propriedade inicial. Evolui com novas compras", req:"Nível 1", pn:1 },
-        { id:'rt_e5',  nome:"Transmutação Versátil",     desc:"Escolha uma Propriedade de Utilidade (máx. 2). Evolui com novas compras",        req:"Nível 1", pn:1 },
-        { id:'rt_e6',  nome:"Forma Esculpida Maleável",  desc:"Aura assume forma de até 1,5mx1,5m com densidade dos estados físicos",           req:"Nível 2", pn:1 },
-        { id:'rt_e7',  nome:"Superfície Adesiva",        desc:"Aura 'cola' superfícies. Escala vertical (9m, 5% aura/3m) e cria Terreno Difícil", req:"Nível 2", pn:1 },
-        { id:'rt_e8',  nome:"Anticoagulante",            desc:"Golpe aplica Sangramento Leve (2d4) em alvo ferido",                             req:"Nível 3", pn:1 },
-        { id:'rt_e9',  nome:"Concussão Leve",            desc:"TR de CON após golpe. Falha: -2 em Percepção e Reações",                         req:"Nível 3 + Aura Perigosa (Concussivo)", pn:1 },
-        { id:'rt_e10', nome:"Corte Irritante",           desc:"Feridas causam ardência: -2 em Concentração por corte",                          req:"Nível 3 + Aura Perigosa (Cortante)", pn:1 },
-        { id:'rt_e11', nome:"Estaca Furadeira",          desc:"Ignora RD em 5 e 1/2 Cobertura",                                                 req:"Nível 3 + Aura Perigosa (Perfurante)", pn:1 },
-        { id:'rt_e12', nome:"Pegar ou Largar",           desc:"Adiciona Agarrar/Prender ao Hatsu (TR de FOR)",                                  req:"Nível 3 + Superfície Adesiva ou Forma Esculpida", pn:1 },
-        { id:'rt_e13', nome:"Condutividade de Aura",     desc:"Hatsu percorre superfícies (5% aura a cada 3m em linha, Cone ou Esfera)",         req:"Nível 4", pn:1 },
-        { id:'rt_e14', nome:"Aura Perigosa Incomum",     desc:"Rigidez (Bloqueio+1), Dispersão (Spray 1,5m) ou Explosivo (TR para não cair)",    req:"Nível 6", pn:1 },
-        { id:'rt_e15', nome:"Hemorragia Oculta",         desc:"Ferimentos parecem leves mas causam hemorragia interna (2d8)",                    req:"Nível 6 + Anticoagulante", pn:1 },
-        { id:'rt_e16', nome:"Ferida Interna",            desc:"Alvo com <50% PV: +5 dano e TR de CON. Falha: Sangramento Forte (2d10)",          req:"Nível 8 + Anticoagulante", pn:1 },
-        { id:'rt_e17', nome:"Golpe Perfurante Mortal",   desc:"Ao superar CA em 5: prende parte do alvo em superfície adjacente",               req:"Nível 10 + Aura Perigosa (Perfurante)", pn:1 },
+        { id:'rt_e1',  nome:"Aura Perigosa Comum",       desc:"Hatsu recebe propriedade: Cortante, Perfurante, Concussivo ou Energia (Aura pura)",  req:"Nível 1", pn:1 },
+        { id:'rt_e2',  nome:"Memory Card",               desc:"Grava até 5s de estímulo sensorial e reproduz como projeção. Máx. 3 gravações",       req:"Nível 1", pn:1 },
+        { id:'rt_e3',  nome:"Polígrafo",                 desc:"Percebe micro-oscilação de emoções/mentiras. Vantagem em Intuição e +1 contra blefes", req:"Nível 1", pn:1 },
+        { id:'rt_e4',  nome:"Transmutação Elemental",    desc:"Escolha um elemento, adicionando sua propriedade inicial. Evolui com novas escolhas",  req:"Nível 1", pn:1 },
+        { id:'rt_e5',  nome:"Transmutação Versátil",     desc:"Escolha uma Propriedade de Utilidade (máx. 2). Evolui com novas escolhas",             req:"Nível 1", pn:1 },
+        { id:'rt_e6',  nome:"Forma Esculpida Maleável",  desc:"Aura assume qualquer forma de até 1,5mx1,5m com densidade dos estados físicos",        req:"Nível 2", pn:1 },
+        { id:'rt_e7',  nome:"Superfície Adesiva",        desc:"Aura 'cola' superfícies. Escala paredes (9m, 5% aura/3m) e cria Terreno Difícil",      req:"Nível 2", pn:1 },
+        { id:'rt_e8',  nome:"Anticoagulante",            desc:"O golpe aplica sangramento leve (2d4) em alvo ferido",                                 req:"Nível 3", pn:1 },
+        { id:'rt_e9',  nome:"Concussão Leve",            desc:"Em golpes bem-sucedidos: TR de CON. Falha: -2 em Percepção e Reações",                  req:"Nível 3 + Aura Perigosa (Concussivo)", pn:1 },
+        { id:'rt_e10', nome:"Corte Irritante",           desc:"Feridas causam ardência e penalizam concentração em -2 para cada corte",               req:"Nível 3 + Aura Perigosa (Cortante)", pn:1 },
+        { id:'rt_e11', nome:"Estaca Furadeira",          desc:"Ignora RD em 5 e 1/2 Cobertura",                                                       req:"Nível 3 + Aura Perigosa (Perfurante)", pn:1 },
+        { id:'rt_e12', nome:"Pegar ou Largar",           desc:"Adiciona propriedade Agarrar/Prender ao Hatsu (TR de FOR)",                            req:"Nível 3 + Superfície Adesiva ou Forma Esculpida", pn:1 },
+        { id:'rt_e13', nome:"Condutividade de Aura",     desc:"Hatsu percorre superfícies (5% aura a cada 3m em linha, Cone ou Esfera)",              req:"Nível 4", pn:1 },
+        { id:'rt_e14', nome:"Aura Perigosa Incomum",     desc:"Rigidez (Bloqueio+1), Dispersão (Spray 1,5m) ou Explosivo (TR para não cair)",         req:"Nível 6", pn:1 },
+        { id:'rt_e15', nome:"Hemorragia Oculta",         desc:"Ferimentos parecem superficiais mas causam hemorragia interna média (2d8)",            req:"Nível 6 + Anticoagulante", pn:1 },
+        { id:'rt_e16', nome:"Ferida Interna",            desc:"Alvo com <50% PV: +5 dano e TR de CON. Falha: Sangramento Forte (2d10)",               req:"Nível 8 + Anticoagulante", pn:1 },
+        { id:'rt_e17', nome:"Golpe Perfurante Mortal",   desc:"Ao acertar superando CA em 5: prende parte do alvo em superfície adjacente",           req:"Nível 10 + Aura Perigosa (Perfurante)", pn:1 },
       ]
     },
 
-    // ─── MATERIALIZAÇÃO / CONJURAÇÃO ─────────────────────
+    // ─── MATERIALIZAÇÃO ──────────────────────────────────
     'MATERIALIZAÇÃO': {
       cor: '#a855f7',
       attr_princ: 'INT',
       attr_sec: 'SAB / FOR',
       graus: 'Alcance/Área | Duração | Redução de Custo',
-      desc: 'Criar objetos físicos a partir da aura. Materializadores são perfeccionistas e obstinados.',
+      desc: 'Criar objetos físicos a partir da aura. Materializadores são perfeccionistas e obcecados com seus poderes.',
       restricoes: [
-        { id:'rm_l1', peso:'leve',    nome:"Objeto Específico",   desc:"A Conjuração só ativa a partir de um objeto específico", bnf:"Objeto criado recebe +3 CA" },
-        { id:'rm_m1', peso:'moderada',nome:"Vínculo Emocional",   desc:"Só conjura com estado emocional específico",             bnf:"+1d6 de PV para a Conjuração" },
-        { id:'rm_p1', peso:'pesada',  nome:"Custo de Sanidade",   desc:"Cada ativação custa 10 de Sanidade ao usuário",          bnf:"+2 Ataques para a Conjuração ou dobra os PV" },
+        { id:'rm_l1', peso:'leve',    nome:"Alcance Máximo 6m",           desc:"A conjuração não pode se afastar mais de 6 metros do conjurador",    bnf:"Conjuração recebe +1 na CA" },
+        { id:'rm_l2', peso:'leve',    nome:"Sem Dano Direto",             desc:"Conjuração não causa dano direto",                                   bnf:"+2 bônus em suporte (cura, sensor, defesa)" },
+        { id:'rm_l3', peso:'leve',    nome:"1 Item por Combate",          desc:"Só pode conjurar 1 item do mesmo tipo por combate",                  bnf:"O item ganha +2 rodadas de duração" },
+        { id:'rm_m1', peso:'moderada',nome:"5% de Aura por Rodada",       desc:"Conjuração consome 5% de aura por rodada",                           bnf:"Pode realizar 1 ação bônus extra em seu turno" },
+        { id:'rm_m2', peso:'moderada',nome:"Dano ao Destruir",            desc:"Usuário sofre dano = metade da vida da conjuração se ela for destruída", bnf:"A criatura explode ao morrer causando 1d6 em 3m de área" },
+        { id:'rm_m3', peso:'moderada',nome:"Local Fixo ou Calmo",         desc:"Só conjura em local fixo ou calmo predeterminado (ex: em casa/carro ou fora de combate)", bnf:"Conjurador ganha vantagem no primeiro teste que realizar" },
+        { id:'rm_p1', peso:'pesada',  nome:"Perde Ação Principal",        desc:"Perde Ação Principal enquanto a Conjuração estiver ativa",           bnf:"A criatura age com +4 em testes ofensivos" },
+        { id:'rm_p2', peso:'pesada',  nome:"Conjuração Controlável",      desc:"Conjuração pode ser manipulada/usada por outros contra a vontade do usuário (reverter: 1 teste SAB CD 15)", bnf:"Dado de dano máximo ou alcance dobra ou custo -15% ou dura +2 rodadas" },
+        { id:'rm_p3', peso:'pesada',  nome:"Componentes Materiais",       desc:"O Hatsu depende de componentes materiais que são consumidos ao conjurar", bnf:"A criatura tem +2 em CA e +10 PV ao ser criada" },
       ],
       efeitos: [
-        { id:'rm_e1',  nome:"Materialização Simples",  desc:"Conjura objeto simples de até 30cm que pode atacar (1d4 de dano)",                req:"Nível 1", pn:1 },
-        { id:'rm_e2',  nome:"Forma Evoluída 1",        desc:"Conjuração recebe +5 PV e +1 CA",                                                req:"Nível 1", pn:1 },
-        { id:'rm_e3',  nome:"Propriedade Elemental",   desc:"A Conjuração recebe propriedade elemental básica (fogo, gelo, elétrico...)",      req:"Nível 2", pn:1 },
-        { id:'rm_e4',  nome:"Conjuração Independente", desc:"O objeto conjurado pode se mover/agir por conta própria",                        req:"Nível 3", pn:1 },
-        { id:'rm_e5',  nome:"Forma Evoluída 2",        desc:"+10 PV, +2 CA e uma Característica de Invocação adicional",                      req:"Nível 4 + Forma Evoluída 1", pn:1 },
-        { id:'rm_e6',  nome:"Escudo Material",         desc:"Conjuração pode interromper ataques (Reação): absorve dano até seus PV",         req:"Nível 4", pn:1 },
-        { id:'rm_e7',  nome:"Forma Evoluída 3",        desc:"+10 PV, +2 CA e Característica de Invocação adicional",                          req:"Nível 6 + Forma Evoluída 2", pn:1 },
-        { id:'rm_e8',  nome:"Ataque Independente",     desc:"A Conjuração realiza 1 Ataque por rodada usando INT do usuário",                 req:"Nível 6 + Conjuração Independente", pn:1 },
-        { id:'rm_e9',  nome:"Alteração Corporal",      desc:"Materializa membros/armas no próprio corpo (1d8 de dano)",                       req:"Nível 7", pn:1 },
-        { id:'rm_e10', nome:"Forma Evoluída 4",        desc:"+15 PV, +2 CA e duas Características de Invocação adicionais",                   req:"Nível 8 + Forma Evoluída 3", pn:1 },
-        { id:'rm_e11', nome:"Constructo Complexo",     desc:"Conjura criatura com atributos próprios baseados em INT do usuário",             req:"Nível 9", pn:1 },
-        { id:'rm_e12', nome:"Espaço Dimensional",      desc:"Cria espaço dimensional simples para armazenamento ou armadilha",                req:"Nível 10", pn:1 },
-        { id:'rm_e13', nome:"Forma Suprema",           desc:"+20 PV, +3 CA, 2 Ataques extras e Invulnerabilidade a 1 tipo de dano",           req:"Nível 12 + Forma Evoluída 4", pn:1 },
+        { id:'rm_e1',  nome:"Materialização Simples",    desc:"Conjura objeto simples de até 30cm. Pode atacar com ele (1d4 de dano)",               req:"Nível 1", pn:1 },
+        { id:'rm_e2',  nome:"Forma Evoluída 1",          desc:"Conjuração recebe +5 PV e +1 CA",                                                     req:"Nível 1", pn:1 },
+        { id:'rm_e3',  nome:"Propriedade Elemental",     desc:"A Conjuração recebe uma propriedade elemental básica (fogo, gelo, elétrico...)",       req:"Nível 2", pn:1 },
+        { id:'rm_e4',  nome:"Conjuração Independente",   desc:"O objeto conjurado pode se mover/agir por conta própria (movimento = SAB do usuário)", req:"Nível 3", pn:1 },
+        { id:'rm_e5',  nome:"Forma Evoluída 2",          desc:"+10 PV, +2 CA e uma Característica de Invocação adicional",                           req:"Nível 4 + Forma Evoluída 1", pn:1 },
+        { id:'rm_e6',  nome:"Escudo Material",           desc:"Conjuração pode interromper ataques (Reação): absorve dano até seus PV",              req:"Nível 4", pn:1 },
+        { id:'rm_e7',  nome:"Forma Evoluída 3",          desc:"+10 PV, +2 CA e Característica de Invocação adicional",                               req:"Nível 6 + Forma Evoluída 2", pn:1 },
+        { id:'rm_e8',  nome:"Ataque Independente",       desc:"A Conjuração realiza 1 Ataque por rodada usando INT do usuário",                      req:"Nível 6 + Conjuração Independente", pn:1 },
+        { id:'rm_e9',  nome:"Alteração Corporal",        desc:"Materializa membros/armas no próprio corpo (1d8 de dano)",                            req:"Nível 7", pn:1 },
+        { id:'rm_e10', nome:"Forma Evoluída 4",          desc:"+15 PV, +2 CA e duas Características de Invocação adicionais",                        req:"Nível 8 + Forma Evoluída 3", pn:1 },
+        { id:'rm_e11', nome:"Constructo Complexo",       desc:"Conjura criatura com atributos próprios baseados em INT do usuário",                  req:"Nível 9", pn:1 },
+        { id:'rm_e12', nome:"Espaço Dimensional",        desc:"Cria espaço dimensional simples para armazenamento ou armadilha",                     req:"Nível 10", pn:1 },
+        { id:'rm_e13', nome:"Forma Suprema",             desc:"+20 PV, +3 CA, 2 Ataques extras e Invulnerabilidade a 1 tipo de dano",                req:"Nível 12 + Forma Evoluída 4", pn:1 },
       ]
     },
 
@@ -1366,78 +1455,116 @@ window.HATSU_DB = {
       graus: 'Alcance/Área | Dano | Duração | CD do TR | Redução de Custo',
       desc: 'Categoria única — habilidades completamente únicas que não se enquadram em nenhuma outra. A mais misteriosa e imprevisível.',
       restricoes: [
-        { id:'re_l1', peso:'leve',    nome:"Ritual Específico",   desc:"Exige ritual ou sequência de ações específica para ativar", bnf:"+1 dado de dano extra (o menor)" },
-        { id:'re_m1', peso:'moderada',nome:"Uso Único por Sessão", desc:"Só pode ser usado 1 vez por sessão de jogo",               bnf:"Pode ignorar até 2 pré-requisitos de nível" },
-        { id:'re_p1', peso:'pesada',  nome:"Esquece o Hatsu",     desc:"Após usar, esquece como ativar por 1 dia (sessão participada)", bnf:"Dados de dano maximizados na ativação" },
+        { id:'re_l1', peso:'leve',    nome:"1x por Combate no Alvo",      desc:"Só pode usar contra o mesmo alvo 1x por combate",                    bnf:"Pode copiar um efeito geral extra da tabela de efeitos gerais" },
+        { id:'re_l2', peso:'leve',    nome:"Nome Verdadeiro do Alvo",      desc:"Precisa conhecer o nome verdadeiro do alvo",                         bnf:"+2 Graus de Potência no Hatsu contra o alvo específico" },
+        { id:'re_l3', peso:'leve',    nome:"Terreno Específico",           desc:"Só ativa em terreno específico predeterminado",                      bnf:"+1 Grau de Potência no Hatsu" },
+        { id:'re_m1', peso:'moderada',nome:"Alvo Único",                   desc:"Não funciona com múltiplos alvos",                                   bnf:"Pode aplicar uma condição secundária ao alvo" },
+        { id:'re_m2', peso:'moderada',nome:"Só Após Falhar Antes",         desc:"Só ativa após ter falhado anteriormente com o Hatsu",                bnf:"Se ativar, o Hatsu ignora resistências" },
+        { id:'re_m3', peso:'moderada',nome:"Requer Aura de Aliado",        desc:"Requer aura de outro aliado para ativar",                            bnf:"+1 efeito temporário da categoria do aliado (se ele colaborar voluntariamente)" },
+        { id:'re_p1', peso:'pesada',  nome:"Inconsciente Após Uso",        desc:"Fica inconsciente (ou perde controle do corpo) durante ou após uso", bnf:"Aplica 2 efeitos simultâneos de categorias diferentes ou gerais" },
+        { id:'re_p2', peso:'pesada',  nome:"Uso Único por Sessão",         desc:"Uso único por sessão de jogo",                                       bnf:"+2 Graus de Potência no Hatsu" },
+        { id:'re_p3', peso:'pesada',  nome:"Esquece o Hatsu",              desc:"Esquece o Hatsu por 1 dia (sessão participada) após uso",            bnf:"O efeito é considerado 'Irrefutável' — sem resistência possível" },
       ],
       efeitos: [
-        { id:'re_e1',  nome:"Previsão Limitada",      desc:"+2 CA e Reações no próximo turno (vê 1 turno à frente para 1 alvo)",        req:"Nível 1", pn:1 },
-        { id:'re_e2',  nome:"Combinação Perigosa",    desc:"Combina 2 efeitos já selecionados em novo efeito único (aprovação do Mestre)", req:"Nível 1", pn:1 },
-        { id:'re_e3',  nome:"Maldição Simples",       desc:"Maldição leve: -1 em todos os testes por 24h (TR de CAR para resistir)",     req:"Nível 2", pn:1 },
-        { id:'re_e4',  nome:"Distorção da Realidade", desc:"Cria ilusão convincente de objeto ou cena (máx. 3x3m). Dura 1 rodada/nível", req:"Nível 3", pn:1 },
-        { id:'re_e5',  nome:"Transferência de Hatsu", desc:"Permite que aliado use este Hatsu por 1 rodada com bônus intactos",          req:"Nível 4", pn:1 },
-        { id:'re_e6',  nome:"Maldição Média",         desc:"Afeta 2 atributos/perícias por 1 semana (TR de CAR com CD aumentada)",       req:"Nível 5 + Maldição Simples", pn:1 },
-        { id:'re_e7',  nome:"Subversão de Princípios",desc:"Por 2 rodadas, alvo não pode usar princípios de Nen (TR de INT)",            req:"Nível 6", pn:1 },
-        { id:'re_e8',  nome:"Eco Imprevisível",       desc:"Copia o último efeito de Hatsu usado pelo alvo (1x por combate)",            req:"Nível 7", pn:1 },
-        { id:'re_e9',  nome:"Maldição Pesada",        desc:"Maldição poderosa com efeitos únicos e duração longa. Difícil de remover",   req:"Nível 8 + Maldição Média", pn:1 },
-        { id:'re_e10', nome:"Paradoxo do Destino",    desc:"Cria condição de 'destino': alvo sofre dano massivo se não cumprir ação em X rodadas", req:"Nível 9", pn:1 },
-        { id:'re_e11', nome:"Maldição Extrema",       desc:"A mais poderosa das maldições. Efeitos permanentes até desfazimento ativo",  req:"Nível 12 + Maldição Pesada", pn:1 },
+        { id:'re_e1',  nome:"Previsão Limitada",       desc:"+2 CA e Reações no próximo turno ao ver 1 turno à frente para 1 alvo",          req:"Nível 1", pn:1 },
+        { id:'re_e2',  nome:"Combinação Perigosa",     desc:"Combina até 3 efeitos de categorias diferentes num mesmo Hatsu para criar algo completamente novo", req:"Nível 1", pn:1 },
+        { id:'re_e3',  nome:"Mente Aberta",            desc:"Escolha um dos efeitos da tabela de Memórias",                                   req:"Nível 1", pn:1 },
+        { id:'re_e4',  nome:"Acesso Liberado",         desc:"Lê memórias superficiais (últimos 30min) ou informações específicas via perguntas diretas", req:"Nível 1 — Toque ou Contato Visual", pn:1 },
+        { id:'re_e5',  nome:"Afinidade Temporária",    desc:"Considera toda evolução e efeitos comprados para este Hatsu como Reforçador",    req:"Nível 2", pn:1 },
+        { id:'re_e6',  nome:"Ajuste Improvisado",      desc:"Usa um efeito novo cada vez que for ativado (improvisado). +1 rodada por nova escolha", req:"Nível 2", pn:1 },
+        { id:'re_e7',  nome:"Corrupção de Aura",       desc:"Golpes desarmados com Princípios/Técnicas de Nen aplicam propriedade de corrupção de aura", req:"Nível 3", pn:1 },
+        { id:'re_e8',  nome:"Destino Vinculado",       desc:"Vincula-se a um alvo sob efeito do Hatsu e a efeitos externos recebidos por você", req:"Nível 3", pn:1 },
+        { id:'re_e9',  nome:"Drenar Aura",             desc:"Drena aura do alvo através de contato físico direto",                             req:"Nível 4", pn:1 },
+        { id:'re_e10', nome:"Empréstimo",              desc:"Roubo de Hatsu — empresta ou rouba o Hatsu de outro usuário por tempo determinado", req:"Nível 5", pn:1 },
+        { id:'re_e11', nome:"Falsificação de Aura",    desc:"Para cada nova escolha: benefícios de uma categoria diferente",                   req:"Nível 5", pn:1 },
+        { id:'re_e12', nome:"Forçar Destino",          desc:"Rolagem utilizada pela duração. Cada nova escolha +usos até valor de proficiência", req:"Nível 6", pn:1 },
+        { id:'re_e13', nome:"Ignorar Limites",         desc:"Ignora limitação de duração/alcance/área (1x/dia). +usos por compra adicional",   req:"Nível 7", pn:1 },
+        { id:'re_e14', nome:"Imitação Temporária",     desc:"Copia um Hatsu ao sofrer ou compreendê-lo. Espaço reservado no subconsciente",    req:"Nível 8", pn:1 },
+        { id:'re_e15', nome:"Paradoxo do Destino",     desc:"Cria 'destino': alvo sofre dano massivo se não cumprir ação em X rodadas",        req:"Nível 9", pn:1 },
+        { id:'re_e16', nome:"Controle do Tempo",       desc:"Permite ver futuro, alterar fatos ou acelerar/retroceder o tempo de vida de algo", req:"Nível 10", pn:1 },
       ]
     },
 
     // ─── MANIPULAÇÃO ─────────────────────────────────────
     'MANIPULAÇÃO': {
       cor: '#06b6d4',
-      attr_princ: 'CAR / SAB',
-      attr_sec: 'INT',
+      attr_princ: 'PRE (pessoas) / INT (objetos)',
+      attr_sec: 'DES',
       graus: 'Alcance/Área | Número de Alvos | Duração | CD do TR | Redução de Custo',
       desc: 'Controlar seres vivos ou objetos inanimados. Manipuladores são analíticos e tendem a seguir regras rígidas.',
       restricoes: [
-        { id:'rma_l1', peso:'leve',    nome:"Contato Visual",              desc:"Precisa manter contato visual com o alvo manipulado",           bnf:"+1 na CD do TR de Manipulação" },
-        { id:'rma_m1', peso:'moderada',nome:"Condição de Gatilho",         desc:"O alvo só pode ser manipulado após cumprir condição específica", bnf:"+2 na CD do TR e +1 rodada de duração" },
-        { id:'rma_p1', peso:'pesada',  nome:"Custo de Aura Compartilhado", desc:"O alvo manipulado gasta parte de sua própria aura para manter a manipulação", bnf:"Duração da manipulação dobrada" },
+        { id:'rma_l1', peso:'leve',    nome:"Alvos Tocados",              desc:"Só funciona com alvos tocados",                                      bnf:"+1 na CD de resistência do alvo" },
+        { id:'rma_l2', peso:'leve',    nome:"Dano Quebra o Efeito",       desc:"Perde o efeito se o alvo sofrer dano",                               bnf:"A manipulação dura +1 rodada" },
+        { id:'rma_l3', peso:'leve',    nome:"Contato Visual Contínuo",    desc:"Requer contato visual contínuo com o alvo",                          bnf:"O alvo age com vantagem na primeira rodada sob controle" },
+        { id:'rma_m1', peso:'moderada',nome:"1 Objeto/Alvo por Vez",      desc:"Só pode controlar 1 objeto/alvo por vez",                            bnf:"O objeto/ser controlado pode realizar 1 ação bônus extra em seu turno" },
+        { id:'rma_m2', peso:'moderada',nome:"Zetsu Interrompe",           desc:"Hatsu interrompe ou falha em alvos quando ativam Zetsu",             bnf:"Alvo controlado sofre -2 em sanidade por rodada enquanto durar ou adiciona +2 em jogadas a favor do manipulador" },
+        { id:'rma_m3', peso:'moderada',nome:"Imune por 5 Rodadas",        desc:"Alvo fica imune por 5 rodadas ao superar o TR",                      bnf:"+2 na CD de resistência do alvo" },
+        { id:'rma_p1', peso:'pesada',  nome:"+10% Aura por Rodada",       desc:"Custa +10% de aura por rodada",                                      bnf:"+5 na CD de resistência do alvo" },
+        { id:'rma_p2', peso:'pesada',  nome:"Mover Quebra o Efeito",      desc:"O usuário se mover (mesmo que obrigado) quebra o efeito",            bnf:"A manipulação ignora imunidade do alvo" },
+        { id:'rma_p3', peso:'pesada',  nome:"Desorientado se Quebrar",    desc:"Fica Desorientado se o controle for quebrado",                       bnf:"Se o alvo for afetado novamente e falhar, o efeito se ativa automaticamente sem novo gasto de aura" },
       ],
       efeitos: [
-        { id:'ma_e1',  nome:"Controle Simples",     desc:"Manipula 1 ser com TR de CAR. Alvo obedece 1 comando simples por rodada",     req:"Nível 1", pn:1 },
-        { id:'ma_e2',  nome:"Marionete de Objeto",  desc:"Controla objeto inanimado a distância (máx. 9m, velocidade = INT do usuário)", req:"Nível 1", pn:1 },
-        { id:'ma_e3',  nome:"Comando Composto",     desc:"O alvo pode receber até 3 comandos em sequência",                              req:"Nível 2 + Controle Simples", pn:1 },
-        { id:'ma_e4',  nome:"Roubo de Percepção",   desc:"Vê e ouve através dos sentidos do alvo manipulado",                           req:"Nível 3 + Controle Simples", pn:1 },
-        { id:'ma_e5',  nome:"Marionete Múltipla",   desc:"Controla até 3 objetos simultaneamente (10% aura por objeto extra)",          req:"Nível 4 + Marionete de Objeto", pn:1 },
-        { id:'ma_e6',  nome:"Manipulação Coerciva", desc:"Alvo manipulado age contra aliados sem TR adicional por 2 rodadas",           req:"Nível 5 + Controle Simples", pn:1 },
-        { id:'ma_e7',  nome:"Selagem de Nen",       desc:"Impede o alvo de usar Nen por X rodadas após TR bem-sucedido",                req:"Nível 6", pn:1 },
-        { id:'ma_e8',  nome:"Domínio Expandido",    desc:"Manipula até 5 alvos simultaneamente (20% aura por alvo extra)",              req:"Nível 7 + Manipulação Coerciva", pn:1 },
-        { id:'ma_e9',  nome:"Memória Falsa",        desc:"Implanta memória falsa simples. Dura dias (TR de INT para reconhecer)",       req:"Nível 8", pn:1 },
-        { id:'ma_e10', nome:"Possessão",            desc:"Habita o corpo do alvo por até 3 rodadas, controlando-o completamente",       req:"Nível 10 + Manipulação Coerciva", pn:1 },
-        { id:'ma_e11', nome:"Arquiteto da Mente",   desc:"Reestrutura memória e personalidade do alvo (efeito permanente, cura mágica)", req:"Nível 12 + Memória Falsa", pn:1 },
+        { id:'ma_e1',  nome:"Controle Simples de Objetos (C.S.O)", desc:"Controla até 2 objetos pequenos ou porções de matéria em posse do usuário. Ação principal, dura pela duração", req:"Nível 1 — INT ou SAB 3+", pn:1 },
+        { id:'ma_e2',  nome:"Controle Simples de Criaturas (C.S.C)", desc:"Emite comando verbal que o alvo tenta obedecer. Novo comando como ação bônus. Não força Hatsus", req:"Nível 1 — requer TR", pn:1 },
+        { id:'ma_e3',  nome:"Distorção Sensorial",   desc:"Alvo sofre condição: Cego, Surdo, Mudo ou Anosmico (sem olfato)",                   req:"Nível 1 — C.S.C", pn:1 },
+        { id:'ma_e4',  nome:"Marcar Vontade",        desc:"Marca 1 alvo mentalmente para ter 1 uso de vantagem ou desvantagem em manipulações", req:"Nível 1 — C.S.C", pn:1 },
+        { id:'ma_e5',  nome:"Comando Paralelo",      desc:"Dá comandos individuais simultâneos a objetos manipulados (ações especiais — AE)",   req:"Nível 2 — SAB ou INT 3+ e C.S.O", pn:1 },
+        { id:'ma_e6',  nome:"Jogos Mentais",         desc:"Aplica 1 ilusão simples (até tamanho médio). Em combate: Furtivo no alvo e/ou Oculto a objetos/armas", req:"Nível 2", pn:1 },
+        { id:'ma_e7',  nome:"Mente Frágil",          desc:"Alvo sofre condição Fragilizado, Desorientado ou Sanidade -3",                       req:"Nível 3 — C.S.C", pn:1 },
+        { id:'ma_e8',  nome:"Ordem Forçada Sutil",   desc:"Comandos passam a ser mentais, permitindo comandar reações fora do turno do usuário", req:"Nível 4 — PRE 3+ e C.S.C ou C.S.O", pn:1 },
+        { id:'ma_e9',  nome:"Encanto de Aura",       desc:"Alvo passa a considerá-lo como aliado",                                              req:"Nível 5 — PRE 4+ e C.S.C", pn:1 },
+        { id:'ma_e10', nome:"Fadiga Induzida",        desc:"Alvo sofre condição: Abalado, Condenado, Enjoado ou Desorientado",                   req:"Nível 5 — C.S.C", pn:1 },
+        { id:'ma_e11', nome:"Marionete (Possuído/Controle Remoto)", desc:"a) Controla o corpo do alvo como se o possuísse ou b) Controla como espectador (Controle Remoto)", req:"Nível 5 — C.S.C", pn:1 },
+        { id:'ma_e12', nome:"Intensidade Temporal",  desc:"Gasta +10% aura para estender manipulação para 1min (combate) ou 2h (fora de combate) por carga", req:"Nível 7", pn:1 },
+        { id:'ma_e13', nome:"Marionete Improvisada", desc:"Une até 2 objetos manipulados para agirem como criatura média com turno próprio",     req:"Nível 7 — C.S.O", pn:1 },
+        { id:'ma_e14', nome:"Tamanho Não É Documento", desc:"Aplica C.S.O a 1 objeto médio",                                                    req:"Nível 7 — C.S.O", pn:1 },
+        { id:'ma_e15', nome:"Controle Superior",     desc:"+1 novo comando aos objetos e +1 em Testes ou Ataques (+5 no máximo)",                req:"Nível 8 — Comando Paralelo", pn:1 },
+        { id:'ma_e16', nome:"Marionete Tática",      desc:"Escolha 2 Características de Conjurações: Carapaça, Curandeira, Defensor, Destruidor, Dimensão, Movimento Variável ou Robustez", req:"Nível 8 — Marionete Improvisada", pn:1 },
+        { id:'ma_e17', nome:"Supressão da Personalidade", desc:"Impede o uso de reações e Hatsus do alvo",                                     req:"Nível 10 — CAR 5+", pn:1 },
+        { id:'ma_e18', nome:"Toy Story",             desc:"Controle completo de um alvo (incluindo Hatsu) ou objeto, independente do tamanho",  req:"Nível 12 — Marionete ou Controle Superior", pn:1 },
       ]
     },
 
     // ─── EMISSÃO ─────────────────────────────────────────
     'EMISSÃO': {
       cor: '#ef4444',
-      attr_princ: 'INT / FOR',
-      attr_sec: 'DES / CON',
-      graus: 'Acerto | Alcance/Área | Redução de Custo',
-      desc: 'Destacar a aura do corpo e projetá-la a distâncias. Emissores são impulsivos e extrovertidos.',
+      attr_princ: 'DES',
+      attr_sec: 'FOR / INT',
+      graus: 'Acerto | Alcance/Área | Dano | Duração | Redução de Custo',
+      desc: 'Destacar a aura do corpo e projetá-la a distâncias. Emissores são impulsivos, impacientes e de pavio curto.',
       restricoes: [
-        { id:'em_l1', peso:'leve',    nome:"Trajetória Fixa",     desc:"A aura emitida sempre segue a mesma trajetória (linha reta)", bnf:"+2 no Acerto de longa distância" },
-        { id:'em_l2', peso:'leve',    nome:"Alto lá",             desc:"Não pode se mover no turno", bnf:"Ignora cobertura total (Atravessando barreiras)" },
-        { id:'em_m1', peso:'moderada',nome:"Capacidade Limitada", desc:"Só pode emitir X unidades de aura por combate",              bnf:"+3 de dano por unidade emitida" },
-        { id:'em_p1', peso:'pesada',  nome:"Vínculo Físico",      desc:"Não pode se mover enquanto emite aura (velocidade = 0)",     bnf:"Alcance dobrado e +2d6 de dano na emissão" },
+        { id:'em_l1', peso:'leve',    nome:"Linha Reta Apenas",           desc:"Só pode ser lançado em linha reta",                                  bnf:"Aumenta alcance em +6m" },
+        { id:'em_l2', peso:'leve',    nome:"Sem Movimento no Turno",      desc:"Não pode se mover no turno",                                        bnf:"Ignora cobertura total (atravessa barreiras)" },
+        { id:'em_l3', peso:'leve',    nome:"Obstáculos Bloqueiam",        desc:"Obstáculos bloqueiam automaticamente",                               bnf:"O Hatsu causa dano dobrado em objetos (Arma de Cerco)" },
+        { id:'em_m1', peso:'moderada',nome:"Atraso de 1 Rodada",         desc:"Tem atraso de 1 rodada para ativação do Hatsu",                      bnf:"Pode redirecionar quando errar 1x por combate (sem ação necessária)" },
+        { id:'em_m2', peso:'moderada',nome:"Distância Reduzida ao Mover", desc:"Distância reduzida à metade se o usuário se mover (incluindo reações)", bnf:"+1 Grau de Potência" },
+        { id:'em_m3', peso:'moderada',nome:"-2 CA Durante o Uso",         desc:"Usuário sofre -2 CA durante o uso do Hatsu",                        bnf:"Alvo sofre desvantagem no teste de resistência" },
+        { id:'em_p1', peso:'pesada',  nome:"Só com Aura Cheia",           desc:"Só pode ser usado com aura cheia",                                  bnf:"O Hatsu ignora resistência física e de energia" },
+        { id:'em_p2', peso:'pesada',  nome:"Imóvel Após Uso",             desc:"Fica Imóvel após uso",                                               bnf:"Pode repetir o ataque 1x por combate se errar (com metade do custo de aura)" },
+        { id:'em_p3', peso:'pesada',  nome:"Ricochete em Aliado",         desc:"Ricocheteia em aliado se errar",                                    bnf:"Acerto automático contra alvo Desprevenido" },
       ],
       efeitos: [
-        { id:'em_e1',  nome:"Projétil de Aura",    desc:"Emite projétil que causa 1d8 de dano. Alcance: 18m. Acerto com INT ou DES", req:"Nível 1", pn:1 },
-        { id:'em_e2',  nome:"Distância Segura",    desc:"Ativa o Hatsu a 6m de distância. Cada compra posterior: +1,5m",            req:"Nível 1", pn:1 },
-        { id:'em_e3',  nome:"Disparo Potente",     desc:"+2d6 de dano e alcance 18m no projétil de aura",                           req:"Nível 2 + Projétil de Aura", pn:1 },
-        { id:'em_e4',  nome:"Rajada de Aura",      desc:"Até 3 alvos, 1d6 cada. Mesmo alcance do projétil",                         req:"Nível 3 + Projétil de Aura", pn:1 },
-        { id:'em_e5',  nome:"Aura Persistente",    desc:"A aura emitida permanece no espaço por 2 rodadas (área perigosa de 1,5m)", req:"Nível 3", pn:1 },
-        { id:'em_e6',  nome:"Canhão de Aura",      desc:"Disparo em linha (3m larg., 18m): 3d6 de dano, TR de DES para metade",     req:"Nível 4 + Disparo Potente", pn:1 },
-        { id:'em_e7',  nome:"Emissão Guiada",      desc:"Projétil guiado mentalmente até o alvo (sem penalidade por cobertura)",    req:"Nível 5 + Projétil de Aura", pn:1 },
-        { id:'em_e8',  nome:"Barreira de Aura",    desc:"Emite escudo de aura: +4 CA por 2 rodadas (30% de aura)",                  req:"Nível 6", pn:1 },
-        { id:'em_e9',  nome:"Bomba de Aura",       desc:"Detonação em área: 4d6 de dano, 6m de raio. TR de DES para metade",        req:"Nível 7 + Canhão de Aura", pn:1 },
-        { id:'em_e10', nome:"Satélite de Aura",    desc:"3 orbes orbitando o usuário atacam alvos próximos (1d8 cada por rodada)",  req:"Nível 8 + Emissão Guiada", pn:1 },
-        { id:'em_e11', nome:"Emissão Total",       desc:"Canaliza TODA a aura em um único disparo devastador",                      req:"Nível 10", pn:1 },
-        { id:'em_e12', nome:"Maestria da Emissão", desc:"A aura emitida ignora cobertura, invisibilidade e barreiras de Nen",       req:"Nível 12 + Emissão Guiada", pn:1 },
+        { id:'em_e1',  nome:"Aura Viva",              desc:"Cria até 2 massas de aura com turno em combate: a) Portais (indestrutiveis por padrão) ou b) Criaturas/Objetos médios (PV e dano 1d6)", req:"Nível 1", pn:1 },
+        { id:'em_e2',  nome:"Distância Segura",       desc:"Adiciona 6m ao alcance ou 3m a uma área",                                               req:"Nível 1", pn:1 },
+        { id:'em_e3',  nome:"Plano Avançado (Detonador)", desc:"Aplica 'marca' prévia (restrição de ativação, 5% aura). Não conta no tempo ou duração do Hatsu", req:"Nível 1", pn:1 },
+        { id:'em_e4',  nome:"Projétil de Aura",       desc:"Desprende aura em projétil balístico (mínimo 1d8). Alternativa: cria munições para armas", req:"Nível 1", pn:1 },
+        { id:'em_e5',  nome:"Transporte Abstrato",    desc:"Transfere informações ou sensações/condições ou efeitos (dano) a algo/alguém vinculado", req:"Nível 1", pn:1 },
+        { id:'em_e6',  nome:"Transporte de Cargas",   desc:"Transporta a si e/ou alvos marcados para 3m mínimo. Dobro em metros gastando toda ação de movimento", req:"Nível 1", pn:1 },
+        { id:'em_e7',  nome:"Empurrar e Puxar",       desc:"Marca de aura ou ataque permite empurrar ou puxar o alvo em 3m",                         req:"Nível 2", pn:1 },
+        { id:'em_e8',  nome:"Stalker",                desc:"Marca alvo e localiza-o por 1h ou 100m ou +1 para encontrar/acertar (máx. +3)",           req:"Nível 2", pn:1 },
+        { id:'em_e9',  nome:"Troca Estratégica",      desc:"Gasta 1 reação para trocar de lugar com constructo de aura ou aliado marcado",            req:"Nível 2 — Aura Viva ou Plano Avançado", pn:1 },
+        { id:'em_e10', nome:"Reformar Constructo",    desc:"Divide constructo em duas entidades menores ou reconstrói um destruído (metade dos PVs)", req:"Nível 3", pn:1 },
+        { id:'em_e11', nome:"Unificação de Constructos", desc:"Dois ou mais constructos se fundem em um único ser maior (soma PVs ou FOR)",          req:"Nível 3 — Aura Viva", pn:1 },
+        { id:'em_e12', nome:"Ancoragem",              desc:"Não pode ser movido por meios físicos. Também prende objeto no espaço (como flutuando)",  req:"Nível 4", pn:1 },
+        { id:'em_e13', nome:"Lugar Marcado",          desc:"Aplica Ren em local/alvo (5%), marcando para teletransporte independente da distância",   req:"Nível 4", pn:1 },
+        { id:'em_e14', nome:"Expansão de Domínio",    desc:"a) 6m em cone/circulo/cilindro/linha a partir de si ou b) 3m à distância",                req:"Nível 5", pn:1 },
+        { id:'em_e15', nome:"Mira Concentrada",       desc:"Vantagem no próximo ataque a distância com Hatsu a cada 10% de aura gasto (não redutível)", req:"Nível 5", pn:1 },
+        { id:'em_e16', nome:"Mira Guiada",            desc:"Projétil contorna/atravessa obstáculos simples e alvos estáticos no caminho",             req:"Nível 5 — SAB 3+ e Projétil de Aura", pn:1 },
+        { id:'em_e17', nome:"Troca Dimensional",      desc:"Troca de lugar com aliado, portal ou marca",                                              req:"Nível 6", pn:1 },
+        { id:'em_e18', nome:"Núcleo Vinculante",      desc:"Constructo canaliza aura para amplificar ataque/defesa, sacrificando-se. Absorve ou Aumenta dano de acordo com PV restante", req:"Nível 8 — Aura Viva", pn:1 },
+        { id:'em_e19', nome:"Espaço Reverso",         desc:"Rebate ataque de aura ou Hatsu com dano de volta ao alvo (1x/combate)",                   req:"Nível 8 — SAB 5+", pn:1 },
+        { id:'em_e20', nome:"Disparo Potente",        desc:"Aumenta dano em +2d6 e alcance/área em 18m",                                             req:"Nível 10 — Projétil de Aura ou Rajada Canalizada", pn:1 },
+        { id:'em_e21', nome:"Tão Tão Distante",       desc:"Dobra alcance/área ou muda de categoria (metros→km, requer 2 restrições pesadas ou 1 extrema)", req:"Nível 10", pn:1 },
       ]
     },
 
@@ -1456,17 +1583,19 @@ function renderHatsuCreator(container) {
 
     // Inicializa o builder
     if (!state.hatsuBuilder) {
-        state.hatsuBuilder = { step:0, nome:'', descricao:'', tipo:'', rg:[], rc:[], eg:[], ec:[] };
+        state.hatsuBuilder = { step:0, nome:'', descricao:'', tipoA:'', tipoB:'', rg:[], rc:[], eg:[], ec:[], openAccordions:['leves','moderadas','pesadas','variaveis','extremas'], restrTab:'gerais', beneficioChoices:{} };
     }
     const hb = state.hatsuBuilder;
 
-    const pnMax = window.calcularPHBase(char.level);
+    const pnBase = window.calcularPHBase(char.level);
+    const pnBonus = window.calcPNBonusFromRestr(state.hatsuBuilder || {});
+    const pnMax = pnBase + pnBonus;
     let pnUsed = 0;
     hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed += e.pn; });
     hb.ec.forEach(id => { const e = catDB.efeitos.find(x=>x.id===id); if(e) pnUsed += e.pn; });
     const pnLeft = pnMax - pnUsed;
 
-    const STEPS = ['CONCEITO','TIPO','REST. GERAIS','REST. CATEG.','EFEITOS GERAIS','EFEITOS CATEG.','RESUMO'];
+    const STEPS = ['CONCEITO','TIPO','RESTRIÇÕES','EFEITOS GERAIS','EFEITOS CATEG.','RESUMO'];
 
     // ── barra de progresso ──
     const progressBar = STEPS.map((s,i) => {
@@ -1487,38 +1616,138 @@ function renderHatsuCreator(container) {
     };
 
     function renderR(items, arr, tipo) {
-        return items.map(item => {
-            const sel = arr.includes(item.id);
-            const pw = item.peso || 'leve';
-            const p  = palR[pw] || palR.leve;
-            return `<div onclick="window._hToggleR('${item.id}','${tipo}')"
-                style="padding:8px;border-radius:10px;border:2px solid ${sel?p.bs:p.bun};background:${sel?p.bg:'transparent'};cursor:pointer;margin-bottom:8px;transition:all .15s">
-                <div style="display:flex;align-items:flex-start;gap:8px;">
-                    <span style="font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;background:${p.badge};color:${p.bt};text-transform:uppercase;flex-shrink:0;margin-top:2px">${pw.substring(0,3).toUpperCase()}</span>
-                    <div style="flex:1;min-width:0">
-                        <div style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel?p.bs:'#d1d5db'};line-height:1.2">${item.nome} ${sel?`<span style="color:${p.bt}">✓</span>`:''}</div>
-                        <div style="font-size:8px;color:#6b7280;font-style:italic;margin-top:3px;line-height:1.4">${item.desc}</div>
-                        <div style="font-size:8px;font-weight:700;color:${p.bt};margin-top:4px">⚡ ${item.bnf}</div>
-                    </div>
-                </div>
-            </div>`;
+        return items.map(function(item) {
+            var sel = arr.includes(item.id);
+            var pw = item.peso || 'leve';
+            var p  = palR[pw] || palR.leve;
+            var hb = state.hatsuBuilder;
+            var hasAlt = !!(item.bnf && /\s[Oo][Uu]\s/.test(item.bnf));
+            var choiceKey = (hb && hb.beneficioChoices) ? hb.beneficioChoices[item.id] : undefined;
+            var needsChoice = sel && hasAlt && choiceKey === null;
+            var borderColor = sel ? (needsChoice ? '#fb923c' : p.bs) : p.bun;
+
+            var choiceHtml = '';
+            if (sel && hasAlt) {
+                var opts = item.bnf.split(/\s[Oo][Uu]\s/);
+                // Store opts in global lookup so we can pass index via onclick
+                if (!window._hBnfOpts) window._hBnfOpts = {};
+                window._hBnfOpts[item.id] = opts.map(function(o){ return o.trim(); });
+                var optBtns = opts.map(function(opt, idx) {
+                    var isSel = choiceKey === opt.trim();
+                    // Use index in onclick — safe, no quoting issues
+                    return '<button onclick="event.stopPropagation();window._hSetBeneficioChoiceIdx(\'' + item.id + '\',' + idx + ');return false"'
+                        + ' style="text-align:left;padding:7px 10px;border-radius:7px;border:1.5px solid '
+                        + (isSel ? '#4ade80' : '#1f2937')
+                        + ';background:' + (isSel ? '#4ade8018' : '#0d1117')
+                        + ';cursor:pointer;font-size:9px;font-weight:' + (isSel ? '700' : '400')
+                        + ';color:' + (isSel ? '#4ade80' : '#9ca3af') + '">'
+                        + (isSel ? '✓ ' : '') + opt.trim() + '</button>';
+                }).join('');
+                choiceHtml = '<div style="margin-top:8px;padding:8px;background:#060a10;border-radius:8px;border:1px solid '
+                    + (needsChoice ? '#fb923c44' : '#1f2937') + '">'
+                    + '<div style="font-size:8px;font-weight:700;color:' + (needsChoice ? '#fb923c' : '#6b7280')
+                    + ';margin-bottom:6px;text-transform:uppercase;letter-spacing:1px">'
+                    + (needsChoice ? '⚠ Escolha um benefício:' : '✓ Benefício escolhido:') + '</div>'
+                    + '<div style="display:flex;flex-direction:column;gap:4px">' + optBtns + '</div></div>';
+            }
+
+            return '<div onclick="window._hToggleR(\'' + item.id + '\',\'' + tipo + '\')"'
+                + ' style="padding:8px;border-radius:10px;border:2px solid ' + borderColor
+                + ';background:' + (sel ? p.bg : 'transparent')
+                + ';cursor:pointer;margin-bottom:8px;transition:all .15s">'
+                + '<div style="display:flex;align-items:flex-start;gap:8px;">'
+                + '<span style="font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;background:' + p.badge + ';color:' + p.bt + ';text-transform:uppercase;flex-shrink:0;margin-top:2px">'
+                + pw.substring(0,3).toUpperCase() + '</span>'
+                + '<div style="flex:1;min-width:0">'
+                + '<div style="font-size:9px;font-weight:900;text-transform:uppercase;color:' + (sel ? p.bs : '#d1d5db') + ';line-height:1.2">'
+                + item.nome + (sel ? ' <span style="color:' + p.bt + '">✓</span>' : '') + '</div>'
+                + '<div style="font-size:8px;color:#6b7280;font-style:italic;margin-top:3px;line-height:1.4">' + item.desc + '</div>'
+                + '<div style="font-size:8px;font-weight:700;color:' + p.bt + ';margin-top:4px">⚡ ' + item.bnf + '</div>'
+                + '</div></div>'
+                + choiceHtml
+                + '</div>';
         }).join('');
     }
 
     function renderE(items, arr, tipo, color) {
+        const char = state.currentChar;
+        const charLevel = parseInt(char.level) || 0;
+        const getMod = v => Math.floor(((v||10) - 10) / 2);
+        const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
+
+        // Parses a req string and returns { ok: bool, reason: string }
+        function checkReq(req) {
+            if (!req) return { ok: true, reason: '' };
+            const reasons = [];
+
+            // Nível X
+            const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
+            if (lvlMatch) {
+                const needed = parseInt(lvlMatch[1]);
+                if (charLevel < needed) reasons.push(`Nível ${needed} (você está no Nível ${charLevel})`);
+            }
+
+            // ATTR X+ (e.g. "SAB 3+", "CAR 5+", "INT ou SAB 3+")
+            const attrPattern = /\b(FOR|DES|CON|INT|SAB|CAR)\s+(\d+)\+/gi;
+            let m;
+            const attrConditions = [];
+            while ((m = attrPattern.exec(req)) !== null) {
+                attrConditions.push({ attr: m[1].toUpperCase(), min: parseInt(m[2]) });
+            }
+            if (attrConditions.length > 0) {
+                // Check if req has " ou " between attrs (any of them suffices)
+                const isOr = /\bou\b/i.test(req);
+                if (isOr) {
+                    const anyMet = attrConditions.some(c => attrMod(c.attr) >= c.min);
+                    if (!anyMet) {
+                        const parts = attrConditions.map(c => `mod. ${c.attr} ${c.min}+ (atual: ${attrMod(c.attr) >= 0 ? '+' : ''}${attrMod(c.attr)})`);
+                        reasons.push(`Requer ${parts.join(' ou ')}`);
+                    }
+                } else {
+                    attrConditions.forEach(c => {
+                        if (attrMod(c.attr) < c.min) {
+                            reasons.push(`mod. ${c.attr} ${c.min}+ (atual: ${attrMod(c.attr) >= 0 ? '+' : ''}${attrMod(c.attr)})`);
+                        }
+                    });
+                }
+            }
+
+            return { ok: reasons.length === 0, reason: reasons.join(' • ') };
+        }
+
         return items.map(item => {
             const sel = arr.includes(item.id);
             const afford = pnLeft >= item.pn || sel;
+            const { ok: reqOk, reason: reqReason } = checkReq(item.req);
+            const blocked = !reqOk && !sel;
             const costColor = item.pn >= 3 ? '#f87171' : item.pn >= 2 ? '#fbbf24' : '#6b7280';
-            return `<div onclick="${afford?`window._hToggleE('${item.id}','${tipo}',${item.pn})`:'void(0)'}"
-                style="padding:8px 10px;border-radius:10px;border:2px solid ${sel?color:'#1f2937'};background:${sel?color+'18':'#0f1117'};cursor:${afford?'pointer':'not-allowed'};opacity:${afford?'1':'0.3'};margin-bottom:8px;transition:all .15s">
+
+            // Determine click action
+            let clickAction;
+            if (blocked) {
+                // Show tooltip-style alert with the reason
+                const msg = `❌ Requisito não atendido:\\n\\n${reqReason}\\n\\nReq. original: ${item.req}`;
+                clickAction = `alert('${msg.replace(/'/g, "\\'")}')`;
+            } else if (!afford) {
+                clickAction = 'void(0)';
+            } else {
+                clickAction = `window._hToggleE('${item.id}','${tipo}',${item.pn})`;
+            }
+
+            const lockBadge = blocked
+                ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#ef444422;color:#f87171">🔒 REQ</span>`
+                : '';
+
+            return `<div onclick="${clickAction}"
+                style="padding:8px 10px;border-radius:10px;border:2px solid ${sel ? color : blocked ? '#ef444433' : '#1f2937'};background:${sel ? color+'18' : blocked ? '#1a0a0a' : '#0f1117'};cursor:${blocked ? 'pointer' : afford ? 'pointer' : 'not-allowed'};opacity:${blocked ? '0.55' : afford ? '1' : '0.3'};margin-bottom:8px;transition:all .15s">
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
-                    <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel?color:'#d1d5db'}">${item.nome}</span>
+                    <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel ? color : blocked ? '#9ca3af' : '#d1d5db'}">${item.nome}</span>
                     <span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${costColor}22;color:${costColor}">${item.pn} P.N</span>
-                    ${sel?`<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${color}33;color:${color}">✓</span>`:''}
+                    ${sel ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${color}33;color:${color}">✓</span>` : ''}
+                    ${lockBadge}
                 </div>
                 <div style="font-size:8px;color:#6b7280;line-height:1.4">${item.desc}</div>
-                <div style="font-size:7px;color:#374151;font-style:italic;margin-top:3px">Req: ${item.req}</div>
+                <div style="font-size:7px;color:${blocked ? '#ef444499' : '#374151'};font-style:italic;margin-top:3px">Req: ${item.req}${blocked ? ` — <span style="color:#f87171;font-weight:700">${reqReason}</span>` : ''}</div>
             </div>`;
         }).join('');
     }
@@ -1565,103 +1794,178 @@ function renderHatsuCreator(container) {
 
     // ETAPA 1 — TIPO
     else if (hb.step === 1) {
-        canNext = hb.tipo !== '';
-        const tipos = [
-            { id:'hostil',        icon:'⚔️', label:'HOSTIL',        sub:'Dano direto e condições negativas', tip:'Começa com 2d6+Atributo. Focado em ofensa.' },
-            { id:'suporte',       icon:'🛡️', label:'SUPORTE',       sub:'Cura, buffs, sem dano direto',      tip:'Sem 2d6 inicial. Curas: 2d6+CON do alvo.' },
-            { id:'versatil',      icon:'🌀', label:'VERSÁTIL',       sub:'Mescla hostil e suporte',           tip:'Pode causar dano E suportar. Equilibrado.' },
-            { id:'instantaneo',   icon:'⚡', label:'INSTANTÂNEO',    sub:'Efeito no mesmo turno',             tip:'Investe em dano, alcance ou área.' },
-            { id:'longa_duracao', icon:'⏳', label:'LONGA DURAÇÃO',  sub:'Persiste por rodadas',              tip:'Investe em duração, alcance ou CD do TR.' },
+        canNext = hb.tipoA !== '' && hb.tipoB !== '';
+        const tiposA = [
+            { id:'hostil',   icon:'⚔️', label:'HOSTIL',   sub:'Dano direto e condições negativas', tip:'Começa com 2d6+Atributo. Focado em ofensa.' },
+            { id:'suporte',  icon:'🛡️', label:'SUPORTE',  sub:'Cura, buffs, sem dano direto',      tip:'Sem 2d6 inicial. Curas: 2d6+CON do alvo.' },
+            { id:'versatil', icon:'🌀', label:'VERSÁTIL',  sub:'Mescla hostil e suporte',           tip:'Pode causar dano E suportar.' },
+        ];
+        const tiposB = [
+            { id:'instantaneo',   icon:'⚡', label:'INSTANTÂNEO',   sub:'Ativa e termina no mesmo turno', tip:'Investe em dano, alcance ou área.' },
+            { id:'longa_duracao', icon:'⏳', label:'LONGA DURAÇÃO',  sub:'Persiste por múltiplas rodadas', tip:'Investe em duração, alcance ou CD.' },
         ];
         content = `
-        <div style="text-align:center;margin-bottom:16px">
+        <div style="text-align:center;margin-bottom:14px">
             <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Tipo de Hatsu</div>
-            <div style="font-size:9px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Define o foco e o dano inicial</div>
+            <div style="font-size:9px;color:#6b7280;margin-top:4px;text-transform:uppercase;letter-spacing:1px">Escolha um de cada grupo</div>
         </div>
-        ${tipos.map(t => {
-            const sel = hb.tipo === t.id;
-            return `<div onclick="state.hatsuBuilder.tipo='${t.id}';render()"
-                style="padding:12px;border-radius:12px;border:2px solid ${sel?tc:'#1f2937'};background:${sel?tc+'18':'#0f1117'};cursor:pointer;margin-bottom:8px;transition:all .15s">
+
+        <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">🎯 Grupo 1 — Foco</div>
+        ${tiposA.map(t => {
+            const sel = hb.tipoA === t.id;
+            return `<div onclick="state.hatsuBuilder.tipoA='${t.id}';render()"
+                style="padding:11px;border-radius:12px;border:2px solid ${sel?tc:'#1f2937'};background:${sel?tc+'18':'#0f1117'};cursor:pointer;margin-bottom:8px;transition:all .15s">
                 <div style="display:flex;align-items:center;gap:10px">
                     <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
                     <div style="flex:1">
                         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                             <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;color:${sel?tc:'#d1d5db'}">${t.label}</span>
-                            ${sel?`<span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:20px;background:${tc}33;color:${tc}">✓ Selecionado</span>`:''}
+                            ${sel?`<span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:20px;background:${tc}33;color:${tc}">✓</span>`:''}
                         </div>
                         <div style="font-size:9px;color:#6b7280;margin-top:2px">${t.sub}</div>
                     </div>
                 </div>
-                ${sel?`<div style="font-size:9px;color:${tc}cc;margin-top:8px;padding-left:28px;line-height:1.5">${t.tip}</div>`:''}
+                ${sel?`<div style="font-size:9px;color:${tc}cc;margin-top:6px;padding-left:28px;line-height:1.5">${t.tip}</div>`:''}
             </div>`;
-        }).join('')}`;
+        }).join('')}
+
+        <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin:12px 0 8px">⏱ Grupo 2 — Duração</div>
+        ${tiposB.map(t => {
+            const sel = hb.tipoB === t.id;
+            return `<div onclick="state.hatsuBuilder.tipoB='${t.id}';render()"
+                style="padding:11px;border-radius:12px;border:2px solid ${sel?tc:'#1f2937'};background:${sel?tc+'18':'#0f1117'};cursor:pointer;margin-bottom:8px;transition:all .15s">
+                <div style="display:flex;align-items:center;gap:10px">
+                    <span style="font-size:18px;flex-shrink:0">${t.icon}</span>
+                    <div style="flex:1">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;color:${sel?tc:'#d1d5db'}">${t.label}</span>
+                            ${sel?`<span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:20px;background:${tc}33;color:${tc}">✓</span>`:''}
+                        </div>
+                        <div style="font-size:9px;color:#6b7280;margin-top:2px">${t.sub}</div>
+                    </div>
+                </div>
+                ${sel?`<div style="font-size:9px;color:${tc}cc;margin-top:6px;padding-left:28px;line-height:1.5">${t.tip}</div>`:''}
+            </div>`;
+        }).join('')}
+
+        ${hb.tipoA && hb.tipoB ? `<div style="background:${tc}18;border:2px solid ${tc};border-radius:12px;padding:10px;margin-top:4px;text-align:center">
+            <div style="font-size:9px;font-weight:900;color:${tc};text-transform:uppercase;letter-spacing:1px">✓ Combinação: ${hb.tipoA.toUpperCase()} + ${hb.tipoB.toUpperCase()}</div>
+        </div>` : `<div style="text-align:center;font-size:9px;color:#4b5563;margin-top:8px">Selecione um item de cada grupo para continuar</div>`}
+        `;
     }
 
-    // ETAPA 2 — RESTRIÇÕES GERAIS
+    // ETAPA 2 — RESTRIÇÕES (Gerais + Categoria em tabs)
     else if (hb.step === 2) {
         canNext = true;
-        const db = window.HATSU_DB.restricoes_gerais;
-        const grupos = [
+        if (!hb.restrTab) hb.restrTab = 'gerais';
+        var isGerais = hb.restrTab === 'gerais';
+        var db = window.HATSU_DB.restricoes_gerais;
+        var grupos = [
             { key:'leves',    label:'LEVES',    peso:'leve',    cor:'#4ade80', cb:'#22c55e33' },
             { key:'moderadas',label:'MODERADAS',peso:'moderada',cor:'#fbbf24', cb:'#eab30833' },
             { key:'pesadas',  label:'PESADAS',  peso:'pesada',  cor:'#f87171', cb:'#ef444433' },
             { key:'variaveis',label:'VARIÁVEIS',peso:'variavel',cor:'#c084fc', cb:'#a855f733' },
             { key:'extremas', label:'EXTREMAS', peso:'extrema', cor:'#fb923c', cb:'#f9731633' },
         ];
-        const totalSel = hb.rg.length;
-        content = `
-        <div style="text-align:center;margin-bottom:12px">
-            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições Gerais</div>
-            <div style="font-size:9px;color:#6b7280;margin-top:4px">Disponíveis para qualquer categoria de Nen</div>
-        </div>
-        <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;margin-bottom:12px;font-size:9px;color:#6b7280;line-height:1.5">
-            💡 <span style="color:#fb923c;font-weight:700">Restrições Extremas</span> concedem acesso a efeitos 2 níveis acima. Restrições <span style="font-weight:700;color:#9ca3af">puras</span> convertem o benefício em P.N.
-            <br>Total selecionadas: <span style="color:#fff;font-weight:900">${totalSel}</span>
-        </div>
-        ${grupos.map(g => {
-            const items = (db[g.key]||[]).map(i => ({...i, peso:g.peso}));
-            const cnt = items.filter(i => hb.rg.includes(i.id)).length;
-            return `<details style="margin-bottom:6px" ${cnt>0?'open':''}>
-                <summary style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-bottom:1px solid ${g.cb};cursor:pointer;list-style:none;border-radius:8px;background:${g.cb}44;margin-bottom:8px">
-                    <span style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:${g.cor}">${g.label}</span>
-                    ${cnt?`<span style="font-size:9px;font-weight:900;padding:2px 8px;border-radius:20px;background:${g.cb};color:${g.cor}">${cnt} sel.</span>`:'<span style="font-size:9px;color:#4b5563">▸</span>'}
-                </summary>
-                ${renderR(items, hb.rg, 'rg')}
-            </details>`;
-        }).join('')}`;
+        var catItems = catDB.restricoes || [];
+        var totalRG = hb.rg.length;
+        var totalRC = hb.rc.length;
+
+        // Tabs
+        var tabGeraisStyle = isGerais
+            ? 'background:#1f2937;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.4)'
+            : 'background:transparent;color:#4b5563';
+        var tabCatStyle = !isGerais
+            ? 'background:' + tc + '33;color:' + tc + ';box-shadow:0 2px 8px rgba(0,0,0,.4);border:1px solid ' + tc + '55'
+            : 'background:transparent;color:#4b5563;border:1px solid transparent';
+
+        var tabGeraisLabel = 'GERAIS' + (totalRG > 0 ? ' <span style="font-size:8px;background:#ffffff22;padding:1px 5px;border-radius:10px">' + totalRG + '</span>' : '');
+        var tabCatLabel = cls + (totalRC > 0 ? ' <span style="font-size:8px;background:' + tc + '33;padding:1px 5px;border-radius:10px">' + totalRC + '</span>' : '');
+
+        var tabsHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;background:#0a0f1a;border-radius:12px;padding:4px">'
+            + '<button onclick="state.hatsuBuilder.restrTab=\'gerais\';renderHatsuInPlace()" style="padding:10px;border-radius:9px;font-family:\'Orbitron\',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:1px;border:none;cursor:pointer;transition:all .15s;' + tabGeraisStyle + '">' + tabGeraisLabel + '</button>'
+            + '<button onclick="state.hatsuBuilder.restrTab=\'categoria\';renderHatsuInPlace()" style="padding:10px;border-radius:9px;font-family:\'Orbitron\',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:1px;border:none;cursor:pointer;transition:all .15s;' + tabCatStyle + '">' + tabCatLabel + '</button>'
+            + '</div>';
+
+        var bodyHtml = '';
+        if (isGerais) {
+            bodyHtml += '<div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:9px;margin-bottom:10px;font-size:9px;color:#6b7280;line-height:1.5">'
+                + '💡 <span style="color:#fb923c;font-weight:700">Extremas</span> = acesso +2 níveis. <span style="color:#9ca3af;font-weight:700">Puras</span> = benefício vira P.N.'
+                + '<span style="float:right;color:#fff;font-weight:900">' + totalRG + ' selecionadas</span></div>';
+
+            bodyHtml += grupos.map(function(g) {
+                var items = (db[g.key]||[]).map(function(i){ return Object.assign({}, i, {peso:g.peso}); });
+                var cnt = items.filter(function(i){ return hb.rg.includes(i.id); }).length;
+                var isOpen = (hb.openAccordions||[]).includes(g.key) || cnt > 0;
+                var cntBadge = cnt ? '<span style="font-size:9px;font-weight:900;padding:2px 8px;border-radius:20px;background:' + g.cb + ';color:' + g.cor + '">' + cnt + ' sel.</span>' : '';
+                var arrow = isOpen ? '▾' : '▸';
+                var innerContent = isOpen ? '<div style="padding:8px">' + renderR(items, hb.rg, 'rg') + '</div>' : '';
+                return '<div style="margin-bottom:6px;border-radius:10px;border:1px solid ' + (cnt > 0 ? g.cor + '55' : '#1f2937') + ';overflow:hidden">'
+                    + '<div onclick="window._hToggleAccordion(\'' + g.key + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;background:' + g.cb + '44;user-select:none">'
+                    + '<span style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:' + g.cor + '">' + g.label + '</span>'
+                    + '<div style="display:flex;align-items:center;gap:6px">' + cntBadge + '<span style="font-size:10px;color:' + g.cor + ';display:inline-block">' + arrow + '</span></div>'
+                    + '</div>' + innerContent + '</div>';
+            }).join('');
+        } else {
+            // CATEGORIA TAB
+            bodyHtml += '<div style="background:#0f1117;border:1px solid ' + tc + '22;border-radius:10px;padding:9px;margin-bottom:10px;font-size:9px;color:#6b7280;line-height:1.5">'
+                + '<span style="color:' + tc + ';font-weight:700">Attr. Principal:</span> ' + (catDB.attr_princ || '—')
+                + ' &nbsp;•&nbsp; <span style="color:#6b7280">Graus:</span> ' + (catDB.graus || '—')
+                + '<span style="float:right;color:' + tc + ';font-weight:900">' + totalRC + ' selecionadas</span></div>';
+
+            if (catItems.length === 0) {
+                bodyHtml += '<div style="text-align:center;color:#374151;font-style:italic;padding:30px 0">Nenhuma restrição específica para ' + cls + '.</div>';
+            } else {
+                // 4.3: badge neutro cinza para categoria
+                bodyHtml += catItems.map(function(item) {
+                    var sel = hb.rc.includes(item.id);
+                    var pLbl = ({leve:'LEVE',moderada:'MOD',pesada:'PES',variavel:'VAR',extrema:'EXT'})[item.peso] || 'CAT';
+                    return '<div onclick="window._hToggleR(\'' + item.id + '\',\'rc\')"'
+                        + ' style="padding:11px;border-radius:11px;border:2px solid ' + (sel ? tc + 'aa' : '#1f2937') + ';background:' + (sel ? tc + '14' : '#0f1117') + ';cursor:pointer;margin-bottom:8px;transition:all .15s">'
+                        + '<div style="display:flex;align-items:flex-start;gap:8px">'
+                        + '<span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:#1f2937;color:#6b7280;flex-shrink:0;margin-top:2px;letter-spacing:1px;text-transform:uppercase">' + pLbl + '</span>'
+                        + '<div style="flex:1">'
+                        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
+                        + '<span style="font-size:10px;font-weight:900;color:' + (sel ? tc : '#d1d5db') + ';text-transform:uppercase;line-height:1.2">' + item.nome + '</span>'
+                        + (sel ? '<span style="font-size:7px;font-weight:900;background:' + tc + '33;color:' + tc + ';padding:2px 6px;border-radius:20px">✓</span>' : '')
+                        + '</div>'
+                        + '<div style="font-size:9px;color:#6b7280;line-height:1.4;margin-bottom:4px">' + item.desc + '</div>'
+                        + '<div style="font-size:9px;font-weight:700;color:' + (sel ? tc : '#9ca3af') + '">⚡ ' + item.bnf + '</div>'
+                        + '</div></div></div>';
+                }).join('');
+            }
+        }
+
+        content = '<div style="text-align:center;margin-bottom:10px">'
+            + '<div style="font-family:\'Orbitron\',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições</div>'
+            + '</div>' + tabsHtml + bodyHtml;
     }
 
-    // ETAPA 3 — RESTRIÇÕES DA CATEGORIA
+    // ETAPA 3 — EFEITOS GERAIS
     else if (hb.step === 3) {
         canNext = true;
-        const items = catDB.restricoes || [];
-        const cnt = hb.rc.length;
         content = `
-        <div style="text-align:center;margin-bottom:16px">
-            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições de ${cls}</div>
-            <div style="font-size:9px;margin-top:4px;font-weight:700;color:${tc}">Específicas para sua categoria · ${cnt} selecionada(s)</div>
-        </div>
-        <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;margin-bottom:12px;font-size:9px;color:#6b7280;line-height:1.5">
-            <span style="color:${tc};font-weight:700">Attr. Principal:</span> ${catDB.attr_princ} &nbsp;•&nbsp;
-            <span style="color:#6b7280">Graus de Potência:</span> ${catDB.graus}
-        </div>
-        ${items.length === 0
-            ? `<div style="text-align:center;color:#374151;font-style:italic;padding:40px 0">Nenhuma restrição específica para ${cls}.</div>`
-            : renderR(items, hb.rc, 'rc')}`;
-    }
-
-    // ETAPA 4 — EFEITOS GERAIS
-    else if (hb.step === 4) {
-        canNext = true;
-        content = `
-        <div style="text-align:center;margin-bottom:12px">
+        <div style="text-align:center;margin-bottom:10px">
             <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Efeitos Gerais</div>
             <div style="font-size:9px;color:#6b7280;margin-top:3px">Disponíveis para qualquer categoria</div>
+        </div>
+        <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:10px;padding:9px;margin-bottom:10px">
+            <div style="display:flex;align-items:flex-start;gap:7px">
+                <span style="font-size:12px;flex-shrink:0">📖</span>
+                <div>
+                    <div style="font-size:8px;font-weight:700;color:#9ca3af;margin-bottom:4px">P.N restantes podem ser usados nos Princípios de Nen:</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:3px">
+                        ${['TEN','REN','ZETSU','HATSU','GYO','EN','IN','KEN','KO','RYU'].map(pn => '<span style="font-size:7px;font-weight:700;padding:2px 5px;border-radius:5px;background:#1f2937;color:#6b7280">'+pn+'</span>').join('')}
+                    </div>
+                    <div style="font-size:7px;color:#374151">Máx. 10 P.N por princípio · Hatsus não têm limite</div>
+                </div>
+            </div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
                 <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
             </div>
             <div style="text-align:right">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Selecionados</div>
@@ -1671,8 +1975,8 @@ function renderHatsuCreator(container) {
         ${renderE(window.HATSU_DB.efeitos_gerais, hb.eg, 'eg', '#9ca3af')}`;
     }
 
-    // ETAPA 5 — EFEITOS DA CATEGORIA
-    else if (hb.step === 5) {
+    // ETAPA 4 — EFEITOS DA CATEGORIA
+    else if (hb.step === 4) {
         canNext = true;
         content = `
         <div style="text-align:center;margin-bottom:12px">
@@ -1683,6 +1987,7 @@ function renderHatsuCreator(container) {
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
                 <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
             </div>
             <div style="text-align:right">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Attr. Principal</div>
@@ -1693,8 +1998,8 @@ function renderHatsuCreator(container) {
         ${renderE(catDB.efeitos, hb.ec, 'ec', tc)}`;
     }
 
-    // ETAPA 6 — RESUMO
-    else if (hb.step === 6) {
+    // ETAPA 5 — RESUMO
+    else if (hb.step === 5) {
         canNext = hb.nome.trim().length > 0;
         const allRDB = [
             ...(window.HATSU_DB.restricoes_gerais.leves||[]).map(r=>({...r,peso:'leve'})),
@@ -1709,8 +2014,10 @@ function renderHatsuCreator(container) {
         const efCSel = hb.ec.map(id => catDB.efeitos.find(e=>e.id===id)).filter(Boolean);
         const allR = [...rGSel, ...rCSel];
         const allE = [...efGSel, ...efCSel];
-        const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
-        const tipoNames = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+        const _tipoIconsMap = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+    const tipoIcons = new Proxy(_tipoIconsMap, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||'✦').join(''); } });
+        const _tipoLabels = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+    const tipoNames = new Proxy(_tipoLabels, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||p).join(' + '); } });
 
         content = `
         <!-- Cabeçalho do Hatsu -->
@@ -1748,7 +2055,7 @@ function renderHatsuCreator(container) {
             </div>
             <div style="text-align:right">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700">Custo de Aura Base</div>
-                <div style="font-size:10px;color:#d1d5db;font-weight:700;margin-top:2px">50% <span style="font-size:8px;color:#4b5563">(ajustado pelas restrições)</span></div>
+                ${(() => { const cc = window.calcAuraCost ? window.calcAuraCost(hb) : {pct:50,label:'50% de Aura'}; const reduced = cc.pct < 50; return `<div style="font-size:10px;color:${reduced?'#4ade80':'#d1d5db'};font-weight:700;margin-top:2px">${cc.label}${reduced?` <span style="font-size:8px;color:#4b5563">(reduzido)</span>`:''}</div>`; })()}
             </div>
         </div>
         <!-- Restrições -->
@@ -1804,7 +2111,7 @@ function renderHatsuCreator(container) {
             <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:2px;color:${tc}">${STEPS[hb.step]}</span>
         </div>
         <!-- CONTEÚDO -->
-        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar">${content}</div>
+        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar hatsu-creator-scroll">${content}</div>
         <!-- RODAPÉ -->
         <div style="display:flex;gap:10px;padding:14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0">
             ${btnPrev}${btnNext}
@@ -1844,10 +2151,10 @@ window._hNext = function() {
         if (input) { input.focus(); input.style.borderColor = '#ef4444'; }
         return;
     }
-    if (hb.step === 1 && !hb.tipo) {
-        return; // usuário precisa selecionar um tipo — os cards são clicáveis
+    if (hb.step === 1 && (!hb.tipoA || !hb.tipoB)) {
+        return; // usuário precisa selecionar um tipo de cada grupo
     }
-    if (hb.step === 6) {
+    if (hb.step === 5) {
         // Salva o hatsu
         const char = state.currentChar;
         if (!char.hatsus) char.hatsus = [];
@@ -1859,8 +2166,9 @@ window._hNext = function() {
             id: (hb.editingIdx !== undefined ? char.hatsus[hb.editingIdx].id : null) || ('hatsu_' + Date.now()),
             nome: hb.nome,
             descricao: hb.descricao,
-            tipo: hb.tipo,
+            tipo: (hb.tipoA||'')+(hb.tipoB?'+'+hb.tipoB:''),
             restricoes: [...hb.rg, ...hb.rc],
+            beneficioChoices: {...(hb.beneficioChoices||{})},
             efeitos: [...hb.eg, ...hb.ec],
             pnUsados: pnUsed,
             nivel: char.level,
@@ -1887,12 +2195,67 @@ window._hPrev = function() {
     hb.step--;
     render();
 };
+// Re-render hatsu creator preserving scroll position of content area
+function renderHatsuInPlace() {
+    const contentDiv = document.querySelector('.hatsu-creator-scroll');
+    const scrollTop = contentDiv ? contentDiv.scrollTop : 0;
+    const app = document.getElementById('app');
+    if (app && state.view === 'HATSU_CREATOR') {
+        renderHatsuCreator(app);
+        // Restore scroll after re-render using rAF to wait for DOM paint
+        if (scrollTop > 0) {
+            requestAnimationFrame(() => {
+                const newContentDiv = document.querySelector('.hatsu-creator-scroll');
+                if (newContentDiv) newContentDiv.scrollTop = scrollTop;
+            });
+        }
+    }
+}
+
+window._hToggleAccordion = function(key) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.openAccordions) hb.openAccordions = [];
+    const idx = hb.openAccordions.indexOf(key);
+    if (idx > -1) hb.openAccordions.splice(idx, 1);
+    else hb.openAccordions.push(key);
+    renderHatsuInPlace();
+};
 window._hToggleR = function(id, tipo) {
     const hb = state.hatsuBuilder; if (!hb) return;
     const arr = tipo === 'rg' ? hb.rg : hb.rc;
     const idx = arr.indexOf(id);
-    if (idx > -1) arr.splice(idx, 1); else arr.push(id);
-    render();
+    if (idx > -1) {
+        arr.splice(idx, 1);
+        // Remove benefício escolhido ao desselecionar
+        if (hb.beneficioChoices) delete hb.beneficioChoices[id];
+    } else {
+        arr.push(id);
+        // Verifica se tem benefício alternativo (bnf com " OU ")
+        const allRDB = [];
+        const rg = window.HATSU_DB.restricoes_gerais;
+        ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => (rg[k]||[]).forEach(r => allRDB.push(r)));
+        const char = state.currentChar;
+        const catDB = window.HATSU_DB.categorias[char.class];
+        if (catDB && catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push(r));
+        const item = allRDB.find(r => r.id === id);
+        if (item && item.bnf && /\s[Oo][Uu]\s/.test(item.bnf)) {
+            // Has alternatives — will show inline choice, mark as needs-choice
+            if (hb.beneficioChoices[id] === undefined) hb.beneficioChoices[id] = null; // null = not yet chosen
+        }
+    }
+    renderHatsuInPlace();
+};
+
+window._hSetBeneficioChoice = function(id, choice) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.beneficioChoices) hb.beneficioChoices = {};
+    hb.beneficioChoices[id] = choice;
+    renderHatsuInPlace();
+};
+window._hSetBeneficioChoiceIdx = function(id, idx) {
+    const opts = window._hBnfOpts && window._hBnfOpts[id];
+    if (!opts || idx >= opts.length) return;
+    window._hSetBeneficioChoice(id, opts[idx]);
 };
 window._hToggleE = function(id, tipo, pn) {
     const hb = state.hatsuBuilder; if (!hb) return;
@@ -1901,15 +2264,38 @@ window._hToggleE = function(id, tipo, pn) {
     if (idx > -1) {
         arr.splice(idx, 1);
     } else {
+        // Verifica requisito de nível/atributo
+        const char = state.currentChar;
+        const allEDB = [];
+        (window.HATSU_DB.efeitos_gerais||[]).forEach(e => allEDB.push(e));
+        const catDB = window.HATSU_DB.categorias[char.class];
+        if (catDB && catDB.efeitos) catDB.efeitos.forEach(e => allEDB.push(e));
+        const item = allEDB.find(e => e.id === id);
+        if (item && item.req) {
+            const req = item.req;
+            const charLevel = parseInt(char.level) || 0;
+            const getMod = v => Math.floor(((v||10) - 10) / 2);
+            const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
+            const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
+            if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
+            const attrPattern = /\b(FOR|DES|CON|INT|SAB|CAR)\s+(\d+)\+/gi;
+            let m; const attrConditions = [];
+            while ((m = attrPattern.exec(req)) !== null) attrConditions.push({ attr: m[1].toUpperCase(), min: parseInt(m[2]) });
+            if (attrConditions.length > 0) {
+                const isOr = /\bou\b/i.test(req);
+                const met = isOr ? attrConditions.some(c => attrMod(c.attr) >= c.min) : attrConditions.every(c => attrMod(c.attr) >= c.min);
+                if (!met) return;
+            }
+        }
         // Verifica P.N
         let used = 0;
         hb.eg.forEach(eid => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===eid); if(e) used+=e.pn; });
         const cls = state.currentChar.class;
         hb.ec.forEach(eid => { const cat = window.HATSU_DB.categorias[cls]; if(cat){ const e=cat.efeitos.find(x=>x.id===eid); if(e) used+=e.pn; } });
-        if (used + pn > window.calcularPHBase(state.currentChar.level)) return;
+        if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb)) return;
         arr.push(id);
     }
-    render();
+    renderHatsuInPlace();
 };
 
 // ── renderCard (legado — mantido para compatibilidade) ──
@@ -1935,6 +2321,91 @@ function renderCard(item, color) {
                 // Usando a nova função refatorada renderNenHexagon
                 const diagramHtml = renderNenHexagon(state.tempChar.class, true);
 
+                // Afinidade e Genialidade já rolados?
+                const afinidade = state.tempChar.afinidade;
+                const genialidade = state.tempChar.genialidade;
+
+                const afinidadeHtml = afinidade != null ? (() => {
+                    const nivel = afinidade <= 20 ? { label:'Baixa', cor:'#6b7280', desc:'Seu Nen é bruto mas eficiente' }
+                        : afinidade <= 50 ? { label:'Média', cor:'#fbbf24', desc:'Equilíbrio entre poder e controle' }
+                        : afinidade <= 80 ? { label:'Alta', cor:'#4ade80', desc:'Seu Nen flui com naturalidade' }
+                        : { label:'Excepcional', cor:'#00f0ff', desc:'Você nasceu para dominar o Nen' };
+                    return `<div style="background:#0a0f1a;border:2px solid ${nivel.cor}44;border-radius:12px;padding:14px;text-align:center">
+                        <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">🎯 Afinidade com Nen</div>
+                        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:28px;color:${nivel.cor};text-shadow:0 0 12px ${nivel.cor}66;line-height:1.1">${afinidade}<span style="font-size:12px;color:#4b5563">/100</span></div>
+                        <div style="font-size:10px;font-weight:700;color:${nivel.cor};margin-top:4px">${nivel.label}</div>
+                        <div style="font-size:9px;color:#6b7280;margin-top:2px;font-style:italic">"${nivel.desc}"</div>
+                    </div>`;
+                })() : '';
+
+                const genialidadeHtml = genialidade != null ? (() => {
+                    const tiers = {
+                        'Ótimo':     { cor:'#6b7280', desc:'Proficiência sólida — 85% dos Hunters', icon:'⚔️', raridade:'85%' },
+                        'Excelente': { cor:'#a78bfa', desc:'Talento acima da média — apenas 12%', icon:'💜', raridade:'12%' },
+                        'Gênio':     { cor:'#fbbf24', desc:'Raridade impressionante — apenas 2%!', icon:'✨', raridade:'2%' },
+                        'Ultimate':  { cor:'#ff4df7', desc:'Anormalmente superior — apenas 1% já existiu!', icon:'👑', raridade:'1%' }
+                    };
+                    const gn = tiers[genialidade] || tiers['Ótimo'];
+                    const isGenius = genialidade === 'Gênio' || genialidade === 'Ultimate';
+
+                    // Benefícios de Gênio por categoria
+                    const geniusBenefits = {
+                        'Reforço':        { passivo: '+1 Grau nos ataques ou Dobra prof. em Atletismo ou TR de Constituição', nen: 'TEN — Desvantagem para detectar pessoas em Zetsu' },
+                        'Transmutação':   { passivo: 'Dobra prof. em Intuição, Enganação, Natureza ou Arcanismo', nen: 'ZETSU — Vantagem para detectar pessoas em Zetsu ou IN' },
+                        'Conjuração':     { passivo: 'Dobra prof. em Intuição, História ou Arcanismo', nen: 'Conjura como Ação Bônus por padrão' },
+                        'Emissão':        { passivo: 'Disparo de Aura no lugar de aplicar REN em uma arma', nen: 'SHU e EN — Desvantagem para detectar pessoas em Zetsu' },
+                        'Manipulação':    { passivo: 'Dobra prof. em Prestidigitação, Intuição, Enganação ou Persuasão', nen: 'SHU' },
+                        'Especialização': { passivo: 'Dobra prof. em três perícias à escolha', nen: '—' }
+                    };
+                    const charClass = state.tempChar.class || '';
+                    const classNames = { 'enhancement':'Reforço','transmutation':'Transmutação','conjuration':'Conjuração','emission':'Emissão','manipulation':'Manipulação','specialization':'Especialização' };
+                    const className = classNames[charClass] || charClass;
+                    const benefit = geniusBenefits[className];
+
+                    const geniusBenefitBlock = isGenius && benefit ? `
+                        <div style="margin-top:10px;background:#0d1117;border:1px solid ${gn.cor}55;border-radius:10px;padding:10px;text-align:left">
+                            <div style="font-size:8px;font-weight:900;color:${gn.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⚡ BENEFÍCIO DE GÊNIO — ${className.toUpperCase()}</div>
+                            <div style="font-size:9px;color:#d1d5db;margin-bottom:6px"><span style="color:#4b5563;font-weight:700">XP:</span> Ganha <span style="color:${gn.cor};font-weight:900">1,5×</span> mais experiência em qualquer situação</div>
+                            <div style="font-size:9px;color:#d1d5db;margin-bottom:4px"><span style="color:#4b5563;font-weight:700">Bônus Passivo:</span> ${benefit.passivo}</div>
+                            <div style="font-size:9px;color:#d1d5db"><span style="color:#4b5563;font-weight:700">Benefício de NEN:</span> ${benefit.nen}</div>
+                        </div>` : isGenius ? `
+                        <div style="margin-top:10px;background:#0d1117;border:1px solid ${gn.cor}55;border-radius:10px;padding:10px;text-align:left">
+                            <div style="font-size:8px;font-weight:900;color:${gn.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">⚡ BENEFÍCIO DE GÊNIO</div>
+                            <div style="font-size:9px;color:#d1d5db">Ganha <span style="color:${gn.cor};font-weight:900">1,5×</span> mais XP em qualquer situação. Selecione sua categoria de NEN para ver os bônus adicionais.</div>
+                        </div>` : '';
+
+                    const rollDisplay = state.tempChar.genialidadeRoll != null
+                        ? `<div style="font-size:9px;color:#4b5563;margin-top:4px">Rolagem: ${state.tempChar.genialidadeRoll}/100</div>` : '';
+
+                    return `<div style="background:#0a0f1a;border:2px solid ${gn.cor}44;border-radius:12px;padding:14px;text-align:center">
+                        <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">✨ Genialidade</div>
+                        <div style="font-size:26px;margin-bottom:4px">${gn.icon}</div>
+                        <div style="font-size:13px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gn.cor};text-shadow:0 0 10px ${gn.cor}66">${genialidade}</div>
+                        <div style="font-size:9px;color:#6b7280;margin-top:3px;font-style:italic">${gn.desc}</div>
+                        ${rollDisplay}
+                        ${geniusBenefitBlock}
+                    </div>`;
+                })() : '';
+
+                const rollBtnHtml = (afinidade == null || genialidade == null) ? `
+                    <div style="text-align:center;margin-top:10px">
+                        <button onclick="window.rollAfinidadeGenialidade()" 
+                            style="padding:12px 28px;border-radius:12px;background:var(--theme-color-hex,#00ff9d);color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:2px;border:none;cursor:pointer;box-shadow:0 0 20px rgba(var(--theme-rgb,0,255,157),0.5);transition:all .2s">
+                            🎲 ROLAR AFINIDADE & GENIALIDADE
+                        </button>
+                        <p style="font-size:9px;color:#4b5563;margin-top:6px">Role seus atributos inatos de Nen antes de continuar</p>
+                    </div>` : `
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                        ${afinidadeHtml}
+                        ${genialidadeHtml}
+                    </div>
+                    <div style="text-align:center;margin-top:-4px">
+                        <button onclick="state.tempChar.afinidade=null;state.tempChar.genialidade=null;render(true)" 
+                            style="font-size:8px;color:#4b5563;border:none;background:none;cursor:pointer;text-decoration:underline;text-transform:uppercase;letter-spacing:1px;font-weight:700">
+                            🔄 Rerolar
+                        </button>
+                    </div>`;
+
                 contentHtml = `
                     <div class="space-y-6">
                         <div class="relative">
@@ -1947,6 +2418,8 @@ function renderCard(item, color) {
                         <div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50">
                             <p class="text-sm font-medium text-gray-300 italic">"${currentClass.desc}"</p>
                         </div>
+
+                        ${rollBtnHtml}
                     </div>`;
             } else if (step === 1) {
                 title = 'RAÇA';
@@ -2211,7 +2684,8 @@ function renderCard(item, color) {
                 // Build hatsus list HTML
                 let hatsuListHtml = '';
                 if (savedHatsus.length > 0) {
-                    const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+                    const _tipoIconsMap = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+    const tipoIcons = new Proxy(_tipoIconsMap, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||'✦').join(''); } });
                     hatsuListHtml = `<div style="width:100%;padding:0 4px;margin-bottom:16px">
                         <div style="font-size:9px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;text-align:center">⚡ Hatsus Criados</div>
                         ${savedHatsus.map((h, idx) => {
@@ -2224,7 +2698,7 @@ function renderCard(item, color) {
                                         <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:${catColor};text-transform:uppercase;letter-spacing:1px;line-height:1.2">${h.nome||'Sem nome'}</div>
                                         <div style="font-size:8px;color:#4b5563;margin-top:3px">${tipoIcons[h.tipo]||'✦'} ${h.tipo||'—'} · Nível ${h.nivel||'?'} · ${h.criadoEm||''}</div>
                                     </div>
-                                    <button onclick="event.stopPropagation();if(confirm('Remover este hatsu?')){ state.currentChar.hatsus.splice(${idx},1); saveCharacter(state.currentChar); render(true); }"
+                                    <button onclick="event.stopPropagation();deleteHatsuConfirm(${idx},'list')"
                                         style="flex-shrink:0;background:#1f2937;border:1px solid #374151;border-radius:8px;color:#6b7280;font-size:11px;padding:4px 8px;cursor:pointer;line-height:1">✕</button>
                                 </div>
                                 ${h.descricao?`<div style="font-size:9px;color:#6b7280;font-style:italic;margin-bottom:8px;line-height:1.5">"${h.descricao}"</div>`:''}
@@ -2256,9 +2730,68 @@ function renderCard(item, color) {
                         
                         ${diagramHtml}
 
-                        <div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50 max-w-sm mx-auto mb-6">
+                        <div class="text-center px-4 bg-gray-900/50 p-3 rounded-xl border border-gray-800/50 max-w-sm mx-auto mb-4">
                             <p class="text-xs font-medium text-gray-400 italic">"${currentClass.desc}"</p>
                         </div>
+
+                        ${(() => {
+                            if (!char.afinidade && !char.genialidade) return '';
+                            const af = char.afinidade;
+                            const gn = char.genialidade;
+                            const roll = char.genialidadeRoll;
+
+                            const afNivel = af <= 20 ? { label:'Baixa', cor:'#6b7280' }
+                                : af <= 50 ? { label:'Média', cor:'#fbbf24' }
+                                : af <= 80 ? { label:'Alta', cor:'#4ade80' }
+                                : { label:'Excepcional', cor:'#00f0ff' };
+
+                            const gnTiers = {
+                                'Ótimo':     { cor:'#6b7280', icon:'⚔️' },
+                                'Excelente': { cor:'#a78bfa', icon:'💜' },
+                                'Gênio':     { cor:'#fbbf24', icon:'✨' },
+                                'Ultimate':  { cor:'#ff4df7', icon:'👑' }
+                            };
+                            const gnData = gnTiers[gn] || gnTiers['Ótimo'];
+                            const isGenius = gn === 'Gênio' || gn === 'Ultimate';
+
+                            const geniusBenefits = {
+                                'Reforço':        { passivo: '+1 Grau nos ataques ou Dobra prof. em Atletismo ou TR de CON', nen: 'TEN — Desvantagem para detectar pessoas em Zetsu' },
+                                'Transmutação':   { passivo: 'Dobra prof. em Intuição, Enganação, Natureza ou Arcanismo', nen: 'ZETSU — Vantagem para detectar pessoas em Zetsu ou IN' },
+                                'Conjuração':     { passivo: 'Dobra prof. em Intuição, História ou Arcanismo', nen: 'Conjura como Ação Bônus por padrão' },
+                                'Emissão':        { passivo: 'Disparo de Aura no lugar de aplicar REN em uma arma', nen: 'SHU e EN — Desvantagem para detectar pessoas em Zetsu' },
+                                'Manipulação':    { passivo: 'Dobra prof. em Prestidigitação, Intuição, Enganação ou Persuasão', nen: 'SHU' },
+                                'Especialização': { passivo: 'Dobra prof. em três perícias à escolha', nen: '—' }
+                            };
+                            const classNames = { 'enhancement':'Reforço','transmutation':'Transmutação','conjuration':'Conjuração','emission':'Emissão','manipulation':'Manipulação','specialization':'Especialização','INTENSIFICAÇÃO':'Reforço','TRANSMUTAÇÃO':'Transmutação','MATERIALIZAÇÃO':'Conjuração','EMISSÃO':'Emissão','MANIPULAÇÃO':'Manipulação','ESPECIALIZAÇÃO':'Especialização' };
+                            const className = classNames[char.class] || char.class;
+                            const benefit = geniusBenefits[className];
+
+                            const geniusBenefitBlock = isGenius && benefit ? `
+                                <div style="margin-top:10px;background:#0d1117;border:1px solid ${gnData.cor}55;border-radius:10px;padding:10px;text-align:left">
+                                    <div style="font-size:8px;font-weight:900;color:${gnData.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⚡ BENEFÍCIO DE GÊNIO — ${className.toUpperCase()}</div>
+                                    <div style="font-size:9px;color:#d1d5db;margin-bottom:6px"><span style="color:#4b5563;font-weight:700">XP:</span> Ganha <span style="color:${gnData.cor};font-weight:900">1,5×</span> mais experiência em qualquer situação</div>
+                                    <div style="font-size:9px;color:#d1d5db;margin-bottom:4px"><span style="color:#4b5563;font-weight:700">Bônus Passivo:</span> ${benefit.passivo}</div>
+                                    <div style="font-size:9px;color:#d1d5db"><span style="color:#4b5563;font-weight:700">Benefício de NEN:</span> ${benefit.nen}</div>
+                                </div>` : isGenius ? `
+                                <div style="margin-top:10px;background:#0d1117;border:1px solid ${gnData.cor}55;border-radius:10px;padding:8px;text-align:center">
+                                    <div style="font-size:9px;color:#d1d5db">Ganha <span style="color:${gnData.cor};font-weight:900">1,5×</span> XP em qualquer situação.</div>
+                                </div>` : '';
+
+                            return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-bottom:16px;padding:0 4px">
+                                <div style="background:#0a0f1a;border:2px solid ${afNivel.cor}44;border-radius:12px;padding:12px;text-align:center">
+                                    <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">🎯 Afinidade</div>
+                                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${afNivel.cor};text-shadow:0 0 10px ${afNivel.cor}55;line-height:1.1">${af}<span style="font-size:10px;color:#4b5563">/100</span></div>
+                                    <div style="font-size:9px;font-weight:700;color:${afNivel.cor};margin-top:3px">${afNivel.label}</div>
+                                </div>
+                                <div style="background:#0a0f1a;border:2px solid ${gnData.cor}44;border-radius:12px;padding:12px;text-align:center">
+                                    <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">✨ Genialidade</div>
+                                    <div style="font-size:20px;margin-bottom:2px">${gnData.icon}</div>
+                                    <div style="font-size:11px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gnData.cor};text-shadow:0 0 8px ${gnData.cor}66">${gn}</div>
+                                    ${roll != null ? `<div style="font-size:8px;color:#4b5563;margin-top:2px">${roll}/100</div>` : ''}
+                                    ${geniusBenefitBlock}
+                                </div>
+                            </div>`;
+                        })()}
 
                         ${hatsuListHtml}
 
@@ -2378,6 +2911,24 @@ function renderCard(item, color) {
         // --- CONTROLLERS ---
         function selectChar(id) { state.currentChar = state.characters.find(c => c.id === id); state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function startCreator() { state.creatorStep = 0; state.tempChar = null; state.attrMethodLocked = false; state.allocations = {}; state.view = 'CREATOR'; render(); }
+
+        window.rollAfinidadeGenialidade = function() {
+            if (!state.tempChar) return;
+            // Afinidade: d100 (1-100)
+            const afinidade = Math.floor(Math.random() * 100) + 1;
+            // Genialidade: 1d100 conforme regra oficial
+            // 1-85 → Ótimo (85%), 86-97 → Excelente (12%), 98-99 → Gênio (2%), 100 → Ultimate (1%)
+            const genRoll = Math.floor(Math.random() * 100) + 1;
+            let genialidade;
+            if (genRoll === 100) genialidade = 'Ultimate';
+            else if (genRoll >= 98) genialidade = 'Gênio';
+            else if (genRoll >= 86) genialidade = 'Excelente';
+            else genialidade = 'Ótimo';
+            state.tempChar.afinidade = afinidade;
+            state.tempChar.genialidade = genialidade;
+            state.tempChar.genialidadeRoll = genRoll;
+            render(true);
+        };
         function selectNenType(cls) { state.tempChar.class = cls; const clsData = SYSTEM_DB.classes.find(c => c.id === cls); if(clsData) setThemeColor(clsData.color); render(true); }
         function selectBackground(bgName) { if (state.tempChar.background !== bgName) { state.tempChar.background = bgName; state.tempChar.backgroundFeature = null; } render(true); }
         function selectBackgroundFeature(featureName) { state.tempChar.backgroundFeature = featureName; }
@@ -2403,7 +2954,7 @@ function renderCard(item, color) {
         function finishCreator() { Object.entries(state.allocations).forEach(([key, val]) => { state.tempChar.attributes[key] += val; }); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : []; const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race); const finalAttrs = { ...state.tempChar.attributes }; if (raceData && typeof raceData.aumento_atributo === 'object') { const req = getBonusRequirements(state.tempChar.race); if (!req) { Object.entries(raceData.aumento_atributo).forEach(([key, val]) => { if (finalAttrs[key] !== undefined) { finalAttrs[key] += val; } }); } } const modCon = getMod(finalAttrs.CON || 10); const modInt = getMod(finalAttrs.INT || 10); const modSab = getMod(finalAttrs.SAB || 10); const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); let hpInitial = 15 + modCon; if (hasGiantBody) hpInitial += 5; 
             // Merge traits with details
             const mergedTraits = (state.tempChar.raceTraits || []).map(t => { const detail = state.tempChar.traitDetails && state.tempChar.traitDetails[t]; return detail ? `${t}: ${detail}` : t; });
-            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' }, fagogenese: state.tempChar.fagogenese || null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
+            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' }, fagogenese: state.tempChar.fagogenese || null, afinidade: state.tempChar.afinidade || null, genialidade: state.tempChar.genialidade || null, genialidadeRoll: state.tempChar.genialidadeRoll || null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function setTab(tab) { state.activeTab = tab; if(tab === 'DADOS') state.unreadRolls = false; render(true); }
         function setRollMode(mode) { state.rollMode = mode; render(true); }
         function updateSheetAttr(key, delta) { state.currentChar.attributes[key].value += delta; saveCharacter(state.currentChar); render(true); }
@@ -2440,8 +2991,10 @@ function renderHatsuDetail(container) {
     const tc    = catDB.cor || '#00ff88';
     const pnMax = window.calcularPHBase ? window.calcularPHBase(h.nivel||1) : 6;
 
-    const tipoIcons = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
-    const tipoNames = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+    const _tipoIconsMap = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
+    const tipoIcons = new Proxy(_tipoIconsMap, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||'✦').join(''); } });
+    const _tipoLabels = { hostil:'Hostil', suporte:'Suporte', versatil:'Versátil', instantaneo:'Instantâneo', longa_duracao:'Longa Duração' };
+    const tipoNames = new Proxy(_tipoLabels, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||p).join(' + '); } });
 
     // Resolve nomes completos das restrições
     const allRDB = [];
@@ -2603,6 +3156,70 @@ function renderHatsuDetail(container) {
     }
     // ── Fim cálculo de dano ────────────────────────────────────────────────────
 
+    // ── Cálculo de CD do TR ───────────────────────────────────────────────────
+    // Categorias que usam CD: MANIPULAÇÃO, MATERIALIZAÇÃO (e opcionalmente EMISSÃO com efeitos de área)
+    const catTemCD = ['MANIPULAÇÃO','MATERIALIZAÇÃO'];
+    const hasCDCategory = catTemCD.some(c => c === (h.classe||char.class));
+
+    // Verifica se alguma restrição ou efeito tem bônus de CD no bnf
+    // Extrai o MAIOR valor positivo de "+X na CD" mencionado no bnf de cada item
+    const CD_BNF_MAP = {
+        'rg_l4':  1, // +1 na CD do TR
+        'rg_l13': 1, // +1 em Jogadas de Acerto ou +1 na CD do TR
+        'rg_m5':  2, // Ignora Resistências Físicas ou +2 na CD do TR
+        'rg_m9':  2, // +2 na CD do TR
+        'rg_p7':  3, // +3 ou -3 na CD de TRs Impostos ou Enfrentados
+        'rma_l1': 1, // +1 na CD de resistência do alvo
+        'rma_m3': 2, // +2 na CD de resistência do alvo
+        'rma_p1': 5, // +5 na CD de resistência do alvo
+    };
+
+    let cdBonusTotal = 0;
+    const cdBonusSources = [];
+    [...restricoesSel, ...efeitosSel].forEach(item => {
+        const bonus = CD_BNF_MAP[item.id];
+        if (bonus) {
+            cdBonusTotal += bonus;
+            cdBonusSources.push({ nome: item.nome, bonus });
+        }
+    });
+
+    // Determina se exibir o bloco de CD:
+    // - categoria que usa CD, OU
+    // - tem pelo menos 1 restrição/efeito com bônus de CD
+    const hasCDBlock = hasCDCategory || cdBonusSources.length > 0;
+
+    let calcCDHtml = '';
+    if (hasCDBlock) {
+        const lvl = parseInt(h.nivel || char.level || 1);
+        const halfLevel = Math.max(1, Math.floor(lvl / 2));
+        const attrVal = char.attributes && char.attributes[baseAttr] ? char.attributes[baseAttr].value : 10;
+        const attrMod = Math.floor((attrVal - 10) / 2);
+        const cdBase = 8 + halfLevel + attrMod;
+        const cdFinal = cdBase + cdBonusTotal;
+
+        const cdSourcesHtml = cdBonusSources.length > 0
+            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${cdBonusSources.map(s =>
+                `<span style="font-size:7px;font-weight:900;background:${tc}18;color:${tc};padding:2px 6px;border-radius:4px">+${s.bonus} CD · ${s.nome}</span>`
+              ).join('')}</div>` : '';
+
+        const formulaStr = `8 + ${halfLevel} (nível) + ${attrMod >= 0 ? '+' : ''}${attrMod} (${baseAttr})${cdBonusTotal > 0 ? ` + ${cdBonusTotal} (restrições)` : ''}`;
+
+        calcCDHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+                <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px">🎯 CD do Teste de Resistência</div>
+                ${cdBonusTotal > 0 ? `<span style="font-size:7px;font-weight:900;padding:2px 8px;border-radius:10px;background:${tc}22;color:${tc}">+${cdBonusTotal} bônus</span>` : ''}
+            </div>
+            <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:32px;color:${tc};text-shadow:0 0 14px ${tc}66;line-height:1">CD ${cdFinal}</div>
+                <div style="font-size:11px;font-weight:700;color:#6b7280">TR de ${baseAttr}</div>
+            </div>
+            <div style="font-size:8px;color:#4b5563;font-style:italic;margin-bottom:4px">${formulaStr}</div>
+            ${cdSourcesHtml}
+        </div>`;
+    }
+    // ── Fim cálculo de CD ─────────────────────────────────────────────────────
+
     const palBadge = {
         leves:    {bg:'#22c55e22',tc:'#4ade80',label:'LEVE'},
         moderadas:{bg:'#eab30822',tc:'#fbbf24',label:'MOD'},
@@ -2621,6 +3238,7 @@ function renderHatsuDetail(container) {
                     <div style="font-size:11px;font-weight:700;color:#e5e7eb;margin-bottom:3px">${r.nome}</div>
                     <div style="font-size:9px;color:#6b7280;line-height:1.5;margin-bottom:4px">${r.desc}</div>
                     <div style="font-size:9px;font-weight:700;color:${p.tc}">⚡ ${r.bnf}</div>
+                    ${(h.beneficioChoices && h.beneficioChoices[r.id]) ? `<div style="font-size:8px;margin-top:4px;padding:4px 8px;background:#4ade8018;border-radius:6px;color:#4ade80;font-weight:700">✓ Escolhido: ${h.beneficioChoices[r.id]}</div>` : ''}
                 </div>
             </div>`;
           }).join('')
@@ -2659,7 +3277,7 @@ function renderHatsuDetail(container) {
         </div>
 
         <!-- CONTEÚDO SCROLLÁVEL -->
-        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar">
+        <div style="flex:1;overflow-y:auto;padding:16px" class="custom-scrollbar hatsu-scroll-area">
 
             <!-- Card principal -->
             <div style="text-align:center;padding:20px 16px;border-radius:16px;border:2px solid ${tc};background:${tc}08;margin-bottom:16px">
@@ -2701,7 +3319,7 @@ function renderHatsuDetail(container) {
                     </div>
                     <div>
                         <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Custo Base</div>
-                        <div style="font-size:10px;color:#d1d5db;font-weight:600">50% de Aura</div>
+                        <div style="font-size:10px;color:#d1d5db;font-weight:600">${(() => { if (!window.calcAuraCost) return '50% de Aura'; const fakeHb = { rg: (h.restricoes||[]).filter(id=>id.startsWith('rg_')), rc: (h.restricoes||[]).filter(id=>!id.startsWith('rg_')), eg: (h.efeitos||[]).filter(id=>id.startsWith('eg')), ec: (h.efeitos||[]).filter(id=>!id.startsWith('eg')) }; const cc = window.calcAuraCost(fakeHb); return cc.label + (cc.pct < 50 ? ' ✓' : ''); })()}</div>
                     </div>
                     <div>
                         <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Alcance</div>
@@ -2721,6 +3339,7 @@ function renderHatsuDetail(container) {
                     </div>
                 </div>
                 ${calcDanoHtml}
+                ${calcCDHtml}
             </div>
 
             <!-- Restrições -->
@@ -2749,8 +3368,10 @@ function renderHatsuDetail(container) {
         <div style="padding:12px 14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0;display:flex;gap:8px">
             <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
                 style="flex:1;padding:12px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:#9ca3af;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← Voltar</button>
+            <button onclick="deleteHatsuConfirm(${idx},'sheet')"
+                style="padding:12px 14px;border-radius:10px;background:#7f1d1d44;border:1px solid #ef444455;color:#f87171;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">🗑️</button>
             <button onclick="openHatsuEdit(${idx})"
-                style="flex:1;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;border:none;box-shadow:0 0 16px ${tc}55">✏️ Editar Hatsu</button>
+                style="flex:1;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;border:none;box-shadow:0 0 16px ${tc}55">✏️ Editar</button>
         </div>
     </div>`;
 
@@ -2773,6 +3394,9 @@ function openHatsuEdit(idx) {
         nome: h.nome || '',
         descricao: h.descricao || '',
         tipo: h.tipo || '',
+        tipoA: (h.tipo||'').split('+')[0] || '',
+        tipoB: (h.tipo||'').split('+')[1] || '',
+        openAccordions: ['leves','moderadas','pesadas','variaveis','extremas'],
         rg: (h.restricoes||[]).filter(id => id.startsWith('rg_')),
         rc: (h.restricoes||[]).filter(id => !id.startsWith('rg_')),
         eg: (h.efeitos||[]).filter(id => id.startsWith('eg')),
@@ -2786,7 +3410,7 @@ function openHatsuEdit(idx) {
 //Criação de Nen
 function openHatsuCreator() {
     state.view = 'HATSU_CREATOR';
-    state.hatsuBuilder = { step:0, nome:'', descricao:'', tipo:'', rg:[], rc:[], eg:[], ec:[] };
+    state.hatsuBuilder = { step:0, nome:'', descricao:'', tipoA:'', tipoB:'', rg:[], rc:[], eg:[], ec:[], openAccordions:['leves','moderadas','pesadas','variaveis','extremas'], restrTab:'gerais', beneficioChoices:{} };
     render();
 }
 
@@ -2795,6 +3419,59 @@ function closeHatsuCreator() {
     state.activeTab = 'NEN'; // Garante que volta na aba de Nen
     render();
 }
+
+        // ── Confirmação de delete de Hatsu por digitação do nome ──
+        window.deleteHatsuConfirm = function(idx, afterDelete) {
+            const char = state.currentChar;
+            const h = (char.hatsus||[])[idx];
+            if (!h) return;
+            const nome = h.nome || 'este hatsu';
+
+            // Cria overlay de confirmação
+            const overlay = document.createElement('div');
+            overlay.id = 'delete-hatsu-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;font-family:Rajdhani,sans-serif';
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid #ef4444;border-radius:16px;padding:24px;width:100%;max-width:380px;box-shadow:0 0 40px #ef444433">
+                    <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:13px;color:#ef4444;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">⚠️ Deletar Hatsu</div>
+                    <div style="font-size:12px;color:#9ca3af;margin-bottom:16px;line-height:1.5">
+                        Esta ação é <span style="color:#ef4444;font-weight:700">irreversível</span>. Para confirmar, digite o nome do hatsu abaixo:
+                    </div>
+                    <div style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">Nome do Hatsu</div>
+                    <div style="background:#111827;border:1px solid #374151;border-radius:8px;padding:8px 12px;margin-bottom:6px;font-family:Orbitron,sans-serif;font-size:13px;color:#fbbf24;letter-spacing:1px">${nome}</div>
+                    <input id="delete-confirm-input" type="text" placeholder="Digite o nome aqui..." autocomplete="off"
+                        style="width:100%;box-sizing:border-box;background:#0a0a0f;border:2px solid #374151;border-radius:8px;padding:10px 12px;color:#fff;font-size:13px;font-family:Rajdhani,sans-serif;outline:none;margin-bottom:16px;transition:border-color .2s"
+                        oninput="
+                            const v = this.value;
+                            const match = v.trim().toLowerCase() === '${nome.replace(/'/g, "\\'").toLowerCase()}';
+                            this.style.borderColor = v.length === 0 ? '#374151' : match ? '#22c55e' : '#ef4444';
+                            document.getElementById('delete-confirm-btn').disabled = !match;
+                            document.getElementById('delete-confirm-btn').style.opacity = match ? '1' : '0.4';
+                            document.getElementById('delete-confirm-btn').style.cursor = match ? 'pointer' : 'not-allowed';
+                        "
+                        onkeydown="if(event.key==='Escape') document.getElementById('delete-hatsu-overlay').remove();"
+                    >
+                    <div style="display:flex;gap:10px">
+                        <button onclick="document.getElementById('delete-hatsu-overlay').remove()"
+                            style="flex:1;padding:11px;border-radius:10px;background:#1f2937;border:1px solid #374151;color:#9ca3af;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">
+                            Cancelar
+                        </button>
+                        <button id="delete-confirm-btn" disabled onclick="
+                                document.getElementById('delete-hatsu-overlay').remove();
+                                state.currentChar.hatsus.splice(${idx},1);
+                                saveCharacter(state.currentChar);
+                                ${afterDelete === 'sheet' ? "state.view='SHEET';state.activeTab='NEN';render();" : "render(true);"}
+                            "
+                            style="flex:1;padding:11px;border-radius:10px;background:#7f1d1d;border:1px solid #ef4444;color:#f87171;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:1px;opacity:0.4;cursor:not-allowed">
+                            🗑️ Deletar
+                        </button>
+                    </div>
+                </div>`;
+
+            document.body.appendChild(overlay);
+            // Foca o input
+            setTimeout(() => { const inp = document.getElementById('delete-confirm-input'); if(inp) inp.focus(); }, 50);
+        };
 
         window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); checkDiscordAuth(); });
     </script>
