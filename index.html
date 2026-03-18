@@ -442,8 +442,8 @@
             xpTable: [50, 150, 350, 500, 800, 1000, 1500, 2500, 3200, 4000, 5000, 6500],
             racas: [
                 // Humanos e Tribos
-                { nome: "Humano Comum", descricao: "Raça mais comum no mundo.", aumento_atributo: { "FOR": 1, "DES": 1, "CON": 1, "INT": 1, "SAB": 1, "CAR": 1 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
-                { nome: "Fanalis", descricao: "Composição física descomunal.", aumento_atributo: { "FOR": 4, "CON": 2, "DES": -2, "INT": -2, "SAB": -2, "CAR": -2 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
+                { nome: "Humano Comum", descricao: "Raça mais comum no mundo.", aumento_atributo: { "FOR": 1, "DES": 1, "CON": 1, "INT": 1, "SAB": 1, "PRE": 1 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
+                { nome: "Fanalis", descricao: "Composição física descomunal.", aumento_atributo: { "FOR": 4, "CON": 2, "DES": -2, "INT": -2, "SAB": -2, "PRE": -2 }, fonte: "[3, 4]", categoria: "Humanos e Tribos" },
                 { nome: "Gyudondond", descricao: "Homens Flauta.", aumento_atributo: "Distribua 3 pontos em qualquer atributo", caracteristicas: [{ nome: "Alarido de Guerra", efeito: "Intimidação com dança." }], fonte: "[3, 4]", categoria: "Humanos e Tribos" },
                 { nome: "Imuchack", descricao: "Guerreiros gélidos.", aumento_atributo: { "FOR": 2, "CON": 1, "INT": -2 }, opcoes_caracteristica: [{ nome: "Imunidade ao Frio", efeito: "Imune frio/gelo." }, { nome: "Caça Aquática", efeito: "Nadar e respirar melhor." }], fonte: "[3, 4]", categoria: "Humanos e Tribos" },
                 // Clãs Especiais
@@ -486,7 +486,7 @@
                 { nome: "Djins", descricao: "Nen Post-Mortem.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Interpretação Travessa", efeito: "Ignora sorte." }], fonte: "Extra", categoria: "Tecnológicos e Sobrenaturais" },
                 // Raças Incomuns
                 { nome: "Bugbears", descricao: "Brutais.", aumento_atributo: { "FOR": 2, "DES": 1 }, caracteristicas: [{ nome: "Ataque Surpresa", efeito: "Dano extra." }], fonte: "Extra", categoria: "Raças Incomuns" },
-                { nome: "Dahllans", descricao: "Meio-Dríades.", aumento_atributo: { "SAB": 4, "INT": -1, "CAR": -1 }, caracteristicas: [{ nome: "Herança Natural", efeito: "Visão penumbra." }], fonte: "Extra", categoria: "Raças Incomuns" },
+                { nome: "Dahllans", descricao: "Meio-Dríades.", aumento_atributo: { "SAB": 4, "INT": -1, "PRE": -1 }, caracteristicas: [{ nome: "Herança Natural", efeito: "Visão penumbra." }], fonte: "Extra", categoria: "Raças Incomuns" },
                 { nome: "Firbolgs", descricao: "Guardiões.", aumento_atributo: { "SAB": 2, "FOR": 1 }, caracteristicas: [{ nome: "Passo Oculto", efeito: "Invisibilidade." }], fonte: "Extra", categoria: "Raças Incomuns" },
                 { nome: "Goblins", descricao: "Maliciosos.", aumento_atributo: "Escolha +2", caracteristicas: [{ nome: "Fúria do Pequeno", efeito: "Dano extra." }], fonte: "Extra", categoria: "Raças Incomuns" }
             ],
@@ -589,7 +589,7 @@
                 ]
             },
             skills: [
-                'TR de FOR', 'TR de DES', 'TR de CON', 'TR de INT', 'TR de SAB', 'TR de CAR',
+                'TR de FOR', 'TR de DES', 'TR de CON', 'TR de INT', 'TR de SAB', 'TR de PRE',
                 'Acrobacia', 'Arcanismo', 'Atletismo', 'Atuação', 'Enganação',
                 'Furtividade', 'História', 'Intimidação', 'Intuição', 'Investigação',
                 'Lidar com Animais', 'Medicina', 'Natureza', 'Percepção', 'Persuasão',
@@ -617,7 +617,7 @@
             'CON': [],
             'INT': ['Arcanismo', 'História', 'Investigação', 'Natureza', 'Religião'],
             'SAB': ['Lidar com Animais', 'Intuição', 'Medicina', 'Percepção', 'Sobrevivência'],
-            'CAR': ['Atuação', 'Enganação', 'Intimidação', 'Persuasão']
+            'PRE': ['Atuação', 'Enganação', 'Intimidação', 'Persuasão']
         };
 
         // --- ESTADO GLOBAL ---
@@ -660,7 +660,23 @@
             for(let i=0; i<localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if(key.startsWith('hxhrpg_')) {
-                    try { chars.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
+                    try {
+                        const char = JSON.parse(localStorage.getItem(key));
+                        // Migrate CAR → PRE for old characters
+                        if (char.attributes && char.attributes.CAR !== undefined && char.attributes.PRE === undefined) {
+                            char.attributes.PRE = char.attributes.CAR;
+                            delete char.attributes.CAR;
+                            // Also migrate skill TRs
+                            if (char.skills) {
+                                char.skills = char.skills.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
+                            }
+                            if (char.expertise) {
+                                char.expertise = char.expertise.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
+                            }
+                            localStorage.setItem(key, JSON.stringify(char));
+                        }
+                        chars.push(char);
+                    } catch(e) {}
                 }
             }
             state.characters = chars.sort((a,b) => new Date(b.lastMod) - new Date(a.lastMod));
@@ -1125,6 +1141,31 @@ window.calcPNBonusFromRestr = function(hb) {
     if (!hb) return 0;
     let bonus = 0;
     const allSelected = [...(hb.rg||[]), ...(hb.rc||[])];
+    const pureRestr = hb.pureRestrictions || {};
+
+    // P.N de Restrições Puras: Leve+1, Mod+2, Pes+3, Ext+4
+    const PURE_PN = { leve:1, moderada:2, pesada:3, extrema:4 };
+    if (Object.keys(pureRestr).length > 0) {
+        const allRDB = [];
+        const rg = window.HATSU_DB && window.HATSU_DB.restricoes_gerais;
+        if (rg) ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => {
+            const peso = k === 'variaveis' ? 'variavel' : k.replace(/s$/,'');
+            (rg[k]||[]).forEach(r => allRDB.push({...r, peso}));
+        });
+        // Also add category restrictions
+        const catCls = window._currentBuilderClass || (window.state && window.state.currentChar && window.state.currentChar.class) || '';
+        const catDB = window.HATSU_DB && window.HATSU_DB.categorias && window.HATSU_DB.categorias[catCls];
+        if (catDB && catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push(r));
+
+        allSelected.forEach(id => {
+            if (!pureRestr[id]) return;
+            const r = allRDB.find(x => x.id === id);
+            if (r) {
+                const pn = PURE_PN[r.peso] || 0;
+                bonus += pn;
+            }
+        });
+    }
 
     allSelected.forEach(id => {
         // ri_p3: +3 P.N fixos (Restrição Pesada de Intensificação: "1x por combate")
@@ -1133,22 +1174,15 @@ window.calcPNBonusFromRestr = function(hb) {
         // rg_v7: Limite de Uso Contínuo — P.N variável via benefício escolhido
         if (id === 'rg_v7') {
             const choice = hb.beneficioChoices && hb.beneficioChoices['rg_v7'];
-            // bnf: "X=1→4 P.N | X=2→3 P.N | X=3→2 P.N | X=4→1 P.N"
-            // choice will be one of those segments
             if (choice) {
                 const m = choice.match(/(\d+)\s*P\.N/);
                 if (m) bonus += parseInt(m[1]);
             } else {
-                bonus += 1; // minimum if not yet chosen
+                bonus += 1;
             }
         }
 
-        // rg_e9: Vida por Poder — "Selecione 4 Efeitos da Categoria e 3 Efeitos Gerais"
-        // This grants 7 extra effect slots, not P.N directly — handled via pnMax override
-        // We model it as +7 effective P.N for the effect picker
         if (id === 'rg_e9') bonus += 7;
-
-        // rg_p3: Dano Permanente — "+3 efeitos gerais ou da categoria"
         if (id === 'rg_p3') bonus += 3;
     });
     return bonus;
@@ -1192,9 +1226,123 @@ window.calcAuraCost = function(hb) {
         else custo -= 5;
     }
 
+    // rg_p8: Local/Condição Específica — reduz à metade (mínimo 10%)
+    if (allR.includes('rg_p8')) custo = Math.max(10, Math.floor(custo / 2));
+
     // Garante mínimo de 10%
     custo = Math.max(10, custo);
     return { pct: custo, label: custo + '% de Aura' };
+};
+
+// Hexágono de afinidade entre categorias (padrão HxH)
+// Posições no hexágono (sentido horário): Intensificação → Transmutação → Especialização → Manipulação → Conjuração → Materialização
+// Adjacentes (1 posição) = 80% | 2 posições = 60% | Opostos (3 posições) = 40%
+// Especialização é excluída do acesso cruzado padrão — regra especial para Manipulação/Materialização
+window.CATEGORY_AFFINITY = {
+    'INTENSIFICAÇÃO': { 'TRANSMUTAÇÃO':80, 'MATERIALIZAÇÃO':80, 'EMISSÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
+    'TRANSMUTAÇÃO':   { 'INTENSIFICAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
+    'MATERIALIZAÇÃO': { 'INTENSIFICAÇÃO':80, 'CONJURAÇÃO':80, 'TRANSMUTAÇÃO':60, 'MANIPULAÇÃO':60, 'EMISSÃO':40 },
+    'CONJURAÇÃO':     { 'MATERIALIZAÇÃO':80, 'MANIPULAÇÃO':80, 'INTENSIFICAÇÃO':60, 'TRANSMUTAÇÃO':60, 'EMISSÃO':40 },
+    'MANIPULAÇÃO':    { 'CONJURAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'INTENSIFICAÇÃO':60, 'TRANSMUTAÇÃO':40 },
+    'EMISSÃO':        { 'MANIPULAÇÃO':80, 'TRANSMUTAÇÃO':80, 'CONJURAÇÃO':60, 'INTENSIFICAÇÃO':60, 'MATERIALIZAÇÃO':40 },
+    'ESPECIALIZAÇÃO': { 'TRANSMUTAÇÃO':80, 'MANIPULAÇÃO':80, 'CONJURAÇÃO':60, 'EMISSÃO':60, 'INTENSIFICAÇÃO':40 },
+    'REFORÇO':        { 'TRANSMUTAÇÃO':80, 'MATERIALIZAÇÃO':80, 'EMISSÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
+};
+
+// Dado um nível efetivo (ajustado por restrições extremas), retorna o nível máximo de efeitos acessível por afinidade
+// Tabela: nível efetivo → {100: maxLvl, 80: maxLvl, 60: maxLvl, 40: maxLvl}
+window.calcCategoryAccess = function(charLevel, extremeRestrictionCount) {
+    const efectiveLevel = Math.min(12, charLevel + (extremeRestrictionCount * 2));
+    const table = [
+        // [lvl, 100%, 80%, 60%, 40%]
+        [0,  0,  0,  0,  0],
+        [1,  1,  0,  0,  0],
+        [2,  2,  0,  0,  0],
+        [3,  3,  1,  0,  0],
+        [4,  4,  2,  0,  0],
+        [5,  5,  3,  1,  0],
+        [6,  6,  4,  2,  0],
+        [7,  7,  5,  3,  1],
+        [8,  8,  6,  4,  2],
+        [9,  9,  7,  5,  3],
+        [10, 10,  8,  6,  4],
+        [11, 11,  9,  7,  5],
+        [12, 12, 10,  8,  6],
+    ];
+    const row = table[Math.min(efectiveLevel, 12)] || table[0];
+    return { pct100: row[1], pct80: row[2], pct60: row[3], pct40: row[4] };
+};
+
+// Verifica se Manipulação/Materialização cumpre a regra especial para acessar Especialização (1%)
+// Regra: restrições >= 3 + nº efeitos de especialização comprados; distribuição obedece pirâmide de pesos
+window.checkEspecializacaoAccess = function(hb) {
+    if (!hb) return { ok: false, specEfeitos: 0, totalRestr: 0, needed: 3, rule: null };
+
+    // Conta efeitos de especialização já selecionados
+    const espDB = window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
+    const espEfeitosIds = new Set((espDB && espDB.efeitos || []).map(e => e.id));
+    const specEfeitos = (hb.ec||[]).filter(id => espEfeitosIds.has(id)).length;
+    const needed = 3 + specEfeitos;
+
+    // Coleta pesos de todas as restrições selecionadas
+    const allRDB = [];
+    const rg = window.HATSU_DB.restricoes_gerais;
+    ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => (rg[k]||[]).forEach(r => allRDB.push({...r, peso: k === 'variaveis' ? 'variavel' : k.replace('s','')})));
+    const catDB = window.HATSU_DB.categorias[window._currentBuilderClass||''];
+    if (catDB && catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push(r));
+
+    const weightOrder = ['leve','moderada','pesada','extrema']; // variável não conta para pirâmide
+    const counts = { leve:0, moderada:0, pesada:0, extrema:0, variavel:0 };
+    const allSel = [...(hb.rg||[]), ...(hb.rc||[])];
+    allSel.forEach(id => {
+        const r = allRDB.find(x => x.id === id);
+        if (r) {
+            const p = r.peso || 'leve';
+            if (counts[p] !== undefined) counts[p]++;
+        }
+    });
+    const totalRestr = allSel.length;
+
+    // Regra de pirâmide: nunca pode ter mais de um peso que o peso imediatamente superior
+    // "inicia com uma de cada peso E uma de peso menor, nunca pode ter maior quantidade do que as de peso maior"
+    let pyramidOk = true;
+    let pyramidMsg = '';
+    // Pesada deve ser >= moderada; moderada >= leve (para os pesos definidos)
+    if (counts.leve > counts.moderada && counts.moderada > 0) { pyramidOk = false; pyramidMsg = `Leves (${counts.leve}) > Moderadas (${counts.moderada}) — inválido`; }
+    if (counts.moderada > counts.pesada && counts.pesada > 0) { pyramidOk = false; pyramidMsg = `Moderadas (${counts.moderada}) > Pesadas (${counts.pesada}) — inválido`; }
+
+    const ok = totalRestr >= needed && pyramidOk;
+    return { ok, specEfeitos, totalRestr, needed, counts, pyramidOk, pyramidMsg };
+};
+
+// Retorna o nível máximo de efeitos que o personagem pode usar de uma categoria externa
+window.getMaxLevelForCategory = function(myClass, targetClass, charLevel, extremeCount) {
+    const access = window.calcCategoryAccess(charLevel, extremeCount);
+    if (myClass === targetClass) return access.pct100;
+
+    // Especialização: acesso APENAS para Manipulação/Materialização via regra especial
+    if (targetClass === 'ESPECIALIZAÇÃO') {
+        if (myClass === 'MANIPULAÇÃO' || myClass === 'MATERIALIZAÇÃO') return 'check_esp'; // sinaliza verificação especial
+        return 0; // outras categorias: zero acesso
+    }
+
+    const affinityMap = window.CATEGORY_AFFINITY[myClass] || {};
+    const pct = affinityMap[targetClass] || 0;
+    if (pct >= 80) return access.pct80;
+    if (pct >= 60) return access.pct60;
+    if (pct >= 40) return access.pct40;
+    return 0;
+};
+
+// Calcula P.N gastos em OUTROS hatsus do personagem (excluindo o hatsu sendo editado)
+window.calcPNSpentInOtherHatsus = function(char, editingIdx) {
+    if (!char || !char.hatsus) return 0;
+    let spent = 0;
+    char.hatsus.forEach((h, idx) => {
+        if (editingIdx !== undefined && idx === editingIdx) return; // pula o hatsu sendo editado
+        spent += (h.pnUsados || 0);
+    });
+    return spent;
 };
 
 window.calcularPHBase = function(level) {
@@ -1287,7 +1435,7 @@ window.HATSU_DB = {
       { id:'rg_e4',  nome:"Dano Permanente Constante", desc:"Perder 5 de vida/sanidade permanentemente por ativação",                     bnf:"+5 Concentração ou +5 Rodadas ou recupera aura a cada acerto/TR" },
       { id:'rg_e5',  nome:"Juramento Imutável",        desc:"Voto público, inviolável e absoluto — quebra causa morte instantânea",       bnf:"+4 Graus de potência em TODAS as características (após 3 níveis)" },
       { id:'rg_e6',  nome:"Kamikaze",                  desc:"Acertos com Desvantagem E TRs rolados com vantagem pelos alvos",             bnf:"Ignore pré-requisitos de efeitos" },
-      { id:'rg_e7',  nome:"Sacrifício de Nen",         desc:"Perde permanentemente todos os princípios e técnicas de Nen (exceto o Hatsu)",bnf:"O efeito ignora qualquer regra de resistência ou imunidade" },
+      { id:'rg_e7',  nome:"Sacrifício de Nen",         desc:"Perde permanentemente todos os princípios e técnicas de Nen (exceto o Hatsu)",bnf:"O efeito ignora qualquer regra de resistência e imunidade" },
       { id:'rg_e8',  nome:"Vida ou Morte",             desc:"Só ativa com menos de 10% de PV ou Sanidade",                               bnf:"Dobra todos os dados de dano (dano contado como crítico)" },
       { id:'rg_e9',  nome:"Vida por Poder",            desc:"Regride 1 nível ao usar (P.N mantidos, efeitos do nível superior bloqueados)",bnf:"Selecione 4 Efeitos da Categoria e 3 Efeitos Gerais" },
     ],
@@ -1377,7 +1525,7 @@ window.HATSU_DB = {
     'TRANSMUTAÇÃO': {
       cor: '#3b82f6',
       attr_princ: 'SAB / INT',
-      attr_sec: 'FOR / CAR',
+      attr_sec: 'FOR / PRE',
       graus: 'Dano | Redução de Custo',
       desc: 'Mudar as propriedades da aura para imitar outra substância. Transmutadores são caprichosos e adaptáveis.',
       restricoes: [
@@ -1450,7 +1598,7 @@ window.HATSU_DB = {
     // ─── ESPECIALIZAÇÃO ──────────────────────────────────
     'ESPECIALIZAÇÃO': {
       cor: '#f59e0b',
-      attr_princ: 'CAR / INT',
+      attr_princ: 'PRE / INT',
       attr_sec: 'SAB',
       graus: 'Alcance/Área | Dano | Duração | CD do TR | Redução de Custo',
       desc: 'Categoria única — habilidades completamente únicas que não se enquadram em nenhuma outra. A mais misteriosa e imprevisível.',
@@ -1583,16 +1731,23 @@ function renderHatsuCreator(container) {
 
     // Inicializa o builder
     if (!state.hatsuBuilder) {
-        state.hatsuBuilder = { step:0, nome:'', descricao:'', tipoA:'', tipoB:'', rg:[], rc:[], eg:[], ec:[], openAccordions:['leves','moderadas','pesadas','variaveis','extremas'], restrTab:'gerais', beneficioChoices:{} };
+        state.hatsuBuilder = { step:0, nome:'', descricao:'', tipoA:'', tipoB:'', rg:[], rc:[], eg:[], ec:[], openAccordions:['leves','moderadas','pesadas','variaveis','extremas'], restrTab:'gerais', beneficioChoices:{}, pureRestrictions:{}, filterText:'', filterStatus:'todos', filterRestrPeso:'todos', specialChoices:{} };
     }
     const hb = state.hatsuBuilder;
 
     const pnBase = window.calcularPHBase(char.level);
     const pnBonus = window.calcPNBonusFromRestr(state.hatsuBuilder || {});
-    const pnMax = pnBase + pnBonus;
+    const pnSpentOthers = window.calcPNSpentInOtherHatsus(char, hb.editingIdx);
+    const pnMax = pnBase + pnBonus - pnSpentOthers;
     let pnUsed = 0;
     hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed += e.pn; });
-    hb.ec.forEach(id => { const e = catDB.efeitos.find(x=>x.id===id); if(e) pnUsed += e.pn; });
+    hb.ec.forEach(id => {
+        for (const cat of Object.values(window.HATSU_DB.categorias||{})) {
+            if (!cat || !cat.efeitos) continue;
+            const e = cat.efeitos.find(x=>x.id===id);
+            if (e) { pnUsed += e.pn; break; }
+        }
+    });
     const pnLeft = pnMax - pnUsed;
 
     const STEPS = ['CONCEITO','TIPO','RESTRIÇÕES','EFEITOS GERAIS','EFEITOS CATEG.','RESUMO'];
@@ -1616,25 +1771,26 @@ function renderHatsuCreator(container) {
     };
 
     function renderR(items, arr, tipo) {
+        const PURE_PN = { leve:1, moderada:2, pesada:3, extrema:4 };
         return items.map(function(item) {
             var sel = arr.includes(item.id);
             var pw = item.peso || 'leve';
             var p  = palR[pw] || palR.leve;
             var hb = state.hatsuBuilder;
+            var isPure = !!(hb && hb.pureRestrictions && hb.pureRestrictions[item.id]);
             var hasAlt = !!(item.bnf && /\s[Oo][Uu]\s/.test(item.bnf));
             var choiceKey = (hb && hb.beneficioChoices) ? hb.beneficioChoices[item.id] : undefined;
-            var needsChoice = sel && hasAlt && choiceKey === null;
-            var borderColor = sel ? (needsChoice ? '#fb923c' : p.bs) : p.bun;
+            var needsChoice = sel && !isPure && hasAlt && choiceKey === null;
+            var borderColor = isPure ? '#fbbf24' : sel ? (needsChoice ? '#fb923c' : p.bs) : p.bun;
+            var purePn = PURE_PN[pw] || 0;
 
             var choiceHtml = '';
-            if (sel && hasAlt) {
+            if (sel && !isPure && hasAlt) {
                 var opts = item.bnf.split(/\s[Oo][Uu]\s/);
-                // Store opts in global lookup so we can pass index via onclick
                 if (!window._hBnfOpts) window._hBnfOpts = {};
                 window._hBnfOpts[item.id] = opts.map(function(o){ return o.trim(); });
                 var optBtns = opts.map(function(opt, idx) {
                     var isSel = choiceKey === opt.trim();
-                    // Use index in onclick — safe, no quoting issues
                     return '<button onclick="event.stopPropagation();window._hSetBeneficioChoiceIdx(\'' + item.id + '\',' + idx + ');return false"'
                         + ' style="text-align:left;padding:7px 10px;border-radius:7px;border:1.5px solid '
                         + (isSel ? '#4ade80' : '#1f2937')
@@ -1651,103 +1807,327 @@ function renderHatsuCreator(container) {
                     + '<div style="display:flex;flex-direction:column;gap:4px">' + optBtns + '</div></div>';
             }
 
+            // Pure toggle button (only when selected)
+            var pureToggleHtml = '';
+            if (sel) {
+                pureToggleHtml = '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
+                    + '<button onclick="event.stopPropagation();window._hTogglePure(\'' + item.id + '\');return false"'
+                    + ' style="padding:5px 10px;border-radius:7px;border:1.5px solid '
+                    + (isPure ? '#fbbf24' : '#374151')
+                    + ';background:' + (isPure ? '#fbbf2418' : '#0d1117')
+                    + ';cursor:pointer;font-size:8px;font-weight:900;color:' + (isPure ? '#fbbf24' : '#6b7280')
+                    + ';text-transform:uppercase;letter-spacing:1px;transition:all .15s">'
+                    + (isPure ? '✓ Pura — +' + purePn + ' P.N' : '🔄 Usar como Pura (+' + purePn + ' P.N)')
+                    + '</button>'
+                    + (isPure ? '<span style="font-size:8px;color:#6b7280;font-style:italic">Converte benefício em '
+                        + purePn + ' P.N extra' + (pw === 'extrema' ? ' · permite repetir efeito' : '') + '</span>' : '')
+                    + '</div>';
+            }
+
+            // Special: rg_p8 needs a text input for the specific location/condition
+            var specialInputHtml = '';
+            if (sel && item.id === 'rg_p8') {
+                var currentVal = (hb && hb.specialChoices && hb.specialChoices['rg_p8']) || '';
+                specialInputHtml = '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">📍 Especifique o local ou condição:</div>'
+                    + '<input type="text" value="' + currentVal.replace(/"/g,'&quot;') + '" placeholder="Ex: Sob a chuva, No topo de uma montanha..."'
+                    + ' onchange="window._hSetSpecialChoice(\'rg_p8\', this.value)"'
+                    + ' oninput="window._hSetSpecialText(\'rg_p8\', this.value);this.style.borderColor=this.value?\'#4ade80\':\'#374151\'"'
+                    + ' style="width:100%;box-sizing:border-box;background:#0a0f1a;border:1.5px solid ' + (currentVal ? '#4ade80' : '#374151') + ';border-radius:8px;padding:8px 10px;color:#fff;font-size:10px;outline:none;transition:border-color .15s">'
+                    + (currentVal ? '<div style="font-size:8px;color:#4ade80;margin-top:4px">✓ ' + currentVal + '</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Campo obrigatório para finalizar</div>')
+                    + '</div>';
+            }
+
             return '<div onclick="window._hToggleR(\'' + item.id + '\',\'' + tipo + '\')"'
                 + ' style="padding:8px;border-radius:10px;border:2px solid ' + borderColor
-                + ';background:' + (sel ? p.bg : 'transparent')
+                + ';background:' + (isPure ? '#fbbf2408' : sel ? p.bg : 'transparent')
                 + ';cursor:pointer;margin-bottom:8px;transition:all .15s">'
                 + '<div style="display:flex;align-items:flex-start;gap:8px;">'
                 + '<span style="font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;background:' + p.badge + ';color:' + p.bt + ';text-transform:uppercase;flex-shrink:0;margin-top:2px">'
                 + pw.substring(0,3).toUpperCase() + '</span>'
                 + '<div style="flex:1;min-width:0">'
-                + '<div style="font-size:9px;font-weight:900;text-transform:uppercase;color:' + (sel ? p.bs : '#d1d5db') + ';line-height:1.2">'
-                + item.nome + (sel ? ' <span style="color:' + p.bt + '">✓</span>' : '') + '</div>'
+                + '<div style="font-size:9px;font-weight:900;text-transform:uppercase;color:' + (isPure ? '#fbbf24' : sel ? p.bs : '#d1d5db') + ';line-height:1.2">'
+                + item.nome + (sel ? ' <span style="color:' + (isPure ? '#fbbf24' : p.bt) + '">✓</span>' : '') + '</div>'
                 + '<div style="font-size:8px;color:#6b7280;font-style:italic;margin-top:3px;line-height:1.4">' + item.desc + '</div>'
-                + '<div style="font-size:8px;font-weight:700;color:' + p.bt + ';margin-top:4px">⚡ ' + item.bnf + '</div>'
+                + (isPure
+                    ? '<div style="font-size:8px;font-weight:700;color:#fbbf24;margin-top:4px">⚡ Pura: +' + purePn + ' P.N</div>'
+                    : '<div style="font-size:8px;font-weight:700;color:' + p.bt + ';margin-top:4px">⚡ ' + item.bnf + '</div>')
                 + '</div></div>'
-                + choiceHtml
+                + (isPure ? '' : choiceHtml)
+                + pureToggleHtml
+                + specialInputHtml
                 + '</div>';
         }).join('');
     }
 
-    function renderE(items, arr, tipo, color) {
+    // ── Filter bar helper ──────────────────────────────────────────────────────
+    function buildFilterBar(showStatusFilter = true, accentColor = '#9ca3af') {
+        const ft = hb.filterText || '';
+        const fs = hb.filterStatus || 'todos';
+        const statusOpts = [
+            { id:'todos',       label:'Todos' },
+            { id:'selecionados',label:'✓ Selecionados' },
+            { id:'disponiveis', label:'🔓 Disponíveis' },
+            { id:'bloqueados',  label:'🔒 Bloqueados' },
+        ];
+        const statusBtns = showStatusFilter ? statusOpts.map(o => {
+            const active = fs === o.id;
+            return `<button onclick="window._hSetFilter('filterStatus','${o.id}')"
+                style="padding:4px 9px;border-radius:7px;border:1.5px solid ${active ? accentColor : '#1f2937'};background:${active ? accentColor+'22' : 'transparent'};color:${active ? accentColor : '#6b7280'};font-size:8px;font-weight:${active?'900':'600'};cursor:pointer;white-space:nowrap;transition:all .1s">${o.label}</button>`;
+        }).join('') : '';
+        return `
+        <div style="margin-bottom:12px">
+            <div style="display:flex;gap:6px;margin-bottom:8px">
+                <div style="position:relative;flex:1">
+                    <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:#4b5563">🔍</span>
+                    <input id="hb-filter-input" type="text" value="${ft.replace(/"/g,'&quot;')}" placeholder="Buscar efeito..."
+                        onkeydown="if(event.key==='Enter'){window._hSetFilterText(this.value);}"
+                        style="width:100%;box-sizing:border-box;background:#0a0f1a;border:1.5px solid ${ft ? accentColor : '#1f2937'};border-radius:9px;padding:8px 10px 8px 30px;color:#fff;font-size:11px;outline:none;transition:border-color .15s"
+                        oninput="this.style.borderColor=this.value?'${accentColor}':'#1f2937'">
+                </div>
+                <button onclick="window._hSetFilterText(document.getElementById('hb-filter-input').value)"
+                    style="padding:8px 14px;border-radius:9px;background:${accentColor};color:#000;border:none;font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0;font-family:'Orbitron',sans-serif">🔍</button>
+                ${ft ? `<button onclick="window._hSetFilterText('');document.getElementById('hb-filter-input').value='';"
+                    style="padding:8px 12px;border-radius:9px;background:#1f2937;color:#9ca3af;border:none;font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0">✕</button>` : ''}
+            </div>
+            ${showStatusFilter ? `<div style="display:flex;flex-wrap:wrap;gap:4px">${statusBtns}</div>` : ''}
+        </div>`;
+    }
+
+    function renderE(items, arr, tipo, color, maxLevelOverride) {
         const char = state.currentChar;
         const charLevel = parseInt(char.level) || 0;
         const getMod = v => Math.floor(((v||10) - 10) / 2);
         const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
 
+        // Verifica se Kamikaze (rg_e6) está selecionado → ignora todos os pré-requisitos de efeitos
+        const kamikazeActive = (hb.rg||[]).includes('rg_e6');
+
+        // Verifica se há restrição extrema PURA ativa → permite selecionar mesmo efeito múltiplas vezes
+        const pureRestr = hb.pureRestrictions || {};
+        const allRDB_check = [];
+        const rgCheck = window.HATSU_DB && window.HATSU_DB.restricoes_gerais;
+        if (rgCheck) ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => {
+            const peso = k === 'variaveis' ? 'variavel' : k.replace(/s$/,'');
+            (rgCheck[k]||[]).forEach(r => allRDB_check.push({...r, peso}));
+        });
+        const hasPureExtreme = [...(hb.rg||[]), ...(hb.rc||[])].some(id =>
+            pureRestr[id] && (allRDB_check.find(r => r.id === id) || {}).peso === 'extrema'
+        );
+
         // Parses a req string and returns { ok: bool, reason: string }
         function checkReq(req) {
-            if (!req) return { ok: true, reason: '' };
+            if (!req || kamikazeActive) return { ok: true, reason: '' };
             const reasons = [];
 
-            // Nível X
+            // Nível X — but if maxLevelOverride is set, use that as the effective cap
             const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
             if (lvlMatch) {
                 const needed = parseInt(lvlMatch[1]);
                 if (charLevel < needed) reasons.push(`Nível ${needed} (você está no Nível ${charLevel})`);
             }
 
-            // ATTR X+ (e.g. "SAB 3+", "CAR 5+", "INT ou SAB 3+")
-            const attrPattern = /\b(FOR|DES|CON|INT|SAB|CAR)\s+(\d+)\+/gi;
-            let m;
-            const attrConditions = [];
-            while ((m = attrPattern.exec(req)) !== null) {
-                attrConditions.push({ attr: m[1].toUpperCase(), min: parseInt(m[2]) });
+            // Handle "ATTR ou ATTR X+" pattern (e.g. "INT ou SAB 3+", "SAB ou INT 3+")
+            // Must be checked BEFORE the generic per-attr pattern to avoid double-counting
+            const orAttrPattern = /\b(FOR|DES|CON|INT|SAB|PRE)\s+ou\s+(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
+            let orMatch;
+            const handledByOr = new Set();
+            while ((orMatch = orAttrPattern.exec(req)) !== null) {
+                const a1 = orMatch[1].toUpperCase(), a2 = orMatch[2].toUpperCase(), min = parseInt(orMatch[3]);
+                handledByOr.add(a1); handledByOr.add(a2);
+                if (attrMod(a1) < min && attrMod(a2) < min) {
+                    reasons.push(`mod. ${a1} ou ${a2} ${min}+ (atual: ${a1} ${attrMod(a1) >= 0?'+':''}${attrMod(a1)}, ${a2} ${attrMod(a2) >= 0?'+':''}${attrMod(a2)})`);
+                }
             }
-            if (attrConditions.length > 0) {
-                // Check if req has " ou " between attrs (any of them suffices)
-                const isOr = /\bou\b/i.test(req);
-                if (isOr) {
-                    const anyMet = attrConditions.some(c => attrMod(c.attr) >= c.min);
-                    if (!anyMet) {
-                        const parts = attrConditions.map(c => `mod. ${c.attr} ${c.min}+ (atual: ${attrMod(c.attr) >= 0 ? '+' : ''}${attrMod(c.attr)})`);
-                        reasons.push(`Requer ${parts.join(' ou ')}`);
-                    }
-                } else {
-                    attrConditions.forEach(c => {
-                        if (attrMod(c.attr) < c.min) {
-                            reasons.push(`mod. ${c.attr} ${c.min}+ (atual: ${attrMod(c.attr) >= 0 ? '+' : ''}${attrMod(c.attr)})`);
-                        }
-                    });
+
+            // Handle remaining single "ATTR X+" not already covered by or-pattern
+            const singleAttrPattern = /\b(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
+            let sm;
+            while ((sm = singleAttrPattern.exec(req)) !== null) {
+                const attr = sm[1].toUpperCase(), min = parseInt(sm[2]);
+                if (handledByOr.has(attr)) continue; // already handled
+                // Check if this attr appears in an "ou" context in original string
+                const orCtx = new RegExp(`(${attr})\\s+ou\\s+\\w+\\s+${min}\\+|\\w+\\s+ou\\s+(${attr})\\s+${min}\\+`, 'i');
+                if (orCtx.test(req)) continue; // part of an or group already handled
+                if (attrMod(attr) < min) {
+                    reasons.push(`mod. ${attr} ${min}+ (atual: ${attrMod(attr) >= 0?'+':''}${attrMod(attr)})`);
                 }
             }
 
             return { ok: reasons.length === 0, reason: reasons.join(' • ') };
         }
 
-        return items.map(item => {
+        return items.filter(item => {
+            // Text filter
+            const ft = (hb.filterText||'').toLowerCase().trim();
+            if (ft && !item.nome.toLowerCase().includes(ft) && !(item.desc||'').toLowerCase().includes(ft)) return false;
+            // Status filter
+            const fs = hb.filterStatus || 'todos';
+            if (fs !== 'todos') {
+                const isSel = arr.includes(item.id);
+                const { ok: reqOk } = checkReq(item.req);
+                const levelCapOk = maxLevelOverride === undefined || maxLevelOverride === null
+                    ? true
+                    : (() => { const lm = (item.req||'').match(/N[ií]vel\s+(\d+)/i); return !lm || parseInt(lm[1]) <= maxLevelOverride; })();
+                const isBlocked = !isSel && (!reqOk || !levelCapOk);
+                if (fs === 'selecionados' && !isSel) return false;
+                if (fs === 'disponiveis' && (isSel || isBlocked)) return false;
+                if (fs === 'bloqueados' && !isBlocked) return false;
+            }
+            return true;
+        }).map(item => {
             const sel = arr.includes(item.id);
             const afford = pnLeft >= item.pn || sel;
             const { ok: reqOk, reason: reqReason } = checkReq(item.req);
-            const blocked = !reqOk && !sel;
+
+            // Cross-category level cap check
+            let levelCapBlocked = false, levelCapReason = '';
+            if (maxLevelOverride !== undefined && maxLevelOverride !== null) {
+                const itemLvlMatch = (item.req || '').match(/N[ií]vel\s+(\d+)/i);
+                const itemLevel = itemLvlMatch ? parseInt(itemLvlMatch[1]) : 1;
+                if (itemLevel > maxLevelOverride) {
+                    levelCapBlocked = true;
+                    levelCapReason = `Acesso limitado a efeitos até Nível ${maxLevelOverride} para esta categoria`;
+                }
+            }
+
+            const blocked = (!reqOk || levelCapBlocked) && !sel;
+            const blockReason = levelCapBlocked ? levelCapReason : reqReason;
             const costColor = item.pn >= 3 ? '#f87171' : item.pn >= 2 ? '#fbbf24' : '#6b7280';
 
             // Determine click action
             let clickAction;
             if (blocked) {
-                // Show tooltip-style alert with the reason
-                const msg = `❌ Requisito não atendido:\\n\\n${reqReason}\\n\\nReq. original: ${item.req}`;
+                const msg = levelCapBlocked
+                    ? `🌐 Acesso por Afinidade Insuficiente\\n\\n${levelCapReason}`
+                    : `❌ Requisito não atendido\\n\\n${blockReason}\\n\\nReq. original: ${item.req}`;
                 clickAction = `alert('${msg.replace(/'/g, "\\'")}')`;
             } else if (!afford) {
                 clickAction = 'void(0)';
+            } else if (hasPureExtreme && sel) {
+                // Com Extrema Pura: permite adicionar cópias extras do mesmo efeito
+                clickAction = `window._hAddDuplicateE('${item.id}','${tipo}',${item.pn})`;
             } else {
                 clickAction = `window._hToggleE('${item.id}','${tipo}',${item.pn})`;
             }
 
-            const lockBadge = blocked
-                ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#ef444422;color:#f87171">🔒 REQ</span>`
-                : '';
+            // Count duplicates for this effect
+            const dupCount = hasPureExtreme ? (hb.ec||[]).concat(hb.eg||[]).filter(id => id === item.id).length : 0;
+            const showDupControls = hasPureExtreme && sel && dupCount > 0;
 
-            return `<div onclick="${clickAction}"
-                style="padding:8px 10px;border-radius:10px;border:2px solid ${sel ? color : blocked ? '#ef444433' : '#1f2937'};background:${sel ? color+'18' : blocked ? '#1a0a0a' : '#0f1117'};cursor:${blocked ? 'pointer' : afford ? 'pointer' : 'not-allowed'};opacity:${blocked ? '0.55' : afford ? '1' : '0.3'};margin-bottom:8px;transition:all .15s">
+            const lockBadge = blocked
+                ? levelCapBlocked
+                    ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#3b82f622;color:#60a5fa">🌐 LV${maxLevelOverride}+</span>`
+                    : `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#ef444422;color:#f87171">🔒 REQ</span>`
+                : kamikazeActive && item.req && item.req !== 'Nível 1'
+                    ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#f9731622;color:#fb923c">⚡ KAMIKAZE</span>`
+                    : showDupControls
+                        ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:#fbbf2422;color:#fbbf24">×${dupCount} PURA</span>`
+                        : '';
+
+            // Special UI blocks for specific effects
+            let specialHtml = '';
+            if (sel && !blocked) {
+                const specialChoices = hb.specialChoices || {};
+
+                // eg3: Condição Perigosa — show condition picker based on level
+                if (item.id === 'eg3') {
+                    const CONDITIONS_BY_LEVEL = {
+                        1: ['Caído','Cego','Surdo','Mudo','Lento (−3m)','Assustado','Envenenado'],
+                        2: ['Agarrado','Imobilizado','Atordoado','Sangramento Leve (2d4)','Fragilizado','Desorientado'],
+                        3: ['Paralisado','Incapacitado','Sangramento Médio (2d6)','Exaustão Nível 1','Inconsciente'],
+                        5: ['Sangramento Forte (2d10)','Exaustão Nível 2','Dano Permanente (1d4)'],
+                        7: ['Morte Imediata (CD 20 CON)','Exaustão Nível 3','Coma'],
+                    };
+                    const selected = specialChoices['eg3'] || [];
+                    const allAvail = [];
+                    Object.entries(CONDITIONS_BY_LEVEL).forEach(([lvl, conds]) => {
+                        if (charLevel >= parseInt(lvl)) conds.forEach(c => allAvail.push({c, lvl: parseInt(lvl)}));
+                    });
+                    // Category suggestions
+                    const catSuggestions = {
+                        'MANIPULAÇÃO': ['Agarrado','Atordoado','Paralisado'],
+                        'EMISSÃO': ['Caído','Sangramento Leve (2d4)','Cego'],
+                        'TRANSMUTAÇÃO': ['Envenenado','Sangramento Leve (2d4)','Lento (−3m)'],
+                        'INTENSIFICAÇÃO': ['Caído','Atordoado','Fragilizado'],
+                        'MATERIALIZAÇÃO': ['Agarrado','Imobilizado','Paralisado'],
+                        'CONJURAÇÃO': ['Assustado','Desorientado','Incapacitado'],
+                    };
+                    const suggestions = catSuggestions[char.class] || [];
+                    specialHtml = `<div style="margin-top:8px;background:#0a0f1a;border:1px solid ${color}33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">
+                        <div style="font-size:8px;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🩸 Escolha a Condição Aplicada</div>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px">
+                        ${allAvail.map(({c, lvl}) => {
+                            const isSel = Array.isArray(selected) ? selected.includes(c) : selected === c;
+                            const isSugg = suggestions.includes(c);
+                            return `<button onclick="event.stopPropagation();window._hSetSpecialChoice('eg3','${c}')"
+                                style="padding:4px 8px;border-radius:7px;font-size:8px;font-weight:${isSel?'900':'600'};cursor:pointer;border:1.5px solid ${isSel?color:(isSugg?color+'66':'#1f2937')};background:${isSel?color+'22':(isSugg?color+'11':'transparent')};color:${isSel?color:(isSugg?color+'cc':'#9ca3af')};white-space:nowrap">
+                                ${isSugg?'⭐ ':''}${c}${lvl>1?` <span style="font-size:7px;opacity:.6">Lv${lvl}+</span>`:''}
+                            </button>`;
+                        }).join('')}
+                        </div>
+                        ${specialChoices['eg3'] ? `<div style="margin-top:8px;font-size:9px;font-weight:700;color:${color}">✓ Condição: ${specialChoices['eg3']}</div>` : '<div style="margin-top:6px;font-size:8px;color:#f87171">⚠ Selecione uma condição</div>'}
+                    </div>`;
+                }
+
+                // eg4: Efeito Alternativo — free wrapper, show info
+                if (item.id === 'eg4') {
+                    const chosen = specialChoices['eg4'] || '';
+                    specialHtml = `<div style="margin-top:8px;background:#0a0f1a;border:1px solid ${color}33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">
+                        <div style="font-size:8px;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🔀 Efeito Alternativo (Modo)</div>
+                        <div style="font-size:9px;color:#d1d5db;line-height:1.5;margin-bottom:8px">Este efeito cria um <b style="color:${color}">modo alternativo</b> do seu Hatsu. Selecione outro efeito nas listas — ele será automaticamente registrado como parte do Modo B deste Hatsu.</div>
+                        <input type="text" value="${chosen.replace(/"/g,'&quot;')}" placeholder="Nome do modo (ex: Modo B — Tesoura)"
+                            onchange="window._hSetSpecialChoice('eg4',this.value)"
+                            oninput="window._hSetSpecialText('eg4',this.value)"
+                            style="width:100%;box-sizing:border-box;background:#060d1a;border:1.5px solid ${chosen?color:'#374151'};border-radius:8px;padding:7px 10px;color:#fff;font-size:10px;outline:none">
+                        ${chosen ? `<div style="font-size:8px;color:${color};margin-top:4px">✓ Modo: ${chosen}</div>` : ''}
+                    </div>`;
+                }
+
+                // eg6: Poder é Intenção — free wrapper
+                if (item.id === 'eg6') {
+                    const chosen = specialChoices['eg6'] || '';
+                    specialHtml = `<div style="margin-top:8px;background:#0a0f1a;border:1px solid ${color}33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">
+                        <div style="font-size:8px;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🎯 Poder é Intenção</div>
+                        <div style="font-size:9px;color:#d1d5db;line-height:1.5;margin-bottom:8px">O próximo efeito que você selecionar será <b style="color:${color}">direcionado a inimigo(s)</b> sem custo extra de P.N. O 1 P.N deste efeito já cobre a compra do efeito desejado.</div>
+                        <input type="text" value="${chosen.replace(/"/g,'&quot;')}" placeholder="Efeito alvo (ex: Aumento de Alcance)"
+                            onchange="window._hSetSpecialChoice('eg6',this.value)"
+                            oninput="window._hSetSpecialText('eg6',this.value)"
+                            style="width:100%;box-sizing:border-box;background:#060d1a;border:1.5px solid ${chosen?color:'#374151'};border-radius:8px;padding:7px 10px;color:#fff;font-size:10px;outline:none">
+                        ${chosen ? `<div style="font-size:8px;color:${color};margin-top:4px">✓ Efeito: ${chosen}</div>` : ''}
+                    </div>`;
+                }
+            }
+            const dupControlsHtml = showDupControls ? `
+                <div style="display:flex;align-items:center;gap:6px;margin-top:6px" onclick="event.stopPropagation()">
+                    <span style="font-size:8px;color:#fbbf24;font-weight:700">Cópias:</span>
+                    <button onclick="window._hRemoveDuplicateE('${item.id}','${tipo}')"
+                        style="width:22px;height:22px;border-radius:6px;background:#1f2937;border:1px solid #374151;color:#f87171;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
+                    <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;color:#fbbf24;min-width:16px;text-align:center">${dupCount}</span>
+                    <button onclick="window._hAddDuplicateE('${item.id}','${tipo}',${item.pn})"
+                        style="width:22px;height:22px;border-radius:6px;background:#fbbf2422;border:1px solid #fbbf2455;color:#fbbf24;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                    <span style="font-size:8px;color:#6b7280">(${dupCount} × ${item.pn} P.N = ${dupCount * item.pn} P.N)</span>
+                </div>` : '';
+
+            // Main card onclick: normal toggle unless showing dup controls (then clicking card does nothing extra)
+            const mainClick = blocked
+                ? clickAction
+                : showDupControls
+                    ? 'void(0)'
+                    : clickAction;
+
+            return `<div onclick="${mainClick}"
+                style="padding:8px 10px;border-radius:10px;border:2px solid ${sel ? color : blocked ? (levelCapBlocked ? '#3b82f633' : '#ef444433') : '#1f2937'};background:${sel ? color+'18' : blocked ? '#0f1117' : '#0f1117'};cursor:${blocked ? 'pointer' : showDupControls ? 'default' : afford ? 'pointer' : 'not-allowed'};opacity:${blocked ? '0.45' : afford ? '1' : '0.3'};margin-bottom:8px;transition:all .15s">
                 <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">
-                    <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel ? color : blocked ? '#9ca3af' : '#d1d5db'}">${item.nome}</span>
+                    <span style="font-size:9px;font-weight:900;text-transform:uppercase;color:${sel ? color : blocked ? '#6b7280' : '#d1d5db'}">${item.nome}</span>
                     <span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${costColor}22;color:${costColor}">${item.pn} P.N</span>
                     ${sel ? `<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:${color}33;color:${color}">✓</span>` : ''}
                     ${lockBadge}
                 </div>
                 <div style="font-size:8px;color:#6b7280;line-height:1.4">${item.desc}</div>
-                <div style="font-size:7px;color:${blocked ? '#ef444499' : '#374151'};font-style:italic;margin-top:3px">Req: ${item.req}${blocked ? ` — <span style="color:#f87171;font-weight:700">${reqReason}</span>` : ''}</div>
+                <div style="font-size:7px;color:${blocked ? (levelCapBlocked ? '#60a5fa77' : '#ef444499') : '#374151'};font-style:italic;margin-top:3px">Req: ${item.req}${blocked && !levelCapBlocked ? ` — <span style="color:#f87171;font-weight:700">${blockReason}</span>` : ''}</div>
+                ${dupControlsHtml}
+                ${specialHtml}
             </div>`;
         }).join('');
     }
@@ -1786,8 +2166,9 @@ function renderHatsuCreator(container) {
                 <div style="font-size:10px;font-weight:900;color:#fff">${char.level}</div>
             </div>
             <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
-                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Total</div>
-                <div style="font-size:10px;font-weight:900;color:#fff">${pnMax}</div>
+                <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
+                <div style="font-size:10px;font-weight:900;color:${pnMax<=0?'#f87171':'#fff'}">${pnMax}<span style="font-size:8px;color:#374151"> / ${pnBase}</span></div>
+                ${pnSpentOthers>0?`<div style="font-size:7px;color:#f87171;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
         </div>`;
     }
@@ -1887,6 +2268,22 @@ function renderHatsuCreator(container) {
             + '<button onclick="state.hatsuBuilder.restrTab=\'categoria\';renderHatsuInPlace()" style="padding:10px;border-radius:9px;font-family:\'Orbitron\',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;letter-spacing:1px;border:none;cursor:pointer;transition:all .15s;' + tabCatStyle + '">' + tabCatLabel + '</button>'
             + '</div>';
 
+        // Search bar for restrictions
+        var ft2 = hb.filterText || '';
+        var searchBarHtml = '<div style="display:flex;gap:6px;margin-bottom:10px">'
+            + '<div style="position:relative;flex:1">'
+            + '<span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:12px;color:#4b5563">🔍</span>'
+            + '<input id="hb-filter-input" type="text" value="' + ft2.replace(/"/g,'&quot;') + '" placeholder="Buscar restrição..."'
+            + ' onkeydown="if(event.key===\'Enter\'){window._hSetFilterText(this.value);}"'
+            + ' oninput="this.style.borderColor=this.value?\'' + tc + '\':\'#1f2937\'"'
+            + ' style="width:100%;box-sizing:border-box;background:#0a0f1a;border:1.5px solid ' + (ft2 ? tc : '#1f2937') + ';border-radius:9px;padding:8px 10px 8px 30px;color:#fff;font-size:11px;outline:none;transition:border-color .15s">'
+            + '</div>'
+            + '<button onclick="window._hSetFilterText(document.getElementById(\'hb-filter-input\').value)"'
+            + ' style="padding:8px 14px;border-radius:9px;background:' + tc + ';color:#000;border:none;font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0;font-family:\'Orbitron\',sans-serif">🔍</button>'
+            + (ft2 ? '<button onclick="window._hSetFilterText(\'\');document.getElementById(\'hb-filter-input\').value=\'\';"'
+                + ' style="padding:8px 12px;border-radius:9px;background:#1f2937;color:#9ca3af;border:none;font-size:11px;font-weight:900;cursor:pointer;flex-shrink:0">✕</button>' : '')
+            + '</div>';
+
         var bodyHtml = '';
         if (isGerais) {
             bodyHtml += '<div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:9px;margin-bottom:10px;font-size:9px;color:#6b7280;line-height:1.5">'
@@ -1894,9 +2291,12 @@ function renderHatsuCreator(container) {
                 + '<span style="float:right;color:#fff;font-weight:900">' + totalRG + ' selecionadas</span></div>';
 
             bodyHtml += grupos.map(function(g) {
-                var items = (db[g.key]||[]).map(function(i){ return Object.assign({}, i, {peso:g.peso}); });
-                var cnt = items.filter(function(i){ return hb.rg.includes(i.id); }).length;
-                var isOpen = (hb.openAccordions||[]).includes(g.key) || cnt > 0;
+                var rawItems = (db[g.key]||[]).map(function(i){ return Object.assign({}, i, {peso:g.peso}); });
+                // Apply text filter
+                var items = ft2 ? rawItems.filter(function(i){ return i.nome.toLowerCase().includes(ft2.toLowerCase()) || (i.desc||'').toLowerCase().includes(ft2.toLowerCase()); }) : rawItems;
+                var cnt = rawItems.filter(function(i){ return hb.rg.includes(i.id); }).length;
+                if (ft2 && items.length === 0) return ''; // hide empty groups when filtering
+                var isOpen = ft2 ? true : ((hb.openAccordions||[]).includes(g.key) || cnt > 0);
                 var cntBadge = cnt ? '<span style="font-size:9px;font-weight:900;padding:2px 8px;border-radius:20px;background:' + g.cb + ';color:' + g.cor + '">' + cnt + ' sel.</span>' : '';
                 var arrow = isOpen ? '▾' : '▸';
                 var innerContent = isOpen ? '<div style="padding:8px">' + renderR(items, hb.rg, 'rg') + '</div>' : '';
@@ -1913,11 +2313,14 @@ function renderHatsuCreator(container) {
                 + ' &nbsp;•&nbsp; <span style="color:#6b7280">Graus:</span> ' + (catDB.graus || '—')
                 + '<span style="float:right;color:' + tc + ';font-weight:900">' + totalRC + ' selecionadas</span></div>';
 
+            var filteredCatItems = ft2 ? catItems.filter(function(i){ return i.nome.toLowerCase().includes(ft2.toLowerCase()) || (i.desc||'').toLowerCase().includes(ft2.toLowerCase()); }) : catItems;
+
             if (catItems.length === 0) {
                 bodyHtml += '<div style="text-align:center;color:#374151;font-style:italic;padding:30px 0">Nenhuma restrição específica para ' + cls + '.</div>';
+            } else if (filteredCatItems.length === 0) {
+                bodyHtml += '<div style="text-align:center;color:#374151;font-style:italic;padding:20px">Nenhuma restrição encontrada.</div>';
             } else {
-                // 4.3: badge neutro cinza para categoria
-                bodyHtml += catItems.map(function(item) {
+                bodyHtml += filteredCatItems.map(function(item) {
                     var sel = hb.rc.includes(item.id);
                     var pLbl = ({leve:'LEVE',moderada:'MOD',pesada:'PES',variavel:'VAR',extrema:'EXT'})[item.peso] || 'CAT';
                     return '<div onclick="window._hToggleR(\'' + item.id + '\',\'rc\')"'
@@ -1938,7 +2341,7 @@ function renderHatsuCreator(container) {
 
         content = '<div style="text-align:center;margin-bottom:10px">'
             + '<div style="font-family:\'Orbitron\',sans-serif;font-weight:900;font-size:13px;color:#fff;text-transform:uppercase;letter-spacing:2px">Restrições</div>'
-            + '</div>' + tabsHtml + bodyHtml;
+            + '</div>' + tabsHtml + searchBarHtml + bodyHtml;
     }
 
     // ETAPA 3 — EFEITOS GERAIS
@@ -1964,38 +2367,194 @@ function renderHatsuCreator(container) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
-                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnBase}</span></div>
                 ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
+                ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Selecionados</div>
                 <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:#fff">${hb.eg.length}</div>
             </div>
         </div>
-        ${renderE(window.HATSU_DB.efeitos_gerais, hb.eg, 'eg', '#9ca3af')}`;
+        ${buildFilterBar(true, '#9ca3af')}
+        ${renderE(window.HATSU_DB.efeitos_gerais, hb.eg, 'eg', '#9ca3af')}
+        ${(() => { const ft = hb.filterText||''; const fs = hb.filterStatus||'todos'; const allItems = window.HATSU_DB.efeitos_gerais; const shown = allItems.filter(item => { if (ft && !item.nome.toLowerCase().includes(ft.toLowerCase()) && !(item.desc||'').toLowerCase().includes(ft.toLowerCase())) return false; return true; }); return shown.length === 0 ? `<div style="text-align:center;color:#374151;font-style:italic;font-size:11px;padding:20px">Nenhum efeito encontrado.</div>` : ''; })()}`;
     }
-
-    // ETAPA 4 — EFEITOS DA CATEGORIA
     else if (hb.step === 4) {
         canNext = true;
+
+        const charLevel = parseInt(char.level) || 0;
+
+        // Conta restrições extremas selecionadas (bônus de 2 níveis cada)
+        const allRDB_flat = [
+            ...(window.HATSU_DB.restricoes_gerais.extremas||[]),
+            ...(catDB.restricoes||[]).filter(r => r.peso === 'extrema')
+        ];
+        const extremeCount = [...hb.rg, ...hb.rc].filter(id => allRDB_flat.some(r => r.id === id)).length;
+        const effectiveLevel = Math.min(12, charLevel + extremeCount * 2);
+        const access = window.calcCategoryAccess(charLevel, extremeCount);
+
+        // Todas as categorias disponíveis no HATSU_DB
+        const ALL_CATS = ['INTENSIFICAÇÃO','TRANSMUTAÇÃO','MATERIALIZAÇÃO','CONJURAÇÃO','MANIPULAÇÃO','EMISSÃO','ESPECIALIZAÇÃO'];
+        const CAT_COLORS = {
+            'INTENSIFICAÇÃO':'#00ff9d','TRANSMUTAÇÃO':'#d946ef','MATERIALIZAÇÃO':'#60a5fa',
+            'CONJURAÇÃO':'#fb923c','MANIPULAÇÃO':'#f43f5e','EMISSÃO':'#facc15','ESPECIALIZAÇÃO':'#a78bfa'
+        };
+        const affinityMap = window.CATEGORY_AFFINITY[cls] || {};
+        const pctLabel = { 80:'80%', 60:'60%', 40:'40%', 1:'1%' };
+
+        // Info card — tabela de acesso atual
+        const accessRows = [
+            { pct: '100%', max: access.pct100, color: '#4ade80' },
+            { pct: '80%',  max: access.pct80,  color: '#60a5fa' },
+            { pct: '60%',  max: access.pct60,  color: '#fbbf24' },
+            { pct: '40%',  max: access.pct40,  color: '#f87171' },
+        ].filter(r => r.max > 0);
+
+        const accessInfoHtml = `
+        <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px">🌐 Acesso a Categorias</div>
+                <div style="font-size:8px;color:#4b5563">Nível ${charLevel}${extremeCount>0?` + ${extremeCount*2} (ext.)`:''} = Efetivo ${effectiveLevel}</div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px">
+                ${accessRows.map(r => `<span style="font-size:8px;font-weight:700;padding:3px 8px;border-radius:6px;background:${r.color}18;color:${r.color};border:1px solid ${r.color}33">${r.pct} → até Nível ${r.max}</span>`).join('')}
+                ${extremeCount>0?`<span style="font-size:8px;font-weight:700;padding:3px 8px;border-radius:6px;background:#f9731618;color:#fb923c;border:1px solid #f9731633">⚡ +${extremeCount} Extrema${extremeCount>1?'s':''}</span>`:''}
+            </div>
+        </div>`;
+
+        // Gera seções de outras categorias acessíveis
+        let otherCatSections = '';
+
+        // Salva a classe atual para checkEspecializacaoAccess
+        window._currentBuilderClass = cls;
+
+        for (const otherCls of ALL_CATS) {
+            if (otherCls === cls) continue;
+
+            // Especialização: tratamento especial para Manipulação e Materialização
+            if (otherCls === 'ESPECIALIZAÇÃO') {
+                if (cls !== 'MANIPULAÇÃO' && cls !== 'MATERIALIZAÇÃO') continue; // outras categorias: sem acesso
+                const espCheck = window.checkEspecializacaoAccess(hb);
+                const espDB = window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
+                const espColor = '#a78bfa';
+                const openKey = 'xcat_ESPECIALIZAÇÃO';
+                const isOpen = (hb.openAccordions||[]).includes(openKey);
+
+                if (espCheck.ok) {
+                    // Acesso liberado — mostra efeitos até nível 3
+                    otherCatSections += `
+                    <div style="margin-bottom:10px">
+                        <div onclick="window._hToggleAccordion('${openKey}')"
+                            style="display:flex;align-items:center;justify-content:space-between;background:#0a0f1a;border:2px solid ${espColor}44;border-radius:${isOpen?'12px 12px 0 0':'12px'};padding:10px 12px;cursor:pointer;user-select:none">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:${espColor}">ESPECIALIZAÇÃO</span>
+                                <span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:${espColor}22;color:${espColor}">1% — desbloqueado ✓</span>
+                                <span style="font-size:7px;font-weight:700;color:#6b7280">até Nível 3</span>
+                            </div>
+                            <span style="color:#4b5563;font-size:12px">${isOpen?'▲':'▼'}</span>
+                        </div>
+                        ${isOpen ? `<div style="background:#0a0f1a;border:2px solid ${espColor}44;border-top:none;border-radius:0 0 12px 12px;padding:10px">
+                            ${renderE((espDB&&espDB.efeitos)||[], hb.ec, 'ec', espColor, 3)}
+                        </div>` : ''}
+                    </div>`;
+                } else {
+                    // Bloqueado — mostra card com regra e progresso
+                    const { specEfeitos, totalRestr, needed, counts, pyramidOk, pyramidMsg } = espCheck;
+                    const progressPct = Math.min(100, Math.round((totalRestr/needed)*100));
+                    otherCatSections += `
+                    <div style="margin-bottom:10px">
+                        <div onclick="window._showEspRule()"
+                            style="display:flex;align-items:center;justify-content:space-between;background:#0a0f1a;border:2px solid ${espColor}33;border-radius:12px;padding:10px 12px;cursor:pointer;user-select:none;opacity:0.75">
+                            <div style="display:flex;align-items:center;gap:8px">
+                                <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:${espColor}">ESPECIALIZAÇÃO</span>
+                                <span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:#ef444422;color:#f87171">🔒 1% — bloqueado</span>
+                            </div>
+                            <span style="font-size:8px;color:${espColor};font-weight:700">${totalRestr}/${needed} restr. ℹ️</span>
+                        </div>
+                        <div style="background:#0a0f1a;border:2px solid ${espColor}22;border-top:none;border-radius:0 0 12px 12px;padding:10px 12px">
+                            <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                                <span style="font-size:8px;color:#6b7280">Restrições necessárias</span>
+                                <span style="font-size:8px;font-weight:700;color:${totalRestr>=needed?'#4ade80':'#f87171'}">${totalRestr} / ${needed}</span>
+                            </div>
+                            <div style="background:#1f2937;border-radius:99px;height:6px;overflow:hidden;margin-bottom:8px">
+                                <div style="height:100%;width:${progressPct}%;background:${totalRestr>=needed?'#4ade80':espColor};border-radius:99px;transition:width .3s"></div>
+                            </div>
+                            ${!pyramidOk ? `<div style="font-size:8px;color:#f87171;margin-bottom:6px">⚠️ Pirâmide inválida: ${pyramidMsg}</div>` : ''}
+                            <div style="display:flex;gap:6px;flex-wrap:wrap">
+                                ${['leve','moderada','pesada','extrema'].map(p => `<span style="font-size:7px;padding:2px 6px;border-radius:4px;background:#1f2937;color:#9ca3af">${p[0].toUpperCase()+p.slice(1)}: ${counts[p]||0}</span>`).join('')}
+                            </div>
+                            <button onclick="window._showEspRule()" style="margin-top:8px;width:100%;padding:6px;border-radius:8px;background:${espColor}18;border:1px solid ${espColor}44;color:${espColor};font-size:9px;font-weight:900;text-transform:uppercase;cursor:pointer;letter-spacing:1px">ℹ️ Ver Regra Completa</button>
+                        </div>
+                    </div>`;
+                }
+                continue;
+            }
+
+            // Acesso normal para outras categorias
+            const maxLvl = window.getMaxLevelForCategory(cls, otherCls, charLevel, extremeCount);
+            if (!maxLvl || maxLvl <= 0) continue;
+            const otherDB = window.HATSU_DB.categorias[otherCls];
+            if (!otherDB || !otherDB.efeitos) continue;
+            const pct = (window.CATEGORY_AFFINITY[cls]||{})[otherCls] || 0;
+            const otherColor = CAT_COLORS[otherCls] || '#9ca3af';
+            const pctStr = pct + '%';
+            const openKey = 'xcat_' + otherCls;
+            const isOpen = (hb.openAccordions||[]).includes(openKey);
+            otherCatSections += `
+            <div style="margin-bottom:10px">
+                <div onclick="window._hToggleAccordion('${openKey}')"
+                    style="display:flex;align-items:center;justify-content:space-between;background:#0a0f1a;border:2px solid ${otherColor}44;border-radius:${isOpen?'12px 12px 0 0':'12px'};padding:10px 12px;cursor:pointer;user-select:none">
+                    <div style="display:flex;align-items:center;gap:8px">
+                        <span style="font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:1px;color:${otherColor}">${otherCls}</span>
+                        <span style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:${otherColor}22;color:${otherColor}">${pctStr} afinidade</span>
+                        <span style="font-size:7px;font-weight:700;color:#6b7280">até Nível ${maxLvl}</span>
+                    </div>
+                    <span style="color:#4b5563;font-size:12px">${isOpen?'▲':'▼'}</span>
+                </div>
+                ${isOpen ? `<div style="background:#0a0f1a;border:2px solid ${otherColor}44;border-top:none;border-radius:0 0 12px 12px;padding:10px">
+                    ${renderE(otherDB.efeitos, hb.ec, 'ec', otherColor, maxLvl)}
+                </div>` : ''}
+            </div>`;
+        }
+
         content = `
-        <div style="text-align:center;margin-bottom:12px">
+        <div style="text-align:center;margin-bottom:10px">
             <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:#fff;text-transform:uppercase;letter-spacing:2px">Efeitos de ${cls}</div>
             <div style="font-size:9px;font-weight:700;margin-top:3px;color:${tc}">${catDB.graus}</div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
-                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnBase}</span></div>
                 ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
+                ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">Attr. Principal</div>
-                <div style="font-size:13px;font-weight:900;color:${tc}">${catDB.attr_princ}</div>
+                ${cls === 'MANIPULAÇÃO' ? (() => {
+                    const hasCSO = hb.ec.includes('ma_e1');
+                    const hasCSC = hb.ec.includes('ma_e2');
+                    const activeAttr = (hasCSO && !hasCSC) ? 'INT' : 'PRE';
+                    const inactiveAttr = activeAttr === 'INT' ? 'PRE' : 'INT';
+                    const activeLabel = activeAttr === 'INT' ? 'INT — Objetos' : 'PRE — Pessoas';
+                    const inactiveLabel = inactiveAttr === 'INT' ? 'INT — Objetos' : 'PRE — Pessoas';
+                    return `<div style="font-size:12px;font-weight:900;color:${tc}">${activeLabel}</div>
+                            <div style="font-size:9px;color:#4b5563;margin-top:2px">${inactiveLabel} (outro modo)</div>`;
+                })() : `<div style="font-size:13px;font-weight:900;color:${tc}">${catDB.attr_princ}</div>`}
                 <div style="font-size:9px;color:#4b5563">${catDB.attr_sec}</div>
             </div>
         </div>
-        ${renderE(catDB.efeitos, hb.ec, 'ec', tc)}`;
+        ${accessInfoHtml}
+        ${buildFilterBar(true, tc)}
+        <!-- Efeitos da categoria principal -->
+        <div style="font-size:9px;font-weight:900;color:${tc};text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">⚡ ${cls} — 100%</div>
+        ${renderE(catDB.efeitos, hb.ec, 'ec', tc)}
+        <!-- Efeitos de outras categorias acessíveis -->
+        ${otherCatSections ? `<div style="margin-top:16px;padding-top:12px;border-top:1px solid #1f2937">
+            <div style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">🌐 Outras Categorias (por Afinidade)</div>
+            ${otherCatSections}
+        </div>` : ''}`;
     }
 
     // ETAPA 5 — RESUMO
@@ -2011,7 +2570,12 @@ function renderHatsuCreator(container) {
         const rGSel = hb.rg.map(id => allRDB.find(r=>r.id===id)).filter(Boolean);
         const rCSel = hb.rc.map(id => catDB.restricoes.find(r=>r.id===id)).filter(Boolean);
         const efGSel = hb.eg.map(id => window.HATSU_DB.efeitos_gerais.find(e=>e.id===id)).filter(Boolean);
-        const efCSel = hb.ec.map(id => catDB.efeitos.find(e=>e.id===id)).filter(Boolean);
+        // Resolve efeitos de categoria de TODAS as categorias (suporte cross-category)
+        const allCatEfeitos = [];
+        Object.values(window.HATSU_DB.categorias||{}).forEach(cat => {
+            if (cat && cat.efeitos) cat.efeitos.forEach(e => { if (!allCatEfeitos.find(x=>x.id===e.id)) allCatEfeitos.push(e); });
+        });
+        const efCSel = hb.ec.map(id => allCatEfeitos.find(e=>e.id===id)).filter(Boolean);
         const allR = [...rGSel, ...rCSel];
         const allE = [...efGSel, ...efCSel];
         const _tipoIconsMap = { hostil:'⚔️', suporte:'🛡️', versatil:'🌀', instantaneo:'⚡', longa_duracao:'⏳' };
@@ -2161,7 +2725,13 @@ window._hNext = function() {
         const catDB = window.HATSU_DB.categorias[char.class];
         let pnUsed = 0;
         hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed+=e.pn; });
-        hb.ec.forEach(id => { if(catDB){ const e=catDB.efeitos.find(x=>x.id===id); if(e) pnUsed+=e.pn; } });
+        hb.ec.forEach(id => {
+            for (const cat of Object.values(window.HATSU_DB.categorias||{})) {
+                if (!cat || !cat.efeitos) continue;
+                const e = cat.efeitos.find(x=>x.id===id);
+                if (e) { pnUsed += e.pn; break; }
+            }
+        });
         const hatsuData = {
             id: (hb.editingIdx !== undefined ? char.hatsus[hb.editingIdx].id : null) || ('hatsu_' + Date.now()),
             nome: hb.nome,
@@ -2169,6 +2739,8 @@ window._hNext = function() {
             tipo: (hb.tipoA||'')+(hb.tipoB?'+'+hb.tipoB:''),
             restricoes: [...hb.rg, ...hb.rc],
             beneficioChoices: {...(hb.beneficioChoices||{})},
+            pureRestrictions: {...(hb.pureRestrictions||{})},
+            specialChoices: {...(hb.specialChoices||{})},
             efeitos: [...hb.eg, ...hb.ec],
             pnUsados: pnUsed,
             nivel: char.level,
@@ -2185,9 +2757,18 @@ window._hNext = function() {
         state.view = 'SHEET';
         state.activeTab = 'NEN';
         render();
+
+        // Bônus de talento — só no PRIMEIRO hatsu criado (não edições)
+        const isFirstHatsu = hb.editingIdx === undefined && char.hatsus.length === 1;
+        const genTier = char.genialidade;
+        if (isFirstHatsu && (genTier === 'Talentoso' || genTier === 'Excelente' || genTier === 'Gênio' || genTier === 'Ultimate')) {
+            window._showTalentBonusModal(char, genTier, hatsuData);
+        }
         return;
     }
     hb.step++;
+    hb.filterText = '';
+    hb.filterStatus = 'todos';
     render();
 };
 window._hPrev = function() {
@@ -2220,6 +2801,71 @@ window._hToggleAccordion = function(key) {
     else hb.openAccordions.push(key);
     renderHatsuInPlace();
 };
+window._hRemoveDuplicateE = function(id, tipo) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    const arr = tipo === 'eg' ? hb.eg : hb.ec;
+    // Remove last occurrence of id
+    const lastIdx = arr.lastIndexOf(id);
+    if (lastIdx === -1) return;
+    arr.splice(lastIdx, 1);
+    renderHatsuInPlace();
+};
+
+window._hAddDuplicateE = function(id, tipo, pn) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    // Add another copy of the same effect (allowed with pure extreme restriction)
+    let used = 0;
+    hb.eg.forEach(eid => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===eid); if(e) used+=e.pn; });
+    hb.ec.forEach(eid => {
+        for (const cat of Object.values(window.HATSU_DB.categorias||{})) {
+            if (!cat || !cat.efeitos) continue;
+            const e = cat.efeitos.find(x=>x.id===eid);
+            if (e) { used += e.pn; break; }
+        }
+    });
+    const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb) - _pnSpentOth) return;
+    const arr = tipo === 'eg' ? hb.eg : hb.ec;
+    arr.push(id);
+    renderHatsuInPlace();
+};
+
+window._hSetFilter = function(key, val) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    hb[key] = val;
+    renderHatsuInPlace();
+};
+window._hSetFilterText = function(val) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    hb.filterText = val;
+    renderHatsuInPlace();
+};
+
+window._hSetSpecialChoice = function(id, val) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.specialChoices) hb.specialChoices = {};
+    hb.specialChoices[id] = val;
+    renderHatsuInPlace();
+};
+window._hSetSpecialText = function(id, val) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.specialChoices) hb.specialChoices = {};
+    hb.specialChoices[id] = val;
+    // Don't re-render on every keystroke — just store
+};
+
+window._hTogglePure = function(id) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.pureRestrictions) hb.pureRestrictions = {};
+    if (hb.pureRestrictions[id]) {
+        delete hb.pureRestrictions[id];
+    } else {
+        hb.pureRestrictions[id] = true;
+        // Pura não usa benefício escolhido
+        if (hb.beneficioChoices) delete hb.beneficioChoices[id];
+    }
+    renderHatsuInPlace();
+};
+
 window._hToggleR = function(id, tipo) {
     const hb = state.hatsuBuilder; if (!hb) return;
     const arr = tipo === 'rg' ? hb.rg : hb.rc;
@@ -2268,31 +2914,52 @@ window._hToggleE = function(id, tipo, pn) {
         const char = state.currentChar;
         const allEDB = [];
         (window.HATSU_DB.efeitos_gerais||[]).forEach(e => allEDB.push(e));
-        const catDB = window.HATSU_DB.categorias[char.class];
-        if (catDB && catDB.efeitos) catDB.efeitos.forEach(e => allEDB.push(e));
+        // Inclui efeitos de TODAS as categorias (para suporte cross-category)
+        Object.values(window.HATSU_DB.categorias||{}).forEach(cat => {
+            if (cat && cat.efeitos) cat.efeitos.forEach(e => { if (!allEDB.find(x=>x.id===e.id)) allEDB.push(e); });
+        });
         const item = allEDB.find(e => e.id === id);
         if (item && item.req) {
-            const req = item.req;
-            const charLevel = parseInt(char.level) || 0;
-            const getMod = v => Math.floor(((v||10) - 10) / 2);
-            const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
-            const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
-            if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
-            const attrPattern = /\b(FOR|DES|CON|INT|SAB|CAR)\s+(\d+)\+/gi;
-            let m; const attrConditions = [];
-            while ((m = attrPattern.exec(req)) !== null) attrConditions.push({ attr: m[1].toUpperCase(), min: parseInt(m[2]) });
-            if (attrConditions.length > 0) {
-                const isOr = /\bou\b/i.test(req);
-                const met = isOr ? attrConditions.some(c => attrMod(c.attr) >= c.min) : attrConditions.every(c => attrMod(c.attr) >= c.min);
-                if (!met) return;
+            const kamikazeActive = (hb.rg||[]).includes('rg_e6');
+            if (!kamikazeActive) {
+                const req = item.req;
+                const charLevel = parseInt(char.level) || 0;
+                const getMod = v => Math.floor(((v||10) - 10) / 2);
+                const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
+                const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
+                if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
+                // "ATTR ou ATTR X+"
+                const orAttrPat = /\b(FOR|DES|CON|INT|SAB|PRE)\s+ou\s+(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
+                let om; const handledByOr = new Set();
+                while ((om = orAttrPat.exec(req)) !== null) {
+                    const a1 = om[1].toUpperCase(), a2 = om[2].toUpperCase(), min = parseInt(om[3]);
+                    handledByOr.add(a1); handledByOr.add(a2);
+                    if (attrMod(a1) < min && attrMod(a2) < min) return;
+                }
+                // single "ATTR X+"
+                const singlePat = /\b(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
+                let sm;
+                while ((sm = singlePat.exec(req)) !== null) {
+                    const attr = sm[1].toUpperCase(), min = parseInt(sm[2]);
+                    if (handledByOr.has(attr)) continue;
+                    const orCtx = new RegExp(`(${attr})\\s+ou\\s+\\w+\\s+${min}\\+|\\w+\\s+ou\\s+(${attr})\\s+${min}\\+`, 'i');
+                    if (orCtx.test(req)) continue;
+                    if (attrMod(attr) < min) return;
+                }
             }
         }
-        // Verifica P.N
+        // Verifica P.N — busca em efeitos gerais + todas as categorias
         let used = 0;
         hb.eg.forEach(eid => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===eid); if(e) used+=e.pn; });
-        const cls = state.currentChar.class;
-        hb.ec.forEach(eid => { const cat = window.HATSU_DB.categorias[cls]; if(cat){ const e=cat.efeitos.find(x=>x.id===eid); if(e) used+=e.pn; } });
-        if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb)) return;
+        hb.ec.forEach(eid => {
+            // Procura o efeito em todas as categorias
+            for (const cat of Object.values(window.HATSU_DB.categorias||{})) {
+                if (!cat || !cat.efeitos) continue;
+                const e = cat.efeitos.find(x=>x.id===eid);
+                if (e) { used += e.pn; break; }
+            }
+        });
+        const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb) - _pnSpentOth) return;
         arr.push(id);
     }
     renderHatsuInPlace();
@@ -2307,7 +2974,7 @@ function renderCard(item, color) {
     </div>`;
 }
         function renderCreator(container) {
-             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, CAR:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] }, fagogenese: null }; }
+             if (!state.tempChar) { state.tempChar = { name: '', class: 'INTENSIFICAÇÃO', race: 'Humano Comum', attributes: { FOR:10, DES:10, CON:10, INT:10, SAB:10, PRE:10 }, skills: [], otherSkills: [], raceTraits: [], traitDetails: {}, background: null, backgroundFeature: null, inclinations: { positive: [], negative: [] }, fagogenese: null }; }
             const step = state.creatorStep;
             let themeColorHex = '#00ff9d';
             if (state.tempChar && state.tempChar.class) { const clsTheme = SYSTEM_DB.classes.find(c => c.id === state.tempChar.class); if (clsTheme) { setThemeColor(clsTheme.color); themeColorHex = clsTheme.color; } }
@@ -2340,50 +3007,60 @@ function renderCard(item, color) {
 
                 const genialidadeHtml = genialidade != null ? (() => {
                     const tiers = {
-                        'Ótimo':     { cor:'#6b7280', desc:'Proficiência sólida — 85% dos Hunters', icon:'⚔️', raridade:'85%' },
-                        'Excelente': { cor:'#a78bfa', desc:'Talento acima da média — apenas 12%', icon:'💜', raridade:'12%' },
-                        'Gênio':     { cor:'#fbbf24', desc:'Raridade impressionante — apenas 2%!', icon:'✨', raridade:'2%' },
-                        'Ultimate':  { cor:'#ff4df7', desc:'Anormalmente superior — apenas 1% já existiu!', icon:'👑', raridade:'1%' }
+                        'Normal':    {
+                            cor:'#9ca3af', icon:'⚔️', raridade:'~78.5%',
+                            titulo:'Normal',
+                            beneficio:'Segue a evolução padrão do sistema.',
+                            flavor:'Cada Hunter começa de algum lugar. A consistência e o esforço moldam quem você se torna.'
+                        },
+                        'Talentoso': {
+                            cor:'#60a5fa', icon:'💠', raridade:'~18.5%',
+                            titulo:'Talentoso',
+                            beneficio:'+2 Graus de Potência para distribuir na criação do Primeiro Hatsu.',
+                            flavor:'Um lampejo acima da média. Poucos percebem no início — mas os Mestres notam.'
+                        },
+                        'Gênio':     {
+                            cor:'#fbbf24', icon:'✨', raridade:'~2.5%',
+                            titulo:'Gênio',
+                            beneficio:'Recebe XP 1,5× maior em qualquer situação.',
+                            flavor:'Raro. Impressionante. O tipo que faz Mestres pararem para observar uma segunda vez.'
+                        },
+                        'Ultimate':  {
+                            cor:'#ff4df7', icon:'👑', raridade:'~0.25%',
+                            titulo:'Ultimate',
+                            beneficio:'XP dobrado + +5 Graus de Potência para distribuir livremente ao longo da evolução.',
+                            flavor:'Anormalmente superior. Ocorre menos de uma vez a cada 400 despertar de NEN. Sua lenda começa agora.'
+                        }
                     };
-                    const gn = tiers[genialidade] || tiers['Ótimo'];
-                    const isGenius = genialidade === 'Gênio' || genialidade === 'Ultimate';
+                    const gn = tiers[genialidade] || tiers['Normal'];
+                    const dice = state.tempChar.genialidadeDice || [];
+                    const roll = state.tempChar.genialidadeRoll || 0;
+                    const isSpecial = genialidade !== 'Normal';
 
-                    // Benefícios de Gênio por categoria
-                    const geniusBenefits = {
-                        'Reforço':        { passivo: '+1 Grau nos ataques ou Dobra prof. em Atletismo ou TR de Constituição', nen: 'TEN — Desvantagem para detectar pessoas em Zetsu' },
-                        'Transmutação':   { passivo: 'Dobra prof. em Intuição, Enganação, Natureza ou Arcanismo', nen: 'ZETSU — Vantagem para detectar pessoas em Zetsu ou IN' },
-                        'Conjuração':     { passivo: 'Dobra prof. em Intuição, História ou Arcanismo', nen: 'Conjura como Ação Bônus por padrão' },
-                        'Emissão':        { passivo: 'Disparo de Aura no lugar de aplicar REN em uma arma', nen: 'SHU e EN — Desvantagem para detectar pessoas em Zetsu' },
-                        'Manipulação':    { passivo: 'Dobra prof. em Prestidigitação, Intuição, Enganação ou Persuasão', nen: 'SHU' },
-                        'Especialização': { passivo: 'Dobra prof. em três perícias à escolha', nen: '—' }
-                    };
-                    const charClass = state.tempChar.class || '';
-                    const classNames = { 'enhancement':'Reforço','transmutation':'Transmutação','conjuration':'Conjuração','emission':'Emissão','manipulation':'Manipulação','specialization':'Especialização' };
-                    const className = classNames[charClass] || charClass;
-                    const benefit = geniusBenefits[className];
-
-                    const geniusBenefitBlock = isGenius && benefit ? `
-                        <div style="margin-top:10px;background:#0d1117;border:1px solid ${gn.cor}55;border-radius:10px;padding:10px;text-align:left">
-                            <div style="font-size:8px;font-weight:900;color:${gn.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⚡ BENEFÍCIO DE GÊNIO — ${className.toUpperCase()}</div>
-                            <div style="font-size:9px;color:#d1d5db;margin-bottom:6px"><span style="color:#4b5563;font-weight:700">XP:</span> Ganha <span style="color:${gn.cor};font-weight:900">1,5×</span> mais experiência em qualquer situação</div>
-                            <div style="font-size:9px;color:#d1d5db;margin-bottom:4px"><span style="color:#4b5563;font-weight:700">Bônus Passivo:</span> ${benefit.passivo}</div>
-                            <div style="font-size:9px;color:#d1d5db"><span style="color:#4b5563;font-weight:700">Benefício de NEN:</span> ${benefit.nen}</div>
-                        </div>` : isGenius ? `
-                        <div style="margin-top:10px;background:#0d1117;border:1px solid ${gn.cor}55;border-radius:10px;padding:10px;text-align:left">
-                            <div style="font-size:8px;font-weight:900;color:${gn.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px">⚡ BENEFÍCIO DE GÊNIO</div>
-                            <div style="font-size:9px;color:#d1d5db">Ganha <span style="color:${gn.cor};font-weight:900">1,5×</span> mais XP em qualquer situação. Selecione sua categoria de NEN para ver os bônus adicionais.</div>
+                    const diceHtml = dice.length === 2 ? `
+                        <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0">
+                            <div style="width:36px;height:36px;border-radius:9px;background:#111827;border:2px solid ${gn.cor}88;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:15px;color:#fff">${dice[0]}</div>
+                            <span style="color:#9ca3af;font-size:14px;font-weight:700">+</span>
+                            <div style="width:36px;height:36px;border-radius:9px;background:#111827;border:2px solid ${gn.cor}88;display:flex;align-items:center;justify-content:center;font-family:'Orbitron',sans-serif;font-weight:900;font-size:15px;color:#fff">${dice[1]}</div>
+                            <span style="color:#9ca3af;font-size:14px;font-weight:700">=</span>
+                            <div style="padding:7px 16px;border-radius:9px;background:${gn.cor}33;border:2px solid ${gn.cor};font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:${gn.cor};text-shadow:0 0 12px ${gn.cor}">${roll}</div>
+                            <span style="font-size:10px;color:#9ca3af;font-weight:700">/ 40</span>
                         </div>` : '';
 
-                    const rollDisplay = state.tempChar.genialidadeRoll != null
-                        ? `<div style="font-size:9px;color:#4b5563;margin-top:4px">Rolagem: ${state.tempChar.genialidadeRoll}/100</div>` : '';
-
-                    return `<div style="background:#0a0f1a;border:2px solid ${gn.cor}44;border-radius:12px;padding:14px;text-align:center">
-                        <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">✨ Genialidade</div>
-                        <div style="font-size:26px;margin-bottom:4px">${gn.icon}</div>
-                        <div style="font-size:13px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gn.cor};text-shadow:0 0 10px ${gn.cor}66">${genialidade}</div>
-                        <div style="font-size:9px;color:#6b7280;margin-top:3px;font-style:italic">${gn.desc}</div>
-                        ${rollDisplay}
-                        ${geniusBenefitBlock}
+                    return `<div style="background:#0d1117;border:2px solid ${gn.cor}88;border-radius:16px;padding:16px;text-align:center;box-shadow:0 0 20px ${gn.cor}22">
+                        <div style="font-size:8px;font-weight:900;color:#9ca3af;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">🎯 Talento para Proficiência de NEN</div>
+                        <div style="font-size:28px;margin-bottom:4px">${gn.icon}</div>
+                        <div style="font-size:16px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gn.cor};text-shadow:0 0 14px ${gn.cor};letter-spacing:2px">${gn.titulo}</div>
+                        <div style="font-size:9px;color:#9ca3af;margin-top:3px;font-weight:600">${gn.raridade} dos Hunters</div>
+                        <div style="margin-top:12px;background:#060d1a;border:1px solid ${gn.cor}55;border-radius:10px;padding:12px;text-align:left">
+                            ${isSpecial ? `<div style="font-size:8px;font-weight:900;color:${gn.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⚡ BENEFÍCIO</div>` : ''}
+                            <div style="font-size:10px;color:#e5e7eb;margin-bottom:10px;line-height:1.6;font-weight:600">${gn.beneficio}</div>
+                            <div style="font-size:9px;color:#9ca3af;font-style:italic;line-height:1.6;padding-top:8px;border-top:1px solid #1f2937">"${gn.flavor}"</div>
+                        </div>
+                        <div style="margin-top:10px;font-size:8px;color:#6b7280;line-height:1.6;padding:0 4px">
+                            A proficiência inata representa o <em style="color:#9ca3af">fator de aprendizado natural</em>.<br>
+                            A proficiência <em style="color:#9ca3af">real</em> se manifesta com uso criativo e consistente.
+                        </div>
                     </div>`;
                 })() : '';
 
@@ -2391,19 +3068,12 @@ function renderCard(item, color) {
                     <div style="text-align:center;margin-top:10px">
                         <button onclick="window.rollAfinidadeGenialidade()" 
                             style="padding:12px 28px;border-radius:12px;background:var(--theme-color-hex,#00ff9d);color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;letter-spacing:2px;border:none;cursor:pointer;box-shadow:0 0 20px rgba(var(--theme-rgb,0,255,157),0.5);transition:all .2s">
-                            🎲 ROLAR AFINIDADE & GENIALIDADE
+                            🎲 ROLAR TALENTO DE NEN
                         </button>
-                        <p style="font-size:9px;color:#4b5563;margin-top:6px">Role seus atributos inatos de Nen antes de continuar</p>
+                        <p style="font-size:9px;color:#4b5563;margin-top:6px">Role seu talento inato de Nen antes de continuar</p>
                     </div>` : `
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                        ${afinidadeHtml}
+                    <div>
                         ${genialidadeHtml}
-                    </div>
-                    <div style="text-align:center;margin-top:-4px">
-                        <button onclick="state.tempChar.afinidade=null;state.tempChar.genialidade=null;render(true)" 
-                            style="font-size:8px;color:#4b5563;border:none;background:none;cursor:pointer;text-decoration:underline;text-transform:uppercase;letter-spacing:1px;font-weight:700">
-                            🔄 Rerolar
-                        </button>
                     </div>`;
 
                 contentHtml = `
@@ -2662,12 +3332,12 @@ function renderCard(item, color) {
             let tabContent = '';
             
             if (state.activeTab === 'FICHA') {
-                const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'CAR': 'CARISMA' };
-                const ATTR_ICONS_MAP = { 'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 'CON': ['heart', 'activity'], 'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'CAR': ['crown', 'message-circle'] };
+                const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'PRE': 'PRESENÇA', 'CAR': 'PRESENÇA' };
+                const ATTR_ICONS_MAP = { 'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 'CON': ['heart', 'activity'], 'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'PRE': ['crown', 'message-circle'], 'CAR': ['crown', 'message-circle'] };
                 const infoGridHtml = `<div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-b border-gray-800 mb-2"><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span><select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full"><option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option><option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option><option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option><option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option></select></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span><span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span><span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span><input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700"></div></div>`;
                 const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>`;
                 const rollModesHtml = `<div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mb-4">${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}</div>`;
-                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
+                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
                 tabContent = `${infoGridHtml}${vitalsGridHtml}${rollModesHtml}${attributesHtml}`;
             } else if (state.activeTab === 'BIO') {
                 const bioData = char.bio || {};
@@ -2746,49 +3416,57 @@ function renderCard(item, color) {
                                 : { label:'Excepcional', cor:'#00f0ff' };
 
                             const gnTiers = {
-                                'Ótimo':     { cor:'#6b7280', icon:'⚔️' },
-                                'Excelente': { cor:'#a78bfa', icon:'💜' },
-                                'Gênio':     { cor:'#fbbf24', icon:'✨' },
-                                'Ultimate':  { cor:'#ff4df7', icon:'👑' }
+                                'Normal':    { cor:'#6b7280', icon:'⚔️', beneficio: 'Evolução padrão do sistema.' },
+                                'Talentoso': { cor:'#60a5fa', icon:'💠', beneficio: '+2 Graus de Potência no Primeiro Hatsu.' },
+                                'Gênio':     { cor:'#fbbf24', icon:'✨', beneficio: 'XP 1,5× em qualquer situação.' },
+                                'Ultimate':  { cor:'#ff4df7', icon:'👑', beneficio: 'XP dobrado + +5 Graus de Potência livres.' },
+                                // retrocompatibilidade com nomes antigos
+                                'Ótimo':     { cor:'#6b7280', icon:'⚔️', beneficio: 'Evolução padrão do sistema.' },
+                                'Excelente': { cor:'#a78bfa', icon:'💜', beneficio: '+2 Graus de Potência no Primeiro Hatsu.' },
                             };
-                            const gnData = gnTiers[gn] || gnTiers['Ótimo'];
-                            const isGenius = gn === 'Gênio' || gn === 'Ultimate';
+                            const gnData = gnTiers[gn] || gnTiers['Normal'];
+                            const isSpecial = gn === 'Talentoso' || gn === 'Gênio' || gn === 'Ultimate' || gn === 'Excelente';
 
-                            const geniusBenefits = {
-                                'Reforço':        { passivo: '+1 Grau nos ataques ou Dobra prof. em Atletismo ou TR de CON', nen: 'TEN — Desvantagem para detectar pessoas em Zetsu' },
-                                'Transmutação':   { passivo: 'Dobra prof. em Intuição, Enganação, Natureza ou Arcanismo', nen: 'ZETSU — Vantagem para detectar pessoas em Zetsu ou IN' },
-                                'Conjuração':     { passivo: 'Dobra prof. em Intuição, História ou Arcanismo', nen: 'Conjura como Ação Bônus por padrão' },
-                                'Emissão':        { passivo: 'Disparo de Aura no lugar de aplicar REN em uma arma', nen: 'SHU e EN — Desvantagem para detectar pessoas em Zetsu' },
-                                'Manipulação':    { passivo: 'Dobra prof. em Prestidigitação, Intuição, Enganação ou Persuasão', nen: 'SHU' },
-                                'Especialização': { passivo: 'Dobra prof. em três perícias à escolha', nen: '—' }
-                            };
-                            const classNames = { 'enhancement':'Reforço','transmutation':'Transmutação','conjuration':'Conjuração','emission':'Emissão','manipulation':'Manipulação','specialization':'Especialização','INTENSIFICAÇÃO':'Reforço','TRANSMUTAÇÃO':'Transmutação','MATERIALIZAÇÃO':'Conjuração','EMISSÃO':'Emissão','MANIPULAÇÃO':'Manipulação','ESPECIALIZAÇÃO':'Especialização' };
-                            const className = classNames[char.class] || char.class;
-                            const benefit = geniusBenefits[className];
-
-                            const geniusBenefitBlock = isGenius && benefit ? `
-                                <div style="margin-top:10px;background:#0d1117;border:1px solid ${gnData.cor}55;border-radius:10px;padding:10px;text-align:left">
-                                    <div style="font-size:8px;font-weight:900;color:${gnData.cor};text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">⚡ BENEFÍCIO DE GÊNIO — ${className.toUpperCase()}</div>
-                                    <div style="font-size:9px;color:#d1d5db;margin-bottom:6px"><span style="color:#4b5563;font-weight:700">XP:</span> Ganha <span style="color:${gnData.cor};font-weight:900">1,5×</span> mais experiência em qualquer situação</div>
-                                    <div style="font-size:9px;color:#d1d5db;margin-bottom:4px"><span style="color:#4b5563;font-weight:700">Bônus Passivo:</span> ${benefit.passivo}</div>
-                                    <div style="font-size:9px;color:#d1d5db"><span style="color:#4b5563;font-weight:700">Benefício de NEN:</span> ${benefit.nen}</div>
-                                </div>` : isGenius ? `
-                                <div style="margin-top:10px;background:#0d1117;border:1px solid ${gnData.cor}55;border-radius:10px;padding:8px;text-align:center">
-                                    <div style="font-size:9px;color:#d1d5db">Ganha <span style="color:${gnData.cor};font-weight:900">1,5×</span> XP em qualquer situação.</div>
+                            const benefitBlock = isSpecial ? `
+                                <div style="margin-top:8px;background:#0d1117;border:1px solid ${gnData.cor}44;border-radius:8px;padding:8px;text-align:left">
+                                    <div style="font-size:8px;font-weight:900;color:${gnData.cor};text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⚡ BENEFÍCIO</div>
+                                    <div style="font-size:9px;color:#d1d5db">${gnData.beneficio}</div>
                                 </div>` : '';
 
-                            return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-bottom:16px;padding:0 4px">
-                                <div style="background:#0a0f1a;border:2px solid ${afNivel.cor}44;border-radius:12px;padding:12px;text-align:center">
-                                    <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">🎯 Afinidade</div>
-                                    <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${afNivel.cor};text-shadow:0 0 10px ${afNivel.cor}55;line-height:1.1">${af}<span style="font-size:10px;color:#4b5563">/100</span></div>
-                                    <div style="font-size:9px;font-weight:700;color:${afNivel.cor};margin-top:3px">${afNivel.label}</div>
+                            return `<div style="width:100%;margin-bottom:16px;padding:0 4px">
+                                <div style="background:#0a0f1a;border:2px solid ${gnData.cor}66;border-radius:12px;padding:14px;text-align:center">
+                                    <div style="font-size:7px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">🎯 Talento para Proficiência de NEN</div>
+                                    <div style="font-size:22px;margin-bottom:4px">${gnData.icon}</div>
+                                    <div style="font-size:14px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gnData.cor};text-shadow:0 0 10px ${gnData.cor}">${gn}</div>
+                                    ${benefitBlock}
                                 </div>
-                                <div style="background:#0a0f1a;border:2px solid ${gnData.cor}44;border-radius:12px;padding:12px;text-align:center">
-                                    <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">✨ Genialidade</div>
-                                    <div style="font-size:20px;margin-bottom:2px">${gnData.icon}</div>
-                                    <div style="font-size:11px;font-weight:900;font-family:'Orbitron',sans-serif;color:${gnData.cor};text-shadow:0 0 8px ${gnData.cor}66">${gn}</div>
-                                    ${roll != null ? `<div style="font-size:8px;color:#4b5563;margin-top:2px">${roll}/100</div>` : ''}
-                                    ${geniusBenefitBlock}
+                            </div>`;
+                        })()}
+
+                        ${(() => {
+                            const pnTotal = window.calcularPHBase ? window.calcularPHBase(char.level) : 6;
+                            const pnUsedAll = (char.hatsus||[]).reduce((sum, h) => sum + (h.pnUsados||0), 0);
+                            const pnFree = pnTotal - pnUsedAll;
+                            const pct = Math.min(100, Math.round((pnUsedAll / pnTotal) * 100));
+                            const barColor = pnFree <= 0 ? '#ef4444' : pnFree <= 2 ? '#fbbf24' : '#00ff9d';
+                            return `<div style="width:100%;padding:0 4px;margin-bottom:14px">
+                                <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:12px;padding:12px">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                                        <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px">⚡ Pool de P.N do Personagem</div>
+                                        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:${barColor}">${pnFree}<span style="font-size:9px;color:#374151"> / ${pnTotal}</span></div>
+                                    </div>
+                                    <div style="background:#1f2937;border-radius:99px;height:8px;overflow:hidden;margin-bottom:6px">
+                                        <div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px;box-shadow:0 0 8px ${barColor}88;transition:width .4s"></div>
+                                    </div>
+                                    <div style="display:flex;justify-content:space-between">
+                                        <span style="font-size:8px;color:#6b7280">${pnUsedAll} P.N usados em ${(char.hatsus||[]).length} Hatsu${(char.hatsus||[]).length!==1?'s':''}</span>
+                                        <span style="font-size:8px;color:${pnFree<=0?'#ef4444':'#4b5563'}">${pnFree<=0?'Pool esgotado':pnFree+' livre'+(pnFree!==1?'s':'')}</span>
+                                    </div>
+                                    ${(char.talentBonus&&char.talentBonus.grausLivres) ? `
+                                    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #1f2937;display:flex;justify-content:space-between;align-items:center">
+                                        <span style="font-size:8px;color:#60a5fa;font-weight:700">💠 Graus de Potência livres</span>
+                                        <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#60a5fa">+${char.talentBonus.grausLivres}</span>
+                                    </div>` : ''}
                                 </div>
                             </div>`;
                         })()}
@@ -2860,11 +3538,18 @@ function renderCard(item, color) {
                                 class="font-display font-black text-3xl text-white uppercase tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] leading-tight mb-2 break-words whitespace-normal outline-none border-b border-transparent focus:border-white/50 transition-colors"
                                 style="text-shadow: 0px 2px 4px rgba(0,0,0,0.9);">${char.name}</h1>
                             <div class="flex items-center gap-4 w-full">
-                                <div class="h-2.5 flex-1 bg-gray-800/80 backdrop-blur rounded-full overflow-hidden border border-gray-600/50"><div class="h-full bg-[${themeColor}] shadow-[0_0_15px_${themeColor}]" style="width: ${xpPct}%"></div></div>
+                                <div class="flex-1 flex flex-col gap-1">
+                                    <div class="h-2.5 bg-gray-800/80 backdrop-blur rounded-full overflow-hidden border border-gray-600/50" onclick="window.openXpModal()" style="cursor:pointer" title="Clique para adicionar XP"><div class="h-full bg-[${themeColor}] shadow-[0_0_15px_${themeColor}]" style="width: ${xpPct}%;transition:width .4s"></div></div>
+                                    <div class="flex justify-between px-0.5">
+                                        <span class="text-[8px] text-gray-500 font-mono">${char.xp || 0} XP</span>
+                                        <span class="text-[8px] font-bold cursor-pointer" style="color:${themeColor}" onclick="window.openXpModal()">+ XP</span>
+                                        <span class="text-[8px] text-gray-500 font-mono">${char.xp_next || 50} XP</span>
+                                    </div>
+                                </div>
                                 <div class="flex items-center gap-2 bg-black/60 backdrop-blur rounded-lg px-2 py-1 border border-white/10">
                                     <button onclick="changeLevel(-1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="minus" size="12"></i></button>
                                     <div class="flex flex-col items-center leading-none px-1"><span class="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Nível</span><span class="text-xl font-display font-bold text-white">${char.level}</span></div>
-                                    <button onclick="changeLevel(1)" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="plus" size="12"></i></button>
+                                    <button onclick="window.openXpModal()" class="w-6 h-6 bg-white/10 rounded flex items-center justify-center text-white hover:bg-white/20 transition-colors"><i data-lucide="plus" size="12"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -2916,17 +3601,19 @@ function renderCard(item, color) {
             if (!state.tempChar) return;
             // Afinidade: d100 (1-100)
             const afinidade = Math.floor(Math.random() * 100) + 1;
-            // Genialidade: 1d100 conforme regra oficial
-            // 1-85 → Ótimo (85%), 86-97 → Excelente (12%), 98-99 → Gênio (2%), 100 → Ultimate (1%)
-            const genRoll = Math.floor(Math.random() * 100) + 1;
+            // Talento para Proficiência de NEN: 2d20 (2-40)
+            const d1 = Math.floor(Math.random() * 20) + 1;
+            const d2 = Math.floor(Math.random() * 20) + 1;
+            const genRoll = d1 + d2;
             let genialidade;
-            if (genRoll === 100) genialidade = 'Ultimate';
-            else if (genRoll >= 98) genialidade = 'Gênio';
-            else if (genRoll >= 86) genialidade = 'Excelente';
-            else genialidade = 'Ótimo';
+            if (genRoll === 40)       genialidade = 'Ultimate';  // 0.25%
+            else if (genRoll >= 37)   genialidade = 'Gênio';     // ~2.5%
+            else if (genRoll >= 30)   genialidade = 'Talentoso'; // ~18.5%
+            else                      genialidade = 'Normal';    // ~78.5%
             state.tempChar.afinidade = afinidade;
             state.tempChar.genialidade = genialidade;
             state.tempChar.genialidadeRoll = genRoll;
+            state.tempChar.genialidadeDice = [d1, d2];
             render(true);
         };
         function selectNenType(cls) { state.tempChar.class = cls; const clsData = SYSTEM_DB.classes.find(c => c.id === cls); if(clsData) setThemeColor(clsData.color); render(true); }
@@ -2966,7 +3653,218 @@ function renderCard(item, color) {
         function setSkillLevel(skillName, level) { const char = state.currentChar; if (!char.expertise) char.expertise = []; if (level === 'remove') { char.skills = char.skills.filter(s => s !== skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'trained') { if (!char.skills.includes(skillName)) char.skills.push(skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'expert') { if (!char.skills.includes(skillName)) char.skills.push(skillName); if (!char.expertise.includes(skillName)) char.expertise.push(skillName); } saveCharacter(char); closeSkillModal(); }
         function updateVital(type, delta) { const v = state.currentChar.vitals; if (type === 'pv') v.hp += delta; if (type === 'aura') v.aura += delta; if (type === 'san') v.san += delta; if (type === 'rea') { if (v.rea === undefined) v.rea = 7 + getMod(state.currentChar.attributes.SAB.value); v.rea += delta; } saveCharacter(state.currentChar); render(true); }
         function updateCharProperty(prop, val) { state.currentChar[prop] = val; saveCharacter(state.currentChar); render(true); }
-        function changeLevel(delta) { const char = state.currentChar; const newLevel = char.level + delta; if (newLevel < 0) return; if (delta > 0) { const hasGiantBody = char.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); const bonus = hasGiantBody ? 3 : 0; const conMod = getMod(char.attributes.CON.value); const rollInput = prompt(`SUBIR DE NÍVEL (${newLevel})\n\nInsira o valor da rolagem de vida (Dado de Vida da Classe):`, "5"); if (rollInput === null) return; const roll = parseInt(rollInput) || 0; const totalGain = roll + conMod + bonus; char.vitals.hpMax += totalGain; char.vitals.hp += totalGain; alert(`Nível ${newLevel} alcançado!\n\nVida aumentada em ${totalGain}:\n• Rolagem: ${roll}\n• CON: ${conMod}\n• Corpo de Gigante: +${bonus}`); } else { if(!confirm("Reduzir nível não desfaz automaticamente os ganhos de vida. Continuar?")) return; } char.level = newLevel; saveCharacter(char); render(true); }
+        // ── Dado de vida por categoria ─────────────────────────────────────────
+        const HIT_DICE = {
+            'INTENSIFICAÇÃO': { dado: 'd12', faces: 12, media: 7 },
+            'REFORÇO':         { dado: 'd12', faces: 12, media: 7 },
+            'TRANSMUTAÇÃO':    { dado: 'd10', faces: 10, media: 6 },
+            'EMISSÃO':         { dado: 'd10', faces: 10, media: 6 },
+            'MATERIALIZAÇÃO':  { dado: 'd8',  faces: 8,  media: 5 },
+            'CONJURAÇÃO':      { dado: 'd8',  faces: 8,  media: 5 },
+            'MANIPULAÇÃO':     { dado: 'd8',  faces: 8,  media: 5 },
+            'ESPECIALIZAÇÃO':  { dado: 'd6',  faces: 6,  media: 4 },
+        };
+
+        // ── Abre modal de ganho de XP ──────────────────────────────────────────
+        window.openXpModal = function() {
+            const char = state.currentChar;
+            const overlay = document.createElement('div');
+            overlay.id = 'xp-modal-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;font-family:Rajdhani,sans-serif';
+            const tc = getComputedStyle(document.documentElement).getPropertyValue('--theme-color-hex').trim() || '#00ff9d';
+            const nextXp = char.xp_next || 50;
+            const curXp  = char.xp || 0;
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${tc};border-radius:16px;padding:24px;width:100%;max-width:360px;box-shadow:0 0 40px ${tc}33">
+                    <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:13px;color:${tc};text-transform:uppercase;letter-spacing:2px;margin-bottom:4px">✨ Adicionar XP</div>
+                    <div style="font-size:10px;color:#6b7280;margin-bottom:16px">XP atual: <b style="color:#d1d5db">${curXp}</b> / <b style="color:${tc}">${nextXp}</b> para o próximo nível</div>
+                    <!-- barra atual -->
+                    <div style="background:#1f2937;border-radius:99px;height:8px;overflow:hidden;margin-bottom:16px">
+                        <div style="height:100%;width:${Math.min(100,(curXp/nextXp)*100)}%;background:${tc};box-shadow:0 0 10px ${tc};border-radius:99px;transition:width .4s"></div>
+                    </div>
+                    <label style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;display:block;margin-bottom:6px">Quantidade de XP ganho</label>
+                    <input id="xp-gain-input" type="number" min="1" placeholder="Ex: 150" autofocus
+                        style="width:100%;box-sizing:border-box;background:#0a0a0f;border:2px solid #374151;border-radius:8px;padding:12px;color:#fff;font-size:18px;font-family:Orbitron,sans-serif;font-weight:900;text-align:center;outline:none;margin-bottom:16px"
+                        oninput="this.style.borderColor='${tc}'"
+                        onkeydown="if(event.key==='Enter')window.confirmXpGain();if(event.key==='Escape')document.getElementById('xp-modal-overlay').remove();">
+                    <div style="display:flex;gap:10px">
+                        <button onclick="document.getElementById('xp-modal-overlay').remove()"
+                            style="flex:1;padding:12px;border-radius:10px;background:#1f2937;border:1px solid #374151;color:#9ca3af;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer">
+                            Cancelar
+                        </button>
+                        <button onclick="window.confirmXpGain()"
+                            style="flex:2;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;border:none;box-shadow:0 0 16px ${tc}55">
+                            ✨ Confirmar XP
+                        </button>
+                    </div>
+                </div>`;
+            document.body.appendChild(overlay);
+            setTimeout(() => { const inp = document.getElementById('xp-gain-input'); if(inp) inp.focus(); }, 50);
+        };
+
+        window.confirmXpGain = function() {
+            const inp = document.getElementById('xp-gain-input');
+            const gained = parseInt(inp ? inp.value : 0) || 0;
+            if (gained <= 0) { if(inp) inp.style.borderColor='#ef4444'; return; }
+            document.getElementById('xp-modal-overlay')?.remove();
+            const char = state.currentChar;
+
+            // Talento para Proficiência de NEN: multiplicadores de XP
+            const genTier = char.genialidade;
+            const xpMultiplier = genTier === 'Ultimate' ? 2 : (genTier === 'Gênio' ? 1.5 : 1);
+            const finalGained = xpMultiplier > 1 ? Math.floor(gained * xpMultiplier) : gained;
+
+            let xp = (char.xp || 0) + finalGained;
+            const xpTable = SYSTEM_DB.xpTable; // [50,150,350,500,800,1000,1500,2500,3200,4000,5000,6500]
+
+            // Verifica se passou de nível (pode passar mais de um)
+            let newLevel = char.level;
+            let nextXp = char.xp_next || xpTable[0];
+
+            while (xp >= nextXp && newLevel < 12) {
+                xp -= nextXp;
+                newLevel++;
+                nextXp = xpTable[Math.min(newLevel, xpTable.length - 1)] || 9999;
+            }
+
+            char.xp = xp;
+            char.xp_next = nextXp;
+
+            if (newLevel > char.level) {
+                const levelsGained = newLevel - char.level;
+                char.level = newLevel;
+                saveCharacter(char);
+                render(true);
+                window.openLevelUpModal(levelsGained, xpMultiplier > 1, finalGained);
+            } else {
+                saveCharacter(char);
+                render(true);
+                if (xpMultiplier > 1) window._showXpToast(`+${finalGained} XP ${xpMultiplier === 2 ? '👑 (×2 Ultimate)' : '✨ (×1.5 Gênio)'}`);
+                else window._showXpToast(`+${finalGained} XP`);
+            }
+        };
+
+        window._showXpToast = function(msg) {
+            const t = document.createElement('div');
+            t.style.cssText = 'position:fixed;bottom:100px;left:50%;transform:translateX(-50%);background:#0d1117;border:1px solid #374151;color:#d1d5db;padding:10px 20px;border-radius:99px;font-family:Orbitron,sans-serif;font-size:10px;font-weight:900;z-index:9999;pointer-events:none;opacity:1;transition:opacity .5s';
+            t.textContent = msg;
+            document.body.appendChild(t);
+            setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 500); }, 2000);
+        };
+
+        // ── Modal de Level Up com dado de vida ────────────────────────────────
+        window.openLevelUpModal = function(levelsGained = 1, isGenius = false, xpGained = 0) {
+            const char = state.currentChar;
+            const newLevel = char.level;
+            const hitDiceData = HIT_DICE[char.class] || { dado: 'd8', faces: 8, media: 5 };
+            const conMod = getMod(char.attributes?.CON?.value || 10);
+            const hasGiantBody = (char.inclinations?.positive || []).some(i => i.nome === 'Corpo de Gigante');
+            const giantBonus = hasGiantBody ? 3 : 0;
+            const mediaTotal = hitDiceData.media + conMod + giantBonus;
+            const tc = getComputedStyle(document.documentElement).getPropertyValue('--theme-color-hex').trim() || '#00ff9d';
+
+            const overlay = document.createElement('div');
+            overlay.id = 'levelup-modal-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000ee;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;font-family:Rajdhani,sans-serif';
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${tc};border-radius:20px;padding:24px;width:100%;max-width:370px;box-shadow:0 0 60px ${tc}44;text-align:center">
+                    <!-- Cabeçalho -->
+                    <div style="font-size:28px;margin-bottom:4px">🏆</div>
+                    <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:16px;color:${tc};text-transform:uppercase;letter-spacing:3px;text-shadow:0 0 12px ${tc}88">Nível ${newLevel}!</div>
+                    <div style="font-size:10px;color:#6b7280;margin-top:4px;margin-bottom:16px">${levelsGained > 1 ? `+${levelsGained} níveis ganhos de uma vez!` : 'Você subiu de nível!'}</div>
+                    ${isGenius ? `<div style="font-size:9px;color:#fbbf24;background:#fbbf2411;border:1px solid #fbbf2433;border-radius:8px;padding:6px 12px;margin-bottom:14px">✨ Gênio: +${xpGained} XP (1.5×)</div>` : ''}
+                    <!-- Dado de vida -->
+                    <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:14px;padding:16px;margin-bottom:16px">
+                        <div style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">🎲 Dado de Vida — ${hitDiceData.dado} (${char.class})</div>
+                        <div id="lv-dice-result" style="font-family:Orbitron,sans-serif;font-size:40px;font-weight:900;color:#fff;margin-bottom:4px;min-height:52px;line-height:1">—</div>
+                        <div id="lv-dice-breakdown" style="font-size:9px;color:#6b7280;min-height:16px"></div>
+                        <div style="display:flex;gap:8px;margin-top:12px">
+                            <button id="lv-roll-btn" onclick="window._lvRoll()"
+                                style="flex:1;padding:11px;border-radius:10px;background:#7c3aed;border:none;color:#fff;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;transition:all .2s">
+                                🎲 Rolar ${hitDiceData.dado}
+                            </button>
+                            <button id="lv-media-btn" onclick="window._lvPickMedia()"
+                                style="flex:1;padding:11px;border-radius:10px;background:#1f2937;border:1px solid #374151;color:#d1d5db;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;transition:all .2s">
+                                📊 Média (${mediaTotal})
+                            </button>
+                        </div>
+                    </div>
+                    <!-- Botão confirmar (desabilitado até rolar/escolher) -->
+                    <button id="lv-confirm-btn" disabled onclick="window._lvConfirm()"
+                        style="width:100%;padding:13px;border-radius:10px;background:#374151;border:none;color:#6b7280;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:not-allowed;letter-spacing:1px;transition:all .2s">
+                        Confirmar Nível ${newLevel}
+                    </button>
+                </div>`;
+            document.body.appendChild(overlay);
+
+            // State interno do modal
+            overlay._hitGain = null;
+            overlay._faces = hitDiceData.faces;
+            overlay._rolled = null;
+
+            window._lvRoll = function() {
+                const roll = Math.floor(Math.random() * overlay._faces) + 1;
+                overlay._rolled = roll;
+                const total = roll + conMod + giantBonus;
+                overlay._hitGain = total;
+                document.getElementById('lv-dice-result').textContent = total;
+                document.getElementById('lv-dice-result').style.color = tc;
+                document.getElementById('lv-dice-result').style.textShadow = `0 0 20px ${tc}`;
+                let breakdown = `[${roll}] + ${conMod >= 0?'+':''}${conMod} CON`;
+                if (giantBonus) breakdown += ` + ${giantBonus} Gigante`;
+                document.getElementById('lv-dice-breakdown').textContent = breakdown;
+                window._lvEnableConfirm();
+            };
+            window._lvPickMedia = function() {
+                overlay._hitGain = mediaTotal;
+                document.getElementById('lv-dice-result').textContent = mediaTotal;
+                document.getElementById('lv-dice-result').style.color = '#60a5fa';
+                document.getElementById('lv-dice-result').style.textShadow = '0 0 10px #60a5fa88';
+                let breakdown = `${hitDiceData.media} (média) + ${conMod >= 0?'+':''}${conMod} CON`;
+                if (giantBonus) breakdown += ` + ${giantBonus} Gigante`;
+                document.getElementById('lv-dice-breakdown').textContent = breakdown;
+                window._lvEnableConfirm();
+            };
+            window._lvEnableConfirm = function() {
+                const btn = document.getElementById('lv-confirm-btn');
+                btn.disabled = false;
+                btn.style.background = tc;
+                btn.style.color = '#000';
+                btn.style.cursor = 'pointer';
+                btn.style.boxShadow = `0 0 20px ${tc}55`;
+                // Desabilita os botões de rolar/média
+                const rollBtn = document.getElementById('lv-roll-btn');
+                const mediaBtn = document.getElementById('lv-media-btn');
+                if (rollBtn)  { rollBtn.disabled  = true; rollBtn.style.opacity  = '0.35'; rollBtn.style.cursor  = 'not-allowed'; }
+                if (mediaBtn) { mediaBtn.disabled = true; mediaBtn.style.opacity = '0.35'; mediaBtn.style.cursor = 'not-allowed'; }
+            };
+            window._lvConfirm = function() {
+                const gain = overlay._hitGain || mediaTotal;
+                char.vitals.hpMax = (char.vitals.hpMax || 0) + gain;
+                char.vitals.hp   = (char.vitals.hp   || 0) + gain;
+                saveCharacter(char);
+                document.getElementById('levelup-modal-overlay')?.remove();
+                render(true);
+                window._showXpToast(`Nível ${newLevel}! +${gain} PV`);
+            };
+        };
+
+        function changeLevel(delta) {
+            const char = state.currentChar;
+            const newLevel = char.level + delta;
+            if (newLevel < 0) return;
+            if (delta > 0) {
+                // Novo comportamento: abre modal de XP primeiro
+                window.openXpModal();
+            } else {
+                if (!confirm('Reduzir nível não desfaz automaticamente os ganhos de vida. Continuar?')) return;
+                char.level = newLevel;
+                // Ajusta xp_next para o nível anterior
+                char.xp_next = SYSTEM_DB.xpTable[Math.min(newLevel, SYSTEM_DB.xpTable.length - 1)] || 50;
+                saveCharacter(char);
+                render(true);
+            }
+        }
         function toggleSheetAccordion() { state.sheetOtherSkillsOpen = !state.sheetOtherSkillsOpen; render(true); }
         function handleArmorClick() { alert('Funcionalidade de Armadura em desenvolvimento.'); }
         function uploadCharacterImage(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { state.currentChar.imageUrl = e.target.result; saveCharacter(state.currentChar); render(true); }; reader.readAsDataURL(input.files[0]); } }
@@ -3089,14 +3987,28 @@ function renderHatsuDetail(container) {
         }
     });
 
+    // Bônus de Talento aplicado a este hatsu
+    if (h.bonusGraus && h.bonusGraus.tipo === 'dano') {
+        totalGraus += h.bonusGraus.valor;
+        grauSources.push({ nome: '💠 Bônus Talentoso', graus: h.bonusGraus.valor });
+    }
+
     // Atributo base pelo tipo/categoria
+    // MANIPULAÇÃO: INT para C.S.O (objetos), PRE para C.S.C (criaturas/pessoas)
     const attrMap = {
         'INTENSIFICAÇÃO':'FOR','REFORÇO':'FOR',
         'TRANSMUTAÇÃO':'DES','EMISSÃO':'INT',
-        'MATERIALIZAÇÃO':'INT','MANIPULAÇÃO':'CAR',
-        'ESPECIALIZAÇÃO':'CAR',
+        'MATERIALIZAÇÃO':'INT',
+        'ESPECIALIZAÇÃO':'PRE',
     };
-    const baseAttr = attrMap[h.classe||char.class] || 'FOR';
+    let baseAttr = attrMap[h.classe||char.class] || 'FOR';
+    if ((h.classe||char.class) === 'MANIPULAÇÃO') {
+        const hasCSO = (h.efeitos||[]).includes('ma_e1'); // Controle Simples de Objetos
+        const hasCSC = (h.efeitos||[]).includes('ma_e2'); // Controle Simples de Criaturas
+        // If both: default to PRE (creature manipulation is dominant)
+        // If only CSO with no CSC: INT
+        baseAttr = (hasCSO && !hasCSC) ? 'INT' : 'PRE';
+    }
 
     let calcDanoHtml = '';
     if (hasBaseDmg) {
@@ -3204,6 +4116,12 @@ function renderHatsuDetail(container) {
               ).join('')}</div>` : '';
 
         const formulaStr = `8 + ${halfLevel} (nível) + ${attrMod >= 0 ? '+' : ''}${attrMod} (${baseAttr})${cdBonusTotal > 0 ? ` + ${cdBonusTotal} (restrições)` : ''}`;
+        const manipContextNote = (h.classe||char.class) === 'MANIPULAÇÃO'
+            ? `<div style="font-size:8px;color:#6b7280;margin-top:4px">
+                ${(h.efeitos||[]).includes('ma_e1') && !(h.efeitos||[]).includes('ma_e2')
+                    ? '🔧 Modo Objetos (C.S.O) → usa <b style="color:#60a5fa">INT</b>'
+                    : '🧠 Modo Pessoas/Criaturas (C.S.C) → usa <b style="color:#f43f5e">PRE</b>'}
+               </div>` : '';
 
         calcCDHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
@@ -3215,10 +4133,92 @@ function renderHatsuDetail(container) {
                 <div style="font-size:11px;font-weight:700;color:#6b7280">TR de ${baseAttr}</div>
             </div>
             <div style="font-size:8px;color:#4b5563;font-style:italic;margin-bottom:4px">${formulaStr}</div>
+            ${manipContextNote}
             ${cdSourcesHtml}
         </div>`;
     }
     // ── Fim cálculo de CD ─────────────────────────────────────────────────────
+
+    // ── Cálculo de Alcance e Duração ──────────────────────────────────────────
+    const allSelIds = [...(h.restricoes||[]), ...(h.efeitos||[])];
+    let alcanceBonus = [];  // array of {valor, fonte} in meters
+    let duracaoBonus = [];  // array of {valor, fonte, unidade}
+    let alcanceDobrado = false;
+    let duracaoDobrada = false;
+
+    // Efeitos Gerais
+    const eg1Count = (h.efeitos||[]).filter(id => id === 'eg1').length;
+    if (eg1Count > 0) alcanceBonus.push({ valor: eg1Count * 1.5, fonte: `Aumento de Alcance ×${eg1Count}` });
+    const eg2Count = (h.efeitos||[]).filter(id => id === 'eg2').length;
+    if (eg2Count > 0) duracaoBonus.push({ valor: eg2Count, fonte: `Aumento de Duração ×${eg2Count}`, unidade: 'rodada' });
+    if ((h.efeitos||[]).includes('eg18')) duracaoBonus.push({ valor: null, fonte: 'Experiência Comprovada', unidade: 'escala' });
+
+    // Efeitos de categoria
+    if ((h.efeitos||[]).includes('em_e2'))  alcanceBonus.push({ valor: 6, fonte: 'Distância Segura' });
+    if ((h.efeitos||[]).includes('em_e14')) alcanceBonus.push({ valor: 6, fonte: 'Expansão de Domínio' });
+
+    // Restrições — Alcance
+    const rg_l9Count = (h.restricoes||[]).filter(id => id === 'rg_l9').length;
+    if (rg_l9Count > 0) alcanceBonus.push({ valor: rg_l9Count * 1.5, fonte: `Exaustão 1 ×${rg_l9Count} (se alcance)` });
+    if ((h.restricoes||[]).includes('rg_l10')) alcanceBonus.push({ valor: 3, fonte: 'Interação Sensorial Simples' });
+    if ((h.restricoes||[]).includes('rg_m12')) {
+        // Dobra ALCANCE ou DURAÇÃO — lê beneficioChoices para saber qual
+        const m12choice = (h.beneficioChoices||{})['rg_m12'] || '';
+        if (m12choice.toLowerCase().includes('dura')) duracaoDobrada = true;
+        else alcanceDobrado = true; // default: alcance
+    }
+    if ((h.restricoes||[]).includes('rt_l2')) alcanceBonus.push({ valor: 3, fonte: 'Sem Movimento no Turno' });
+    if ((h.restricoes||[]).includes('em_l1')) alcanceBonus.push({ valor: 6, fonte: 'Linha Reta Apenas' });
+
+    // Restrições — Duração
+    if ((h.restricoes||[]).includes('rg_p2')) duracaoBonus.push({ valor: 3, fonte: 'Boneca Russa', unidade: 'rodada' });
+    const rg_v2Count = (h.restricoes||[]).filter(id => id === 'rg_v2').length;
+    if (rg_v2Count > 0) duracaoBonus.push({ valor: null, fonte: 'Canalizar com Concentração (+X rodadas)', unidade: 'variável' });
+    if ((h.restricoes||[]).includes('rg_v3')) duracaoBonus.push({ valor: null, fonte: 'Confirmação de Duas Etapas (Leve+1r/Mod+2r/Pes+3r/Ext+4r)', unidade: 'variável' });
+    if ((h.restricoes||[]).includes('rm_l3')) duracaoBonus.push({ valor: 2, fonte: '1 Item por Combate', unidade: 'rodada' });
+    // rg_m13: Zetsu Protetivo — só conta se beneficioChoice for "Rodadas"
+    if ((h.restricoes||[]).includes('rg_m13')) {
+        const m13choice = (h.beneficioChoices||{})['rg_m13'] || '';
+        if (m13choice.toLowerCase().includes('rodada') || m13choice.toLowerCase().includes('dura')) {
+            duracaoBonus.push({ valor: 2, fonte: 'Zetsu Protetivo (Rodadas)', unidade: 'rodada' });
+        }
+    }
+
+    const totalAlcanceM = alcanceBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
+    const totalDuracaoR = duracaoBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
+
+    const hasRangeOrDuration = alcanceBonus.length > 0 || duracaoBonus.length > 0 || alcanceDobrado || duracaoDobrada;
+    let calcRangeDurHtml = '';
+    if (hasRangeOrDuration) {
+        const alcanceHtml = alcanceBonus.length > 0 || alcanceDobrado ? `
+            <div style="margin-bottom:10px">
+                <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">📏 Alcance</div>
+                <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                    ${alcanceDobrado ? `<span style="font-size:12px;font-weight:900;color:#60a5fa">Alcance Base ×2</span>` : ''}
+                    ${totalAlcanceM > 0 ? `<span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:#60a5fa;text-shadow:0 0 10px #60a5fa66">+${totalAlcanceM}m</span>` : ''}
+                </div>
+                ${alcanceBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: ${typeof b.valor === 'number' ? '+'+b.valor+'m' : b.valor}</div>`).join('')}
+                ${alcanceDobrado ? `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• Tempo Marcado: dobra alcance base</div>` : ''}
+            </div>` : '';
+
+        const duracaoHtml = duracaoBonus.length > 0 || duracaoDobrada ? `
+            <div>
+                <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">⏱ Duração</div>
+                <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                    ${duracaoDobrada ? `<span style="font-size:12px;font-weight:900;color:#a78bfa">Duração Base ×2</span>` : ''}
+                    ${totalDuracaoR > 0 ? `<span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:#a78bfa;text-shadow:0 0 10px #a78bfa66">+${totalDuracaoR} rod.</span>` : ''}
+                </div>
+                ${duracaoBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: ${b.valor !== null ? (typeof b.valor === 'number' ? '+'+b.valor+' rodada'+(b.valor!==1?'s':'') : b.valor) : '(ver descrição)'}</div>`).join('')}
+                ${duracaoDobrada ? `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• Tempo Marcado: dobra duração base</div>` : ''}
+            </div>` : '';
+
+        calcRangeDurHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
+            <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:10px">📐 Alcance & Duração Adicionais</div>
+            ${alcanceHtml}
+            ${duracaoHtml}
+        </div>`;
+    }
+    // ── Fim cálculo Alcance & Duração ─────────────────────────────────────────
 
     const palBadge = {
         leves:    {bg:'#22c55e22',tc:'#4ade80',label:'LEVE'},
@@ -3232,13 +4232,22 @@ function renderHatsuDetail(container) {
     const rHtml = restricoesSel.length
         ? restricoesSel.map(r => {
             const p = palBadge[r.grupo] || palBadge.categoria;
-            return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:1px solid #1f2937;margin-bottom:8px">
+            const sc = h.specialChoices || {};
+            const isPure = h.pureRestrictions && h.pureRestrictions[r.id];
+            const PURE_PN = { leve:1, moderada:2, pesada:3, extrema:4 };
+            const purePn = PURE_PN[r.peso] || 0;
+            let specialDetail = '';
+            if (r.id === 'rg_p8' && sc.rg_p8) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:#4ade80;padding:4px 8px;background:#4ade8018;border-radius:6px">📍 ${sc.rg_p8}</div>`;
+            return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:1px solid ${isPure?'#fbbf2444':'#1f2937'};margin-bottom:8px">
                 <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${p.bg};color:${p.tc};text-transform:uppercase;flex-shrink:0;margin-top:2px;letter-spacing:1px">${p.label}</span>
-                <div>
+                <div style="flex:1">
                     <div style="font-size:11px;font-weight:700;color:#e5e7eb;margin-bottom:3px">${r.nome}</div>
                     <div style="font-size:9px;color:#6b7280;line-height:1.5;margin-bottom:4px">${r.desc}</div>
-                    <div style="font-size:9px;font-weight:700;color:${p.tc}">⚡ ${r.bnf}</div>
+                    ${isPure
+                        ? `<div style="font-size:9px;font-weight:700;color:#fbbf24">⚡ Pura — +${purePn} P.N</div>`
+                        : `<div style="font-size:9px;font-weight:700;color:${p.tc}">⚡ ${r.bnf}</div>`}
                     ${(h.beneficioChoices && h.beneficioChoices[r.id]) ? `<div style="font-size:8px;margin-top:4px;padding:4px 8px;background:#4ade8018;border-radius:6px;color:#4ade80;font-weight:700">✓ Escolhido: ${h.beneficioChoices[r.id]}</div>` : ''}
+                    ${specialDetail}
                 </div>
             </div>`;
           }).join('')
@@ -3249,14 +4258,20 @@ function renderHatsuDetail(container) {
             const isGeral = e.origem === 'geral';
             const ec = isGeral ? '#9ca3af' : tc;
             const costColor = (e.pn||1) >= 3 ? '#f87171' : (e.pn||1) >= 2 ? '#fbbf24' : '#6b7280';
+            const sc = h.specialChoices || {};
+            let specialDetail = '';
+            if (e.id === 'eg3' && sc.eg3) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🩸 Condição: ${sc.eg3}</div>`;
+            if (e.id === 'eg4' && sc.eg4) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🔀 Modo: ${sc.eg4}</div>`;
+            if (e.id === 'eg6' && sc.eg6) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🎯 Efeito: Poder é Intenção — ${sc.eg6}</div>`;
             return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:2px solid ${ec}22;margin-bottom:8px">
                 <div style="flex-shrink:0;margin-top:2px">
                     <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${costColor}22;color:${costColor};letter-spacing:1px">${e.pn||1} P.N</span>
                 </div>
-                <div>
+                <div style="flex:1">
                     <div style="font-size:11px;font-weight:700;color:${ec};margin-bottom:3px">${e.nome}</div>
                     <div style="font-size:9px;color:#6b7280;line-height:1.5;margin-bottom:4px">${e.desc}</div>
                     <div style="font-size:8px;color:#374151;font-style:italic">Req: ${e.req||'—'}</div>
+                    ${specialDetail}
                 </div>
             </div>`;
           }).join('')
@@ -3340,6 +4355,7 @@ function renderHatsuDetail(container) {
                 </div>
                 ${calcDanoHtml}
                 ${calcCDHtml}
+                ${calcRangeDurHtml}
             </div>
 
             <!-- Restrições -->
@@ -3401,7 +4417,11 @@ function openHatsuEdit(idx) {
         rc: (h.restricoes||[]).filter(id => !id.startsWith('rg_')),
         eg: (h.efeitos||[]).filter(id => id.startsWith('eg')),
         ec: (h.efeitos||[]).filter(id => !id.startsWith('eg')),
-        editingIdx: idx  // marca que é edição, não criação
+        beneficioChoices: {...(h.beneficioChoices||{})},
+        pureRestrictions: {...(h.pureRestrictions||{})},
+        restrTab: 'gerais',
+        specialChoices: {...(h.specialChoices||{})},
+        editingIdx: idx
     };
     state.view = 'HATSU_CREATOR';
     render();
@@ -3471,6 +4491,218 @@ function closeHatsuCreator() {
             document.body.appendChild(overlay);
             // Foca o input
             setTimeout(() => { const inp = document.getElementById('delete-confirm-input'); if(inp) inp.focus(); }, 50);
+        };
+
+        // ── Popup da Regra de Especialização para Manipulação/Materialização ──
+        window._showEspRule = function() {
+            const hb = state.hatsuBuilder;
+            const espCheck = hb ? window.checkEspecializacaoAccess(hb) : { ok:false, specEfeitos:0, totalRestr:0, needed:3, counts:{leve:0,moderada:0,pesada:0,extrema:0}, pyramidOk:true };
+            const { specEfeitos, totalRestr, needed, counts, pyramidOk, pyramidMsg } = espCheck;
+            const espColor = '#a78bfa';
+
+            const overlay = document.createElement('div');
+            overlay.id = 'esp-rule-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:Rajdhani,sans-serif';
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${espColor};border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 0 40px ${espColor}33;max-height:90vh;overflow-y:auto">
+                    <div style="text-align:center;margin-bottom:16px">
+                        <div style="font-size:20px;margin-bottom:4px">🌀</div>
+                        <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:13px;color:${espColor};text-transform:uppercase;letter-spacing:2px">Especialização — 1%</div>
+                        <div style="font-size:10px;color:#6b7280;margin-top:4px">Regra especial para Manipuladores e Materializadores</div>
+                    </div>
+
+                    <!-- Regra -->
+                    <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:12px;padding:14px;margin-bottom:16px;font-size:10px;color:#d1d5db;line-height:1.7">
+                        <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">📋 REGRA</div>
+                        <p style="margin:0 0 8px">A quantidade de <b style="color:${espColor}">restrições totais</b> deve ser igual ou maior que <b style="color:${espColor}">3 + número de efeitos de Especialização</b> comprados.</p>
+                        <p style="margin:0 0 8px">A distribuição inicia com <b>uma de cada peso</b> e uma de peso menor — <b style="color:#f87171">nunca pode ter maior quantidade</b> de um peso do que os de peso superior.</p>
+                        <p style="margin:0">Com 1% de afinidade, <b style="color:#fbbf24">apenas efeitos até Nível 3</b> podem ser escolhidos.</p>
+                    </div>
+
+                    <!-- Tabela de exemplo -->
+                    <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:16px">
+                        <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px">📊 EXEMPLOS DE DISTRIBUIÇÃO</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;font-size:9px;text-align:center">
+                            <div style="font-weight:700;color:#9ca3af;padding:4px">Restrições</div>
+                            <div style="font-weight:700;color:#9ca3af;padding:4px">Distribuição</div>
+                            <div style="font-weight:700;color:${espColor};padding:4px">Efeitos Esp.</div>
+                            ${[
+                                ['4','1L + 1M + 2P','1'],
+                                ['5','1L + 2M + 2P','2'],
+                                ['5','1L + 1M + 3P','2'],
+                                ['6','1L + 2M + 3P','3'],
+                                ['6','2L + 2M + 2P','3'],
+                            ].map(([r,d,e]) => `
+                                <div style="padding:3px 0;color:#d1d5db;border-top:1px solid #1f2937">${r}</div>
+                                <div style="padding:3px 0;color:#9ca3af;font-size:8px;border-top:1px solid #1f2937">${d}</div>
+                                <div style="padding:3px 0;color:${espColor};font-weight:700;border-top:1px solid #1f2937">${e}</div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Status atual -->
+                    <div style="background:#0a0f1a;border:1px solid ${espCheck.ok?'#4ade8055':'#f8717133'};border-radius:12px;padding:12px;margin-bottom:16px">
+                        <div style="font-size:8px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px">📍 SEU STATUS ATUAL</div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                            <span style="font-size:10px;color:#9ca3af">Efeitos de Especialização</span>
+                            <span style="font-size:10px;font-weight:700;color:${espColor}">${specEfeitos}</span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                            <span style="font-size:10px;color:#9ca3af">Restrições necessárias</span>
+                            <span style="font-size:10px;font-weight:700;color:${totalRestr>=needed?'#4ade80':'#f87171'}">${totalRestr} / ${needed}</span>
+                        </div>
+                        <div style="background:#1f2937;border-radius:99px;height:7px;overflow:hidden;margin-bottom:10px">
+                            <div style="height:100%;width:${Math.min(100,Math.round(totalRestr/needed*100))}%;background:${totalRestr>=needed?'#4ade80':espColor};border-radius:99px;transition:width .3s"></div>
+                        </div>
+                        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:${!pyramidOk?'8px':'0'}">
+                            ${['leve','moderada','pesada','extrema'].map(p =>
+                                `<span style="font-size:8px;padding:3px 8px;border-radius:6px;background:#1f2937;color:#9ca3af">${p[0].toUpperCase()+p.slice(1)}: <b style="color:#fff">${counts[p]||0}</b></span>`
+                            ).join('')}
+                        </div>
+                        ${!pyramidOk ? `<div style="font-size:9px;color:#f87171;margin-top:6px;padding:6px 10px;background:#f8717111;border-radius:8px">⚠️ Pirâmide inválida: ${pyramidMsg}</div>` : ''}
+                        ${espCheck.ok ? `<div style="font-size:9px;color:#4ade80;margin-top:6px;padding:6px 10px;background:#4ade8011;border-radius:8px;font-weight:700">✅ Condições satisfeitas! Especialização desbloqueada.</div>` : ''}
+                    </div>
+
+                    <button onclick="document.getElementById('esp-rule-overlay').remove()"
+                        style="width:100%;padding:12px;border-radius:10px;background:${espColor};color:#000;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;border:none;letter-spacing:1px">
+                        Entendido
+                    </button>
+                </div>`;
+            document.body.appendChild(overlay);
+            overlay.addEventListener('click', e => { if(e.target === overlay) overlay.remove(); });
+        };
+
+        // ── Modal de Bônus de Talento — exibido após o primeiro Hatsu ──────────
+        window._showTalentBonusModal = function(char, genTier, hatsuData) {
+            const tierColors = {
+                'Talentoso': '#60a5fa', 'Excelente': '#a78bfa',
+                'Gênio': '#fbbf24', 'Ultimate': '#ff4df7'
+            };
+            const tc = tierColors[genTier] || '#60a5fa';
+
+            const isTalentoso = genTier === 'Talentoso' || genTier === 'Excelente';
+            const isUltimate  = genTier === 'Ultimate';
+
+            const overlay = document.createElement('div');
+            overlay.id = 'talent-bonus-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000dd;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:Rajdhani,sans-serif';
+
+            // Graus options for Talentoso
+            const grauOpts = isTalentoso ? [
+                { id:'dano',    label:'+2 Graus de Dano', desc:'Aumenta o dado base de dano do hatsu em 2 passos' },
+                { id:'alcance', label:'+2 Graus de Alcance', desc:'+3m de alcance por grau' },
+                { id:'area',    label:'+2 Graus de Área', desc:'+1,5m de área por grau' },
+                { id:'duracao', label:'+2 Graus de Duração', desc:'+1 rodada por grau' },
+                { id:'livre',   label:'Guardar como Graus Livres', desc:'Use quando quiser, em qualquer Hatsu futuro' },
+            ] : [];
+
+            // Ultimate bonus options
+            const ultOpts = isUltimate ? [
+                { id:'pn_hatsu',  label:'+5 P.N neste Hatsu', desc:'Adiciona 5 pontos extras de NEN para este Hatsu agora' },
+                { id:'graus_5',   label:'+5 Graus de Potência livres', desc:'Guarde e use quando quiser em qualquer Hatsu' },
+            ] : [];
+
+            const opts = isTalentoso ? grauOpts : isUltimate ? ultOpts : [];
+
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${tc};border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 0 40px ${tc}44;max-height:90vh;overflow-y:auto">
+                    <div style="text-align:center;margin-bottom:16px">
+                        <div style="font-size:24px;margin-bottom:6px">${isUltimate?'👑':isTalentoso?'💠':'✨'}</div>
+                        <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:13px;color:${tc};text-transform:uppercase;letter-spacing:2px">${genTier} — Bônus de Talento</div>
+                        <div style="font-size:10px;color:#9ca3af;margin-top:6px;line-height:1.5">
+                            ${isTalentoso
+                                ? 'Seu talento natural concede <b style="color:'+tc+'">+2 Graus de Potência</b> para o seu Primeiro Hatsu.<br>Escolha como deseja aplicá-los:'
+                                : isUltimate
+                                    ? 'Nível lendário. Além do XP dobrado, você recebe um bônus extra.<br>Escolha como aplicar:'
+                                    : 'Seu XP já é multiplicado por 1,5× automaticamente em todas as situações.'}
+                        </div>
+                    </div>
+
+                    ${opts.length > 0 ? `
+                    <div id="talent-opts-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+                        ${opts.map((o,i) => `
+                        <div onclick="window._selectTalentOpt('${o.id}',${i})"
+                            id="talent-opt-${i}"
+                            style="padding:12px 14px;border-radius:12px;border:2px solid #1f2937;background:#0a0f1a;cursor:pointer;transition:all .15s">
+                            <div style="font-size:11px;font-weight:700;color:#e5e7eb">${o.label}</div>
+                            <div style="font-size:9px;color:#9ca3af;margin-top:3px">${o.desc}</div>
+                        </div>`).join('')}
+                    </div>
+                    <button id="talent-confirm-btn" disabled onclick="window._confirmTalentBonus()"
+                        style="width:100%;padding:13px;border-radius:10px;background:#374151;border:none;color:#6b7280;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:not-allowed;letter-spacing:1px;transition:all .2s">
+                        Confirmar
+                    </button>` : `
+                    <button onclick="document.getElementById('talent-bonus-overlay').remove()"
+                        style="width:100%;padding:13px;border-radius:10px;background:${tc};color:#000;border:none;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">
+                        Entendido ✓
+                    </button>`}
+                </div>`;
+
+            document.body.appendChild(overlay);
+
+            overlay._selectedOpt = null;
+            overlay._opts = opts;
+            overlay._tc = tc;
+            overlay._hatsuData = hatsuData;
+            overlay._char = char;
+        };
+
+        window._selectTalentOpt = function(id, idx) {
+            const overlay = document.getElementById('talent-bonus-overlay');
+            if (!overlay) return;
+            overlay._selectedOpt = id;
+            const tc = overlay._tc;
+            overlay._opts.forEach((o, i) => {
+                const el = document.getElementById('talent-opt-' + i);
+                if (!el) return;
+                el.style.borderColor = i === idx ? tc : '#1f2937';
+                el.style.background = i === idx ? tc + '18' : '#0a0f1a';
+                el.querySelector('div').style.color = i === idx ? tc : '#e5e7eb';
+            });
+            const btn = document.getElementById('talent-confirm-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.style.background = tc;
+                btn.style.color = '#000';
+                btn.style.cursor = 'pointer';
+                btn.style.boxShadow = '0 0 16px ' + tc + '55';
+            }
+        };
+
+        window._confirmTalentBonus = function() {
+            const overlay = document.getElementById('talent-bonus-overlay');
+            if (!overlay) return;
+            const opt = overlay._selectedOpt;
+            const char = overlay._char;
+            const hatsuData = overlay._hatsuData;
+            if (!opt) return;
+
+            if (!char.talentBonus) char.talentBonus = {};
+
+            if (opt === 'pn_hatsu') {
+                // Adds 5 extra PN to this hatsu — stored on char as bonus pool used in hatsu detail
+                char.talentBonus.pnExtra = 5;
+                char.talentBonus.applied = 'pn_hatsu';
+                // Mark on the hatsu itself
+                const hIdx = char.hatsus.findIndex(h => h.id === hatsuData.id);
+                if (hIdx >= 0) char.hatsus[hIdx].bonusPNExtra = 5;
+            } else if (opt === 'graus_5') {
+                char.talentBonus.grausLivres = (char.talentBonus.grausLivres || 0) + 5;
+                char.talentBonus.applied = 'graus_5';
+            } else if (opt === 'livre') {
+                char.talentBonus.grausLivres = (char.talentBonus.grausLivres || 0) + 2;
+                char.talentBonus.applied = 'graus_livres';
+            } else {
+                // Apply to this hatsu's damage table directly
+                char.talentBonus.applied = opt;
+                char.talentBonus.grausHatsu = { tipo: opt, valor: 2, hatsuId: hatsuData.id };
+                const hIdx = char.hatsus.findIndex(h => h.id === hatsuData.id);
+                if (hIdx >= 0) char.hatsus[hIdx].bonusGraus = { tipo: opt, valor: 2 };
+            }
+
+            saveCharacter(char);
+            overlay.remove();
+            render(true);
         };
 
         window.addEventListener('DOMContentLoaded', () => { loadCharacters(); setThemeColor('#00ff9d'); checkDiscordAuth(); });
