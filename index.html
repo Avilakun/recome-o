@@ -1738,7 +1738,7 @@ function renderHatsuCreator(container) {
     const pnBase = window.calcularPHBase(char.level);
     const pnBonus = window.calcPNBonusFromRestr(state.hatsuBuilder || {});
     const pnSpentOthers = window.calcPNSpentInOtherHatsus(char, hb.editingIdx);
-    const pnMax = pnBase + pnBonus - pnSpentOthers;
+    const pnBaseAvail = pnBase - pnSpentOthers; // base pool disponível (nunca negativo)
     let pnUsed = 0;
     hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed += e.pn; });
     hb.ec.forEach(id => {
@@ -1748,7 +1748,12 @@ function renderHatsuCreator(container) {
             if (e) { pnUsed += e.pn; break; }
         }
     });
-    const pnLeft = pnMax - pnUsed;
+    // Consumo: primeiro esgota os bônus de restrições puras, depois o base
+    const pnBonusLeft = Math.max(0, pnBonus - pnUsed);
+    const pnBaseUsed = Math.max(0, pnUsed - pnBonus); // quanto do base foi consumido
+    const pnBaseLeft = Math.max(0, pnBaseAvail - pnBaseUsed); // base restante (nunca negativo)
+    const pnLeft = pnBonusLeft + pnBaseLeft; // total disponível ainda
+    const pnMax = pnBaseAvail + pnBonus; // total máximo deste hatsu
 
     const STEPS = ['CONCEITO','TIPO','RESTRIÇÕES','EFEITOS GERAIS','EFEITOS CATEG.','RESUMO'];
 
@@ -1785,7 +1790,7 @@ function renderHatsuCreator(container) {
             var purePn = PURE_PN[pw] || 0;
 
             var choiceHtml = '';
-            if (sel && !isPure && hasAlt) {
+            if (sel && !isPure && hasAlt && item.id !== 'rma_m2') {
                 var opts = item.bnf.split(/\s[Oo][Uu]\s/);
                 if (!window._hBnfOpts) window._hBnfOpts = {};
                 window._hBnfOpts[item.id] = opts.map(function(o){ return o.trim(); });
@@ -1807,9 +1812,9 @@ function renderHatsuCreator(container) {
                     + '<div style="display:flex;flex-direction:column;gap:4px">' + optBtns + '</div></div>';
             }
 
-            // Pure toggle button (only when selected)
+            // Pure toggle button (only when selected AND it's a general restriction)
             var pureToggleHtml = '';
-            if (sel) {
+            if (sel && tipo === 'rg') {
                 pureToggleHtml = '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
                     + '<button onclick="event.stopPropagation();window._hTogglePure(\'' + item.id + '\');return false"'
                     + ' style="padding:5px 10px;border-radius:7px;border:1.5px solid '
@@ -1826,6 +1831,27 @@ function renderHatsuCreator(container) {
 
             // Special: rg_p8 needs a text input for the specific location/condition
             var specialInputHtml = '';
+            // rg_l9 and rg_l10: ask alcance or área
+            var ALCANCE_AREA_IDS = ['rg_l9','rg_l10'];
+            if (sel && ALCANCE_AREA_IDS.includes(item.id)) {
+                var aaVal = (hb && hb.specialChoices && hb.specialChoices[item.id]) || '';
+                var aaBonusAlc = item.id === 'rg_l9' ? '+1,5m' : '+3m';
+                var aaBonusArea = item.id === 'rg_l9' ? '+1,5m' : '+1,5m';
+                specialInputHtml = '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📐 Bônus em:</div>'
+                    + '<div style="display:flex;gap:6px">'
+                    + ['Alcance','Área'].map(function(o) {
+                        var active = aaVal === o;
+                        var label = o === 'Alcance' ? '📏 Alcance (' + aaBonusAlc + ')' : '🔵 Área (' + aaBonusArea + ')';
+                        return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'' + item.id + '\',\'' + o + '\')" '
+                            + 'style="flex:1;padding:7px;border-radius:8px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '
+                            + (active ? p.bs : '#1f2937') + ';background:' + (active ? p.bs + '22' : 'transparent')
+                            + ';color:' + (active ? p.bs : '#9ca3af') + ';transition:all .15s">' + label + '</button>';
+                    }).join('')
+                    + '</div>'
+                    + (aaVal ? '<div style="font-size:8px;color:' + p.bs + ';margin-top:4px">✓ ' + aaVal + '</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha alcance ou área</div>')
+                    + '</div>';
+            }
             if (sel && item.id === 'rg_p8') {
                 var currentVal = (hb && hb.specialChoices && hb.specialChoices['rg_p8']) || '';
                 specialInputHtml = '<div style="margin-top:8px" onclick="event.stopPropagation()">'
@@ -1835,6 +1861,39 @@ function renderHatsuCreator(container) {
                     + ' oninput="window._hSetSpecialText(\'rg_p8\', this.value);this.style.borderColor=this.value?\'#4ade80\':\'#374151\'"'
                     + ' style="width:100%;box-sizing:border-box;background:#0a0f1a;border:1.5px solid ' + (currentVal ? '#4ade80' : '#374151') + ';border-radius:8px;padding:8px 10px;color:#fff;font-size:10px;outline:none;transition:border-color .15s">'
                     + (currentVal ? '<div style="font-size:8px;color:#4ade80;margin-top:4px">✓ ' + currentVal + '</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Campo obrigatório para finalizar</div>')
+                    + '</div>';
+            }
+            // Special: rg_e5 Juramento Imutável — oath text
+            if (sel && item.id === 'rg_e5') {
+                var jurVal = (hb && hb.specialChoices && hb.specialChoices['rg_e5']) || '';
+                specialInputHtml += '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:#fb923c;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">⚔️ Escreva seu Juramento:</div>'
+                    + '<textarea placeholder="Ex: Juro que nunca usarei meu Nen contra aliados..." rows="3"'
+                    + ' onchange="window._hSetSpecialChoice(\'rg_e5\', this.value)"'
+                    + ' oninput="window._hSetSpecialText(\'rg_e5\', this.value);this.style.borderColor=this.value?\'#fb923c\':\'#374151\'"'
+                    + ' style="width:100%;box-sizing:border-box;background:#0a0f1a;border:1.5px solid ' + (jurVal ? '#fb923c' : '#374151') + ';border-radius:8px;padding:8px 10px;color:#fff;font-size:10px;outline:none;resize:vertical;transition:border-color .15s;font-family:Rajdhani,sans-serif">'
+                    + jurVal.replace(/</g,'&lt;').replace(/>/g,'&gt;')
+                    + '</textarea>'
+                    + (jurVal ? '<div style="font-size:8px;color:#fb923c;margin-top:4px;font-style:italic">"' + jurVal + '"</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ O juramento deve ser escrito para ativar o bônus</div>')
+                    + '</div>';
+            }
+            // Special: rma_m2 Zetsu Interrompe — choose benefit
+            if (sel && item.id === 'rma_m2') {
+                var rma2Val = (hb && hb.specialChoices && hb.specialChoices['rma_m2']) || '';
+                var rma2opts = [['Dano Sanidade','💜','+2 San/rod'],['Bônus Jogadas','⚡','+2 jogadas']];
+                specialInputHtml += '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:' + p.bs + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚡ Escolha o efeito:</div>'
+                    + '<div style="display:flex;gap:6px">'
+                    + rma2opts.map(function(op) {
+                        var active = rma2Val === op[0];
+                        return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rma_m2\',\'' + op[0] + '\')" '
+                            + 'style="flex:1;padding:7px;border-radius:8px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '
+                            + (active ? p.bs : '#1f2937') + ';background:' + (active ? p.bs + '22' : 'transparent')
+                            + ';color:' + (active ? p.bs : '#9ca3af') + ';transition:all .15s">'
+                            + op[1] + ' ' + op[0] + ' <span style="font-size:7px;opacity:.7;display:block">' + op[2] + '</span></button>';
+                    }).join('')
+                    + '</div>'
+                    + (rma2Val ? '<div style="font-size:8px;color:' + p.bs + ';margin-top:4px">✓ ' + rma2Val + '</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha o efeito do Zetsu</div>')
                     + '</div>';
             }
 
@@ -2084,12 +2143,89 @@ function renderHatsuCreator(container) {
                     </div>`;
                 }
 
+                // eg1: Aumento de Alcance — ask if it's alcance or área
+                if (item.id === 'eg1') {
+                    const chosen = specialChoices['eg1'] || '';
+                    const eg1opts = [['Alcance','📏'],['Área','🔵']];
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📏 Aplicar bônus em:</div>'
+                        + '<div style="display:flex;gap:6px">'
+                        + eg1opts.map(function([o,icon]){
+                            var active = chosen === o;
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'eg1\',\''+ o +'\')" '
+                                + 'style="flex:1;padding:7px;border-radius:8px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#9ca3af') +';transition:all .15s">'
+                                + icon +' '+ o +'</button>';
+                        }).join('')
+                        + '</div>'
+                        + (chosen ? '<div style="font-size:8px;color:'+ color +';margin-top:5px">✓ +1,5m de '+ chosen +'</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha alcance ou área</div>')
+                        + '</div>';
+                }
+
+                // eg9: Ajuste de Forma (Área) — ask shape
+                if (item.id === 'eg9') {
+                    const chosen = specialChoices['eg9'] || '';
+                    const eg9shapes = [['Cone','📐'],['Linha','➡'],['Esfera','🔵']];
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔵 Forma da Área:</div>'
+                        + '<div style="display:flex;gap:6px">'
+                        + eg9shapes.map(function([o,icon]){
+                            var active = chosen === o;
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'eg9\',\''+ o +'\')" '
+                                + 'style="flex:1;padding:7px;border-radius:8px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#9ca3af') +';transition:all .15s">'
+                                + icon +' '+ o +'</button>';
+                        }).join('')
+                        + '</div>'
+                        + (chosen ? '<div style="font-size:8px;color:'+ color +';margin-top:5px">✓ Área em '+ chosen +' de 1,5m</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha a forma da área</div>')
+                        + '</div>';
+                }
+
+                // em_e2: Distância Segura — ask alcance (+6m) or área (+3m)
+                if (item.id === 'em_e2' || item.id === 'em_e14') {
+                    const scKey = item.id;
+                    const chosen = specialChoices[scKey] || '';
+                    const opts = item.id === 'em_e2'
+                        ? [['Alcance','📏','+6m'],['Área','🔵','+3m']]
+                        : [['Alcance','📏','+6m (linha/cone/etc.)'],['Área','🔵','+3m (à distância)']];
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">📏 Aplicar bônus em:</div>'
+                        + '<div style="display:flex;gap:6px">'
+                        + opts.map(function(op){
+                            var active = chosen === op[0];
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\''+ scKey +'\',\''+ op[0] +'\')" '
+                                + 'style="flex:1;padding:7px;border-radius:8px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#9ca3af') +';transition:all .15s">'
+                                + op[1]+' '+op[0]+' <span style="font-size:7px;opacity:.7">('+op[2]+')</span></button>';
+                        }).join('')
+                        + '</div>'
+                        + (chosen ? '<div style="font-size:8px;color:'+ color +';margin-top:5px">✓ '+chosen+': '+(chosen==='Alcance'?'+6m':'+3m')+'</div>'
+                                   : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha onde aplicar</div>')
+                        + '</div>';
+                }
+
+                // rma_m2: Zetsu Interrompe — ask which benefit
+                if (item.id === 'rma_m2') {
+                    const chosen = specialChoices['rma_m2'] || '';
+                    const opts2 = [['Dano Sanidade','💜','−2 San/rod no alvo'],['Bônus Jogadas','⚡','+2 jogadas a favor']];
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚡ Efeito do Zetsu:</div>'
+                        + '<div style="display:flex;gap:6px">'
+                        + opts2.map(function(op){
+                            var active = chosen === op[0];
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rma_m2\',\''+ op[0] +'\')" '
+                                + 'style="flex:1;padding:7px;border-radius:8px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#9ca3af') +';transition:all .15s">'
+                                + op[1]+' '+op[0]+' <span style="font-size:7px;opacity:.7;display:block">'+ op[2] +'</span></button>';
+                        }).join('')
+                        + '</div>'
+                        + (chosen ? '<div style="font-size:8px;color:'+ color +';margin-top:5px">✓ '+chosen+'</div>'
+                                   : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha o efeito do Zetsu</div>')
+                        + '</div>';
+                }
+
                 // eg6: Poder é Intenção — free wrapper
                 if (item.id === 'eg6') {
                     const chosen = specialChoices['eg6'] || '';
                     specialHtml = `<div style="margin-top:8px;background:#0a0f1a;border:1px solid ${color}33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">
                         <div style="font-size:8px;font-weight:900;color:${color};text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">🎯 Poder é Intenção</div>
-                        <div style="font-size:9px;color:#d1d5db;line-height:1.5;margin-bottom:8px">O próximo efeito que você selecionar será <b style="color:${color}">direcionado a inimigo(s)</b> sem custo extra de P.N. O 1 P.N deste efeito já cobre a compra do efeito desejado.</div>
+                        <div style="font-size:9px;color:#d1d5db;line-height:1.5;margin-bottom:8px">O próximo efeito que você selecionar será <b style="color:${color}">direcionado a inimigo(s)</b> sem custo extra de P.N.</div>
                         <input type="text" value="${chosen.replace(/"/g,'&quot;')}" placeholder="Efeito alvo (ex: Aumento de Alcance)"
                             onchange="window._hSetSpecialChoice('eg6',this.value)"
                             oninput="window._hSetSpecialText('eg6',this.value)"
@@ -2167,7 +2303,8 @@ function renderHatsuCreator(container) {
             </div>
             <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
-                <div style="font-size:10px;font-weight:900;color:${pnMax<=0?'#f87171':'#fff'}">${pnMax}<span style="font-size:8px;color:#374151"> / ${pnBase}</span></div>
+                <div style="font-size:10px;font-weight:900;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:8px;color:#374151"> / ${pnMax}</span></div>
+                ${pnBonus>0?`<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap"><span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#4ade8018;color:#4ade80">Base: ${pnBaseLeft}</span><span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#fbbf2418;color:#fbbf24">Puras: ${pnBonusLeft}</span></div>`:''}
                 ${pnSpentOthers>0?`<div style="font-size:7px;color:#f87171;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
         </div>`;
@@ -2320,22 +2457,7 @@ function renderHatsuCreator(container) {
             } else if (filteredCatItems.length === 0) {
                 bodyHtml += '<div style="text-align:center;color:#374151;font-style:italic;padding:20px">Nenhuma restrição encontrada.</div>';
             } else {
-                bodyHtml += filteredCatItems.map(function(item) {
-                    var sel = hb.rc.includes(item.id);
-                    var pLbl = ({leve:'LEVE',moderada:'MOD',pesada:'PES',variavel:'VAR',extrema:'EXT'})[item.peso] || 'CAT';
-                    return '<div onclick="window._hToggleR(\'' + item.id + '\',\'rc\')"'
-                        + ' style="padding:11px;border-radius:11px;border:2px solid ' + (sel ? tc + 'aa' : '#1f2937') + ';background:' + (sel ? tc + '14' : '#0f1117') + ';cursor:pointer;margin-bottom:8px;transition:all .15s">'
-                        + '<div style="display:flex;align-items:flex-start;gap:8px">'
-                        + '<span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:#1f2937;color:#6b7280;flex-shrink:0;margin-top:2px;letter-spacing:1px;text-transform:uppercase">' + pLbl + '</span>'
-                        + '<div style="flex:1">'
-                        + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px">'
-                        + '<span style="font-size:10px;font-weight:900;color:' + (sel ? tc : '#d1d5db') + ';text-transform:uppercase;line-height:1.2">' + item.nome + '</span>'
-                        + (sel ? '<span style="font-size:7px;font-weight:900;background:' + tc + '33;color:' + tc + ';padding:2px 6px;border-radius:20px">✓</span>' : '')
-                        + '</div>'
-                        + '<div style="font-size:9px;color:#6b7280;line-height:1.4;margin-bottom:4px">' + item.desc + '</div>'
-                        + '<div style="font-size:9px;font-weight:700;color:' + (sel ? tc : '#9ca3af') + '">⚡ ' + item.bnf + '</div>'
-                        + '</div></div></div>';
-                }).join('');
+                bodyHtml += renderR(filteredCatItems, hb.rc, 'rc');
             }
         }
 
@@ -2367,8 +2489,11 @@ function renderHatsuCreator(container) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
-                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnBase}</span></div>
-                ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                ${pnBonus>0?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24">Restr. <span style="color:#fff">${pnBonusLeft}</span>/${pnBonus}</span>
+                </div>`:''}
                 ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
@@ -2526,8 +2651,11 @@ function renderHatsuCreator(container) {
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:#0f1117;border:1px solid #1f2937;border-radius:12px;padding:12px;margin-bottom:14px">
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
-                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnBase}</span></div>
-                ${pnBonus>0?`<div style="font-size:8px;color:#4ade80;font-weight:700;margin-top:2px">+${pnBonus} bônus de restrições</div>`:''}
+                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
+                ${pnBonus>0?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24">Restr. <span style="color:#fff">${pnBonusLeft}</span>/${pnBonus}</span>
+                </div>`:''}
                 ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
@@ -2742,7 +2870,8 @@ window._hNext = function() {
             pureRestrictions: {...(hb.pureRestrictions||{})},
             specialChoices: {...(hb.specialChoices||{})},
             efeitos: [...hb.eg, ...hb.ec],
-            pnUsados: pnUsed,
+            // Only count base P.N consumed (bonus from pure restrictions is local to this hatsu)
+            pnUsados: Math.max(0, pnUsed - window.calcPNBonusFromRestr(hb)),
             nivel: char.level,
             classe: char.class,
             criadoEm: (hb.editingIdx !== undefined ? char.hatsus[hb.editingIdx].criadoEm : null) || new Date().toLocaleDateString('pt-BR')
@@ -2823,7 +2952,7 @@ window._hAddDuplicateE = function(id, tipo, pn) {
             if (e) { used += e.pn; break; }
         }
     });
-    const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb) - _pnSpentOth) return;
+    const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
     const arr = tipo === 'eg' ? hb.eg : hb.ec;
     arr.push(id);
     renderHatsuInPlace();
@@ -2959,7 +3088,7 @@ window._hToggleE = function(id, tipo, pn) {
                 if (e) { used += e.pn; break; }
             }
         });
-        const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); if (used + pn > window.calcularPHBase(state.currentChar.level) + window.calcPNBonusFromRestr(hb) - _pnSpentOth) return;
+        const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
         arr.push(id);
     }
     renderHatsuInPlace();
@@ -3970,8 +4099,31 @@ function renderHatsuDetail(container) {
 
     // Verifica se algum efeito selecionado concede dano próprio
     const efeitosComDanoProprio = efeitosSel.filter(e => DANO_PROPRIO_MAP[e.id] && e.id !== 'eg10');
-    const temFlagelo = efeitosSel.some(e => e.id === 'eg10');
+    const flageloCopias = (h.efeitos||[]).filter(id => id === 'eg10').length; // can have multiple copies
+    const temFlagelo = flageloCopias > 0;
     const hasEfeitoDano = efeitosComDanoProprio.length > 0 || temFlagelo;
+
+    // Detects sanity damage from restrictions/effects (beyond eg10)
+    // Map of items that deal sanity damage with their values
+    const SANIDADE_MAP = {
+        'rma_m2': { dado: '+2/rod', desc: 'Zetsu Interrompe' },
+        'ma_e7':  { dado: '+3',     desc: 'Mente Frágil' },
+        'rg_p3':  { dado: '+1d10',  desc: 'Dano Permanente (ativação)' },
+        'rg_e4':  { dado: '+5',     desc: 'Dano Permanente Constante (ativação)' },
+        'rg_v5':  { dado: '+1d10',  desc: 'Dano Momentâneo Variável (ativação)' },
+        'rg_v8':  { dado: '+5',     desc: 'Sorte ou Revés (crítico no alvo)' },
+    };
+    const sanidadeExtras = [];
+    [...restricoesSel, ...efeitosSel].forEach(item => {
+        if (item.id === 'eg10') return;
+        if (!SANIDADE_MAP[item.id]) return;
+        // rma_m2: only show sanity damage if player chose that benefit
+        if (item.id === 'rma_m2') {
+            const sc = (h.specialChoices||{})['rma_m2'] || '';
+            if (sc !== 'Dano Sanidade') return;
+        }
+        sanidadeExtras.push({ ...item, _san: SANIDADE_MAP[item.id] });
+    });
 
     // Hatsu tem dano base se: tipo hostil/versátil/instantâneo, OU categoria ofensiva, OU tem efeito com dano
     const hasBaseDmg = isHostil || catDmg || hasEfeitoDano;
@@ -4031,11 +4183,26 @@ function renderHatsuDetail(container) {
         // Danos extras de efeitos próprios
         let extraDmgSection = '';
         if (temFlagelo) {
+            // Each copy of eg10 adds +1 grau — base is 1d8 (idx 2 in DAMAGE_TABLE)
+            const FLAGELO_BASE_IDX = 2; // 1d8
+            const flageloGraus = flageloCopias - 1; // first copy is base, extra copies = graus
+            const flageloIdx = Math.min(FLAGELO_BASE_IDX + flageloGraus, DAMAGE_TABLE.length - 1);
+            const flageloDado = DAMAGE_TABLE[flageloIdx];
             extraDmgSection += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#a78bfa">1d8</span>
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#a78bfa">${flageloDado}</span>
                 <span style="font-size:10px;color:#7c3aed;font-weight:700">Psíquico</span>
-                <span style="font-size:9px;color:#4b5563">Flagelo da Mente</span>
+                <span style="font-size:9px;color:#4b5563">Flagelo da Mente${flageloCopias > 1 ? ` ×${flageloCopias} (+${flageloGraus} grau${flageloGraus>1?'s':''})` : ''}</span>
             </div>`;
+        }
+        // Sanidade extras de outras fontes
+        if (sanidadeExtras.length > 0) {
+            sanidadeExtras.forEach(item => {
+                extraDmgSection += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                    <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:#c084fc">${item._san.dado}</span>
+                    <span style="font-size:10px;color:#7c3aed;font-weight:700">Sanidade</span>
+                    <span style="font-size:9px;color:#4b5563">${item._san.desc}</span>
+                </div>`;
+            });
         }
         efeitosComDanoProprio.forEach(e => {
             const d = DANO_PROPRIO_MAP[e.id];
@@ -4141,33 +4308,62 @@ function renderHatsuDetail(container) {
 
     // ── Cálculo de Alcance e Duração ──────────────────────────────────────────
     const allSelIds = [...(h.restricoes||[]), ...(h.efeitos||[])];
-    let alcanceBonus = [];  // array of {valor, fonte} in meters
-    let duracaoBonus = [];  // array of {valor, fonte, unidade}
+    let alcanceBonus = [];
+    let areaBonus = [];
+    let duracaoBonus = [];
     let alcanceDobrado = false;
     let duracaoDobrada = false;
 
     // Efeitos Gerais
     const eg1Count = (h.efeitos||[]).filter(id => id === 'eg1').length;
-    if (eg1Count > 0) alcanceBonus.push({ valor: eg1Count * 1.5, fonte: `Aumento de Alcance ×${eg1Count}` });
+    if (eg1Count > 0) {
+        const eg1choice = (h.specialChoices||{})['eg1'] || 'Alcance';
+        if (eg1choice === 'Área') {
+            areaBonus.push({ valor: eg1Count * 1.5, fonte: `Aumento de Alcance ×${eg1Count} (Área)` });
+        } else {
+            alcanceBonus.push({ valor: eg1Count * 1.5, fonte: `Aumento de Alcance ×${eg1Count}` });
+        }
+    }
     const eg2Count = (h.efeitos||[]).filter(id => id === 'eg2').length;
     if (eg2Count > 0) duracaoBonus.push({ valor: eg2Count, fonte: `Aumento de Duração ×${eg2Count}`, unidade: 'rodada' });
     if ((h.efeitos||[]).includes('eg18')) duracaoBonus.push({ valor: null, fonte: 'Experiência Comprovada', unidade: 'escala' });
+    const eg9Count = (h.efeitos||[]).filter(id => id === 'eg9').length;
+    if (eg9Count > 0) {
+        const eg9shape = (h.specialChoices||{})['eg9'] || 'Área';
+        areaBonus.push({ valor: eg9Count * 1.5, fonte: `Ajuste de Forma — ${eg9shape} ×${eg9Count}` });
+    }
 
     // Efeitos de categoria
-    if ((h.efeitos||[]).includes('em_e2'))  alcanceBonus.push({ valor: 6, fonte: 'Distância Segura' });
-    if ((h.efeitos||[]).includes('em_e14')) alcanceBonus.push({ valor: 6, fonte: 'Expansão de Domínio' });
+    if ((h.efeitos||[]).includes('em_e2')) {
+        const c = (h.specialChoices||{})['em_e2'] || 'Alcance';
+        if (c === 'Área') areaBonus.push({ valor: 3, fonte: 'Distância Segura (Área)' });
+        else alcanceBonus.push({ valor: 6, fonte: 'Distância Segura (Alcance)' });
+    }
+    if ((h.efeitos||[]).includes('em_e14')) {
+        const c = (h.specialChoices||{})['em_e14'] || 'Alcance';
+        if (c === 'Área') areaBonus.push({ valor: 3, fonte: 'Expansão de Domínio (Área)' });
+        else alcanceBonus.push({ valor: 6, fonte: 'Expansão de Domínio (Alcance)' });
+    }
 
-    // Restrições — Alcance
+    // Restrições — Alcance/Área (usando specialChoices para saber qual)
     const rg_l9Count = (h.restricoes||[]).filter(id => id === 'rg_l9').length;
-    if (rg_l9Count > 0) alcanceBonus.push({ valor: rg_l9Count * 1.5, fonte: `Exaustão 1 ×${rg_l9Count} (se alcance)` });
-    if ((h.restricoes||[]).includes('rg_l10')) alcanceBonus.push({ valor: 3, fonte: 'Interação Sensorial Simples' });
+    if (rg_l9Count > 0) {
+        const l9choice = (h.specialChoices||{})['rg_l9'] || 'Alcance';
+        if (l9choice === 'Área') areaBonus.push({ valor: rg_l9Count * 1.5, fonte: `Exaustão 1 ×${rg_l9Count} (Área)` });
+        else alcanceBonus.push({ valor: rg_l9Count * 1.5, fonte: `Exaustão 1 ×${rg_l9Count} (Alcance)` });
+    }
+    if ((h.restricoes||[]).includes('rg_l10')) {
+        const l10choice = (h.specialChoices||{})['rg_l10'] || 'Alcance';
+        if (l10choice === 'Área') areaBonus.push({ valor: 1.5, fonte: 'Interação Sensorial Simples (Área)' });
+        else alcanceBonus.push({ valor: 3, fonte: 'Interação Sensorial Simples (Alcance)' });
+    }
     if ((h.restricoes||[]).includes('rg_m12')) {
-        // Dobra ALCANCE ou DURAÇÃO — lê beneficioChoices para saber qual
         const m12choice = (h.beneficioChoices||{})['rg_m12'] || '';
         if (m12choice.toLowerCase().includes('dura')) duracaoDobrada = true;
-        else alcanceDobrado = true; // default: alcance
+        else alcanceDobrado = true;
     }
     if ((h.restricoes||[]).includes('rt_l2')) alcanceBonus.push({ valor: 3, fonte: 'Sem Movimento no Turno' });
+    if ((h.restricoes||[]).includes('rt_m2')) areaBonus.push({ valor: 1.5, fonte: 'Sem Aliados a 3m' });
     if ((h.restricoes||[]).includes('em_l1')) alcanceBonus.push({ valor: 6, fonte: 'Linha Reta Apenas' });
 
     // Restrições — Duração
@@ -4185,27 +4381,37 @@ function renderHatsuDetail(container) {
     }
 
     const totalAlcanceM = alcanceBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
+    const totalAreaM = areaBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
     const totalDuracaoR = duracaoBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
 
-    const hasRangeOrDuration = alcanceBonus.length > 0 || duracaoBonus.length > 0 || alcanceDobrado || duracaoDobrada;
+    const hasRangeOrDuration = alcanceBonus.length > 0 || areaBonus.length > 0 || duracaoBonus.length > 0 || alcanceDobrado || duracaoDobrada;
     let calcRangeDurHtml = '';
     if (hasRangeOrDuration) {
         const alcanceHtml = alcanceBonus.length > 0 || alcanceDobrado ? `
             <div style="margin-bottom:10px">
                 <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">📏 Alcance</div>
                 <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-                    ${alcanceDobrado ? `<span style="font-size:12px;font-weight:900;color:#60a5fa">Alcance Base ×2</span>` : ''}
+                    ${alcanceDobrado ? `<span style="font-size:12px;font-weight:900;color:#60a5fa">Base ×2</span>` : ''}
                     ${totalAlcanceM > 0 ? `<span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:#60a5fa;text-shadow:0 0 10px #60a5fa66">+${totalAlcanceM}m</span>` : ''}
                 </div>
-                ${alcanceBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: ${typeof b.valor === 'number' ? '+'+b.valor+'m' : b.valor}</div>`).join('')}
+                ${alcanceBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: +${b.valor}m</div>`).join('')}
                 ${alcanceDobrado ? `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• Tempo Marcado: dobra alcance base</div>` : ''}
+            </div>` : '';
+
+        const areaHtml = areaBonus.length > 0 ? `
+            <div style="margin-bottom:10px">
+                <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">🔵 Área</div>
+                <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
+                    <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:#34d399;text-shadow:0 0 10px #34d39966">+${totalAreaM}m</span>
+                </div>
+                ${areaBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: +${b.valor}m</div>`).join('')}
             </div>` : '';
 
         const duracaoHtml = duracaoBonus.length > 0 || duracaoDobrada ? `
             <div>
                 <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">⏱ Duração</div>
                 <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:4px">
-                    ${duracaoDobrada ? `<span style="font-size:12px;font-weight:900;color:#a78bfa">Duração Base ×2</span>` : ''}
+                    ${duracaoDobrada ? `<span style="font-size:12px;font-weight:900;color:#a78bfa">Base ×2</span>` : ''}
                     ${totalDuracaoR > 0 ? `<span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:22px;color:#a78bfa;text-shadow:0 0 10px #a78bfa66">+${totalDuracaoR} rod.</span>` : ''}
                 </div>
                 ${duracaoBonus.map(b => `<div style="font-size:8px;color:#6b7280;margin-bottom:2px">• ${b.fonte}: ${b.valor !== null ? (typeof b.valor === 'number' ? '+'+b.valor+' rodada'+(b.valor!==1?'s':'') : b.valor) : '(ver descrição)'}</div>`).join('')}
@@ -4213,8 +4419,9 @@ function renderHatsuDetail(container) {
             </div>` : '';
 
         calcRangeDurHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
-            <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:10px">📐 Alcance & Duração Adicionais</div>
+            <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:10px">📐 Alcance, Área & Duração</div>
             ${alcanceHtml}
+            ${areaHtml}
             ${duracaoHtml}
         </div>`;
     }
@@ -4238,6 +4445,8 @@ function renderHatsuDetail(container) {
             const purePn = PURE_PN[r.peso] || 0;
             let specialDetail = '';
             if (r.id === 'rg_p8' && sc.rg_p8) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:#4ade80;padding:4px 8px;background:#4ade8018;border-radius:6px">📍 ${sc.rg_p8}</div>`;
+            if (r.id === 'rg_e5' && sc.rg_e5) specialDetail = `<div style="margin-top:6px;font-size:9px;color:#fb923c;padding:6px 10px;background:#fb923c11;border-radius:6px;border:1px solid #fb923c33;font-style:italic">"${sc.rg_e5}"</div>`;
+            if ((r.id === 'rg_l9' || r.id === 'rg_l10') && sc[r.id]) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#60a5fa;padding:2px 7px;background:#60a5fa18;border-radius:5px">${sc[r.id] === 'Área' ? '🔵 Área' : '📏 Alcance'}</div>`;
             return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:1px solid ${isPure?'#fbbf2444':'#1f2937'};margin-bottom:8px">
                 <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${p.bg};color:${p.tc};text-transform:uppercase;flex-shrink:0;margin-top:2px;letter-spacing:1px">${p.label}</span>
                 <div style="flex:1">
@@ -4263,6 +4472,8 @@ function renderHatsuDetail(container) {
             if (e.id === 'eg3' && sc.eg3) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🩸 Condição: ${sc.eg3}</div>`;
             if (e.id === 'eg4' && sc.eg4) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🔀 Modo: ${sc.eg4}</div>`;
             if (e.id === 'eg6' && sc.eg6) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🎯 Efeito: Poder é Intenção — ${sc.eg6}</div>`;
+            if (e.id === 'eg1' && sc.eg1) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#60a5fa;padding:2px 7px;background:#60a5fa18;border-radius:5px">${sc.eg1 === 'Área' ? '🔵 Aplicado em Área' : '📏 Aplicado em Alcance'}</div>`;
+            if (e.id === 'eg9' && sc.eg9) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#34d399;padding:2px 7px;background:#34d39918;border-radius:5px">🔵 Forma: ${sc.eg9}</div>`;
             return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:2px solid ${ec}22;margin-bottom:8px">
                 <div style="flex-shrink:0;margin-top:2px">
                     <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${costColor}22;color:${costColor};letter-spacing:1px">${e.pn||1} P.N</span>
