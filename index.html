@@ -3441,7 +3441,7 @@ function renderCard(item, color) {
                 <div class="flex flex-col items-center justify-center w-full">
                     <span class="text-[9px] font-bold ${colorClass} uppercase tracking-wider mb-0.5">${label}</span>
                     <div class="flex items-center justify-between w-full max-w-[80%] gap-1">
-                         ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', ${-step})" class="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"><i data-lucide="minus" size="10"></i></button>` : '<div class="w-4"></div>'}
+                         ${showBtns ? `<button onclick="${label === 'SAN' ? 'window._showSanDamageModal()' : `updateVital('${label.toLowerCase()}', ${-step})`}" class="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"><i data-lucide="minus" size="10"></i></button>` : '<div class="w-4"></div>'}
                         <span class="font-display font-bold text-lg text-white tracking-wider">${val}</span>
                          ${showBtns ? `<button onclick="updateVital('${label.toLowerCase()}', ${step})" class="text-gray-500 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors"><i data-lucide="plus" size="10"></i></button>` : '<div class="w-4"></div>'}
                     </div>
@@ -3464,7 +3464,12 @@ function renderCard(item, color) {
                 const ATTR_FULL_NAMES = { 'FOR': 'FORÇA', 'DES': 'DESTREZA', 'CON': 'CONSTITUIÇÃO', 'INT': 'INTELIGÊNCIA', 'SAB': 'SABEDORIA', 'PRE': 'PRESENÇA', 'CAR': 'PRESENÇA' };
                 const ATTR_ICONS_MAP = { 'FOR': ['dumbbell', 'swords'], 'DES': ['wind', 'target'], 'CON': ['heart', 'activity'], 'INT': ['brain-circuit', 'book-open'], 'SAB': ['eye', 'sparkles'], 'PRE': ['crown', 'message-circle'], 'CAR': ['crown', 'message-circle'] };
                 const infoGridHtml = `<div class="grid grid-cols-4 divide-x divide-gray-800 bg-[#0b0c10] border-t border-b border-gray-800 mb-2"><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-blue uppercase tracking-widest mb-0.5">Tendência</span><select onchange="updateCharProperty('alignment', this.value)" class="bg-transparent text-white font-display font-bold text-xs uppercase outline-none cursor-pointer text-center appearance-none w-full"><option value="Heróico" ${char.alignment === 'Heróico' ? 'selected' : ''} class="bg-gray-900">Heróico</option><option value="Caótico" ${char.alignment === 'Caótico' ? 'selected' : ''} class="bg-gray-900">Caótico</option><option value="Neutro" ${!char.alignment || char.alignment === 'Neutro' ? 'selected' : ''} class="bg-gray-900">Neutro</option><option value="Maligno" ${char.alignment === 'Maligno' ? 'selected' : ''} class="bg-gray-900">Maligno</option></select></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-neon-yellow uppercase tracking-widest mb-0.5">Proficiência</span><span class="font-display font-bold text-lg text-white tracking-wider">+${getProficiencyBonus(char.level)}</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-white uppercase tracking-widest mb-0.5">Desl.</span><span class="font-display font-bold text-lg text-white tracking-wider">${char.vitals.desl || 9}m</span></div><div class="p-2 flex flex-col items-center justify-center"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-widest mb-0.5">Jogador</span><input type="text" value="${char.playerName || ''}" placeholder="Nome..." onchange="updateCharProperty('playerName', this.value)" class="bg-transparent text-white font-display font-bold text-xs outline-none w-full text-center placeholder-gray-700"></div></div>`;
-                const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, 'text-white', 'bg-white text-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>`;
+                // Migrate old characters: fix sanMax and add rdm
+                if (!char.vitals.sanMax || char.vitals.sanMax < 100) { char.vitals.sanMax = 100; if (char.vitals.san < 10) char.vitals.san = 100; }
+                const rdmVal = calcRDM(char);
+                const sanPct = Math.round((char.vitals.san / char.vitals.sanMax) * 100);
+                const sanColor = sanPct >= 90 ? 'text-green-400' : sanPct >= 75 ? 'text-yellow-400' : sanPct >= 50 ? 'text-orange-400' : 'text-purple-400';
+                const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, sanColor, 'bg-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>${rdmVal > 0 ? `<div class="flex items-center justify-center gap-2 text-[9px] text-blue-400 font-bold pb-2 border-b border-gray-800 mb-2"><span>🛡️ RDM (Resist. Mental)</span><span class="font-display text-sm">−${rdmVal}</span></div>` : ''}`;
                 const rollModesHtml = `<div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mb-4">${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}</div>`;
                 const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
                 tabContent = `${infoGridHtml}${vitalsGridHtml}${rollModesHtml}${attributesHtml}`;
@@ -3642,8 +3647,72 @@ function renderCard(item, color) {
                 tabContent = `<div class="h-full flex flex-col">${headerHtml}<div class="flex-1 overflow-hidden relative">${bodyHtml}</div></div>`;
             } else if (state.activeTab === 'DADOS') {
                 tabContent = `<div class="p-4 h-full flex flex-col"><div class="flex justify-between items-center mb-4 sticky top-0 bg-gray-950 pb-2 border-b border-gray-800 z-10"><h3 class="font-bold text-white uppercase tracking-wider text-xs">Histórico de Rolagens</h3><button onclick="clearHistory()" class="text-[10px] text-red-500 uppercase font-bold hover:text-red-400 border border-red-500/30 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Log</button></div><div class="flex-1 overflow-y-auto custom-scrollbar space-y-2 text-sm pb-4">${char.history.length === 0 ? '<div class="text-center text-gray-600 italic py-10">Sem rolagens recentes.</div>' : ''}${char.history.slice().reverse().map((h, index) => { const originalIndex = char.history.length - 1 - index; return `<div class="bg-gray-900/50 p-3 rounded-lg border-l-2 border-[${themeColor}] flex flex-col gap-1 group relative"><button onclick="copyToClipboard(${originalIndex})" class="absolute top-2 right-2 p-1.5 bg-gray-800 rounded-lg text-gray-500 hover:text-white hover:bg-gray-700 opacity-0 group-hover:opacity-100 transition-all" title="Copiar para Discord"><i data-lucide="copy" size="14"></i></button><div class="flex justify-between text-[10px] text-gray-500 pr-8"><span>${h.time}</span><span class="uppercase font-bold tracking-wider text-gray-400">${h.label}</span></div><div class="flex justify-between items-center mt-1"><div class="flex flex-col"><span class="text-xs text-gray-500">Resultado</span><span class="text-2xl font-bold ${h.dice===20?'text-neon-yellow':h.dice===1?'text-neon-red':'text-white'} font-display">${h.total}</span></div><div class="text-right"><span class="text-xs text-gray-600 block">D20 + Mod</span><span class="text-gray-300 font-mono text-sm">[${h.dice}] ${h.mod>=0?'+':''}${h.mod}</span></div></div></div>`; }).join('')}</div></div>`;
-            } else {
-                tabContent = `<div class="flex flex-col items-center justify-center h-full text-gray-600 gap-4"><i data-lucide="construction" size="48" class="opacity-20"></i><span class="text-xs uppercase tracking-widest">Em desenvolvimento</span></div>`;
+            } else if (state.activeTab === 'COND') {
+                const conditions = char.conditions || [];
+                const rdmVal = calcRDM(char);
+                const sanPct = Math.round(((char.vitals.san||100) / (char.vitals.sanMax||100)) * 100);
+                const sanBarColor = sanPct >= 90 ? '#4ade80' : sanPct >= 75 ? '#fbbf24' : sanPct >= 50 ? '#f97316' : '#a78bfa';
+                const activeConditions = conditions.filter(c => !c.resolved);
+                const resolvedConditions = conditions.filter(c => c.resolved);
+                const catColors = { 'CURTA DURAÇÃO':'#fbbf24', 'LONGA DURAÇÃO':'#f87171', 'PERMANENTE LEVE':'#a78bfa', 'PERMANENTE PESADO':'#ff4df7' };
+
+                const activeHtml = activeConditions.length === 0
+                    ? '<div class="text-center text-gray-600 italic py-6 border-2 border-dashed border-gray-800 rounded-xl text-xs">Nenhuma condição ativa.<br><span class="text-gray-700">Reduza a Sanidade para registrar surtos.</span></div>'
+                    : activeConditions.map(function(c) {
+                        const cc = catColors[c.categoria] || '#9ca3af';
+                        const idx = conditions.indexOf(c);
+                        return '<div style="border:2px solid '+cc+'" class="bg-gray-900 rounded-xl p-4 relative mb-3">'
+                            + '<div class="flex justify-between items-start mb-2">'
+                            + '<div><span style="color:'+cc+'" class="text-[10px] font-bold uppercase tracking-wider">'+c.categoria+'</span>'
+                            + '<div class="text-[9px] text-gray-500 mt-0.5">'+c.data+' • Sanidade '+c.sanPct+'%</div></div>'
+                            + '<button onclick="window._resolveCondition('+idx+')" class="text-[9px] text-green-500 border border-green-500/40 px-2 py-1 rounded hover:bg-green-500/10 font-bold uppercase">✓ Resolver</button>'
+                            + '</div>'
+                            + '<div class="text-sm text-white font-semibold leading-relaxed mb-2">'+c.condicao+'</div>'
+                            + '<div class="flex gap-2 flex-wrap">'
+                            + '<span class="text-[9px] bg-gray-800 border border-gray-700 px-2 py-0.5 rounded font-mono">🎲 '+c.roll+'</span>'
+                            + '<span style="color:'+cc+'" class="text-[9px] bg-gray-800 border border-gray-700 px-2 py-0.5 rounded font-bold">⏱ '+c.duracao+'</span>'
+                            + '</div></div>';
+                    }).join('');
+
+                const resolvedHtml = resolvedConditions.length > 0
+                    ? '<div class="border-t border-gray-800 pt-3 mt-3"><div class="text-[10px] font-bold text-gray-600 uppercase tracking-wider mb-2">Resolvidas</div>'
+                        + resolvedConditions.map(function(c) {
+                            const cc = catColors[c.categoria] || '#9ca3af';
+                            return '<div class="bg-gray-900/50 border border-gray-800 rounded-xl p-3 opacity-50 mb-2">'
+                                + '<div class="text-[9px] font-bold uppercase" style="color:'+cc+'">'+c.categoria+'</div>'
+                                + '<div class="text-xs text-gray-400 leading-relaxed">'+c.condicao+'</div>'
+                                + '<div class="text-[9px] text-gray-600 mt-1">⏱ '+c.duracao+'</div>'
+                                + '</div>';
+                        }).join('')
+                        + '</div>'
+                    : '';
+
+                tabContent = `<div class="p-4 h-full flex flex-col">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-bold text-white uppercase tracking-wider text-xs flex items-center gap-2"><i data-lucide="brain" size="14"></i> Condições de Sanidade</h3>
+                        <button onclick="window._clearResolvedConditions()" class="text-[10px] text-gray-500 uppercase font-bold hover:text-red-400 border border-gray-700 px-2 py-1 rounded hover:bg-red-500/10 transition-colors">Limpar Resolvidas</button>
+                    </div>
+                    <div class="bg-gray-900 border border-gray-800 rounded-xl p-3 mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Sanidade Atual</span>
+                            <span class="font-display font-bold text-sm" style="color:${sanBarColor}">${char.vitals.san||100} / ${char.vitals.sanMax||100} (${sanPct}%)</span>
+                        </div>
+                        <div class="h-2 bg-gray-800 rounded-full overflow-hidden mb-2">
+                            <div style="height:100%;width:${sanPct}%;background:${sanBarColor};border-radius:99px;transition:width .4s;box-shadow:0 0 8px ${sanBarColor}88"></div>
+                        </div>
+                        <div class="flex justify-between text-[9px]">
+                            <span style="color:${sanPct<25?'#ff4df7':'#374151'}">< 25% Perm. Pesado</span>
+                            <span style="color:${sanPct<50&&sanPct>=25?'#a78bfa':'#374151'}">< 50% Perm. Leve</span>
+                            <span style="color:${sanPct<75&&sanPct>=50?'#f87171':'#374151'}">< 75% Longa</span>
+                            <span style="color:${sanPct<90&&sanPct>=75?'#fbbf24':'#374151'}">< 90% Curta</span>
+                        </div>
+                        ${rdmVal > 0 ? '<div class="mt-2 text-center text-[10px] font-bold text-blue-400">🛡️ RDM '+rdmVal+' — reduz dano mental recebido</div>' : ''}
+                    </div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar pb-4">
+                        ${activeHtml}
+                        ${resolvedHtml}
+                    </div>
+                </div>`;
             }
 
             const nextXp = char.xp_next || 100;
@@ -3693,7 +3762,7 @@ function renderCard(item, color) {
                 </div>`
                 }
                 <div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">
-                    ${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('BIO', 'contact', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}
+                    ${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('BIO', 'contact', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}${renderNavItem('COND', 'brain', themeColor)}
                 </div>
             </div>`;
         }
@@ -3770,7 +3839,7 @@ function renderCard(item, color) {
         function finishCreator() { Object.entries(state.allocations).forEach(([key, val]) => { state.tempChar.attributes[key] += val; }); const bgData = SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background); const initialInv = bgData ? bgData.equipamento.map(i => ({ name: i, qty: 1 })) : []; const raceData = SYSTEM_DB.racas.find(r => r.nome === state.tempChar.race); const finalAttrs = { ...state.tempChar.attributes }; if (raceData && typeof raceData.aumento_atributo === 'object') { const req = getBonusRequirements(state.tempChar.race); if (!req) { Object.entries(raceData.aumento_atributo).forEach(([key, val]) => { if (finalAttrs[key] !== undefined) { finalAttrs[key] += val; } }); } } const modCon = getMod(finalAttrs.CON || 10); const modInt = getMod(finalAttrs.INT || 10); const modSab = getMod(finalAttrs.SAB || 10); const hasGiantBody = state.tempChar.inclinations.positive.some(i => i.nome === "Corpo de Gigante"); let hpInitial = 15 + modCon; if (hasGiantBody) hpInitial += 5; 
             // Merge traits with details
             const mergedTraits = (state.tempChar.raceTraits || []).map(t => { const detail = state.tempChar.traitDetails && state.tempChar.traitDetails[t]; return detail ? `${t}: ${detail}` : t; });
-            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 10 + modInt, sanMax: 10 + modInt, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' }, fagogenese: state.tempChar.fagogenese || null, afinidade: state.tempChar.afinidade || null, genialidade: state.tempChar.genialidade || null, genialidadeRoll: state.tempChar.genialidadeRoll || null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
+            const newChar = { id: generateId(), name: state.tempChar.name, class: state.tempChar.class, race: state.tempChar.race, background: state.tempChar.background, backgroundFeature: state.tempChar.backgroundFeature, inclinations: state.tempChar.inclinations, level: 0, xp: 0, xp_next: 50, money: 0, alignment: 'Neutro', playerName: '', attributes: {}, skills: [...state.tempChar.skills, ...state.tempChar.otherSkills], expertise: [], raceTraits: mergedTraits, vitals: { hp: hpInitial, hpMax: hpInitial, aura: 100, auraMax: 100, san: 100, sanMax: 100, rdm: 0, ca: 10 + modCon, rea: 7 + modSab, desl: 9 }, inventory: initialInv, history: [], imageUrl: null, bio: { personality: '', history: '', organizations: '', enemies: '', allies: '' }, fagogenese: state.tempChar.fagogenese || null, afinidade: state.tempChar.afinidade || null, genialidade: state.tempChar.genialidade || null, genialidadeRoll: state.tempChar.genialidadeRoll || null }; Object.entries(finalAttrs).forEach(([k,v]) => { const hasSave = state.tempChar.skills.includes(`TR de ${k}`); newChar.attributes[k] = { value: v || 10, save: hasSave }; }); saveCharacter(newChar); state.currentChar = newChar; state.view = 'SHEET'; state.activeTab = 'FICHA'; render(); }
         function setTab(tab) { state.activeTab = tab; if(tab === 'DADOS') state.unreadRolls = false; render(true); }
         function setRollMode(mode) { state.rollMode = mode; render(true); }
         function updateSheetAttr(key, delta) { state.currentChar.attributes[key].value += delta; saveCharacter(state.currentChar); render(true); }
@@ -3780,7 +3849,43 @@ function renderCard(item, color) {
         function handleSkillStatus(skillName) { const char = state.currentChar; const isTrained = char.skills.includes(skillName); if (!isTrained) { if (confirm(`Deseja adicionar proficiência em ${skillName}?`)) { state.currentChar.skills.push(skillName); saveCharacter(state.currentChar); render(true); } } else { state.skillSelectionModal = skillName; render(true); } }
         function closeSkillModal() { state.skillSelectionModal = null; render(true); }
         function setSkillLevel(skillName, level) { const char = state.currentChar; if (!char.expertise) char.expertise = []; if (level === 'remove') { char.skills = char.skills.filter(s => s !== skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'trained') { if (!char.skills.includes(skillName)) char.skills.push(skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'expert') { if (!char.skills.includes(skillName)) char.skills.push(skillName); if (!char.expertise.includes(skillName)) char.expertise.push(skillName); } saveCharacter(char); closeSkillModal(); }
-        function updateVital(type, delta) { const v = state.currentChar.vitals; if (type === 'pv') v.hp += delta; if (type === 'aura') v.aura += delta; if (type === 'san') v.san += delta; if (type === 'rea') { if (v.rea === undefined) v.rea = 7 + getMod(state.currentChar.attributes.SAB.value); v.rea += delta; } saveCharacter(state.currentChar); render(true); }
+        function calcRDM(char) {
+            const intVal = char.attributes && char.attributes.INT ? char.attributes.INT.value : 10;
+            const intMod = Math.floor((intVal - 10) / 2);
+            const lvl = parseInt(char.level) || 0;
+            if (lvl === 0) return 0;
+            return (intMod * 2) + lvl;
+        }
+
+        function updateVital(type, delta) {
+            const v = state.currentChar.vitals;
+            const char = state.currentChar;
+
+            if (type === 'pv') v.hp += delta;
+            if (type === 'aura') v.aura += delta;
+            if (type === 'rea') { if (v.rea === undefined) v.rea = 7 + getMod(char.attributes.SAB.value); v.rea += delta; }
+            if (type === 'san') {
+                if (!v.sanMax) v.sanMax = 100;
+                const prevSan = v.san;
+                const prevPct = Math.round((prevSan / v.sanMax) * 100);
+                v.san = Math.min(v.sanMax, v.san + delta); // cap at sanMax
+                const newPct = Math.round((v.san / v.sanMax) * 100);
+
+                // Check if we crossed a threshold going DOWN
+                if (delta < 0) {
+                    const thresholds = [90, 75, 50, 25];
+                    for (const t of thresholds) {
+                        if (prevPct >= t && newPct < t) {
+                            saveCharacter(char);
+                            window._showSanityModal(char, t, newPct);
+                            return;
+                        }
+                    }
+                }
+            }
+            saveCharacter(char);
+            render(true);
+        }
         function updateCharProperty(prop, val) { state.currentChar[prop] = val; saveCharacter(state.currentChar); render(true); }
         // ── Dado de vida por categoria ─────────────────────────────────────────
         const HIT_DICE = {
@@ -3918,6 +4023,11 @@ function renderCard(item, color) {
                             </button>
                         </div>
                     </div>
+                    <!-- Sanidade recovery preview -->
+                    ${calcRDM(char) > 0 ? `<div style="background:#0a0f1a;border:1px solid #1f293788;border-radius:10px;padding:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-size:9px;color:#9ca3af;font-weight:700">🧠 Recuperação de Sanidade</span>
+                        <span style="font-family:Orbitron,sans-serif;font-weight:900;font-size:14px;color:#c084fc">+${calcRDM(char)}</span>
+                    </div>` : ''}
                     <!-- Botão confirmar (desabilitado até rolar/escolher) -->
                     <button id="lv-confirm-btn" disabled onclick="window._lvConfirm()"
                         style="width:100%;padding:13px;border-radius:10px;background:#374151;border:none;color:#6b7280;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:not-allowed;letter-spacing:1px;transition:all .2s">
@@ -3971,10 +4081,15 @@ function renderCard(item, color) {
                 const gain = overlay._hitGain || mediaTotal;
                 char.vitals.hpMax = (char.vitals.hpMax || 0) + gain;
                 char.vitals.hp   = (char.vitals.hp   || 0) + gain;
+                // Sanidade: recalcula RDM e recupera essa quantidade (cap sanMax=100)
+                if (!char.vitals.sanMax) char.vitals.sanMax = 100;
+                const newRdm = calcRDM(char);
+                const sanRecovery = newRdm; // recupera o RDM do novo nível
+                char.vitals.san = Math.min(char.vitals.sanMax, (char.vitals.san || 100) + sanRecovery);
                 saveCharacter(char);
                 document.getElementById('levelup-modal-overlay')?.remove();
                 render(true);
-                window._showXpToast(`Nível ${newLevel}! +${gain} PV`);
+                window._showXpToast('Nível ' + newLevel + '! +' + gain + ' PV' + (sanRecovery > 0 ? ' | +' + sanRecovery + ' Sanidade' : ''));
             };
         };
 
@@ -4913,6 +5028,212 @@ function closeHatsuCreator() {
 
             saveCharacter(char);
             overlay.remove();
+            render(true);
+        };
+
+        window._showSanityModal = function(char, threshold, currentPct) {
+            const CURTA = [
+                [1,20,'Paralisia mental — paralisado. Termina ao sofrer qualquer dano.'],
+                [21,30,'Vontade avassaladora de comer coisas estranhas (terra, limo, restos). Envenenado.'],
+                [31,40,'Amedrontado — usa ação a cada rodada para fugir da fonte do medo.'],
+                [41,50,'Balbucia — incapaz de falar ou usar Hatsu com restrições verbais.'],
+                [51,60,'Usa ação a cada rodada para atacar a criatura mais próxima à frente ou direita.'],
+                [61,70,'Atordoado por 5 turnos, ignora a rolagem inicial de tempo.'],
+                [71,75,'Obedece qualquer ordem que não seja obviamente suicida.'],
+                [76,80,'Alucinações vívidas — desvantagem em testes de habilidade.'],
+                [81,90,'Incapacitado — passa o tempo gritando, rindo ou chorando.'],
+                [91,100,'Cai inconsciente.'],
+            ];
+            const LONGA = [
+                [1,10,'Compulsão repetitiva (lavar mãos, tocar objetos, rezar). Não fazê-la a cada 3 rodadas: −1 Sanidade/3 rodadas.'],
+                [11,20,'Perde a capacidade de falar. Hatsus verbais afetados.'],
+                [21,30,'Alucinação vívida — desvantagem em testes de habilidade.'],
+                [31,40,'Alucinação poderosa — vê-se sofrendo ou apaixonado por algo no contexto da cena.'],
+                [41,50,'Ligado a um "talismã da sorte". Desvantagem em ataques, testes e TRs a mais de 9m dele.'],
+                [51,60,'Tremores e tiques incontroláveis — desvantagem em jogadas de Força ou Destreza.'],
+                [61,70,'Amnésia parcial — não reconhece pessoas nem lembra de eventos anteriores à loucura.'],
+                [71,80,'Sem ação própria, totalmente sugestionável.'],
+                [81,90,'Ao sofrer dano: TR de Sabedoria CD 15 ou o dano conta para redução de Sanidade.'],
+                [91,100,'Cai inconsciente — nenhum empurrão ou dano o acorda.'],
+            ];
+            const PERM_LEVE = ['Avareza','Covardia','Cleptomania','Desvio de Atenção','Dupla Personalidade','Impulsividade','Instinto Assassino','Megalomania','Mente de Criança','Paranoia','Pesadelos','Visões de Morte'];
+            const PERM_PESADA = [
+                [1,10,'Medo incontrolável e paralisia.'],
+                [11,20,'Não reconhece aliados (todos são inimigos) OU reconhece inimigo como melhor amigo.'],
+                [21,30,'Atitude homicida — tenta matar um aliado que vê como causa do sofrimento.'],
+                [31,40,'Arranca os cabelos gritando com horror (Fascinado).'],
+                [41,50,'Machuca os olhos tentando arrancá-los (Golpe mirado).'],
+                [51,60,'Tenta estrangular um aliado.'],
+                [61,70,'Tenta estrangular a si mesmo.'],
+                [71,80,'Esquece a própria identidade — perde o Hatsu até retomar a memória.'],
+                [81,90,'Atitude suicida — tenta se matar ou se jogar no perigo que causou a insanidade.'],
+                [91,100,'Cai no chão e assume posição fetal, ignora tudo. (Incapacitado)'],
+            ];
+
+            const configs = {
+                90: { cat:'CURTA DURAÇÃO', dado:'1d100', cor:'#fbbf24', durRoll: () => Math.ceil(Math.random()*6), durLabel: v => v+' rodada'+(v!==1?'s':''), table: CURTA, roll: () => Math.ceil(Math.random()*100) },
+                75: { cat:'LONGA DURAÇÃO', dado:'1d100', cor:'#f87171', durRoll: () => Math.ceil(Math.random()*10), durLabel: v => v+' hora'+(v!==1?'s':''), table: LONGA, roll: () => Math.ceil(Math.random()*100) },
+                50: { cat:'PERMANENTE LEVE', dado:'1d12', cor:'#a78bfa', durRoll: () => null, durLabel: () => 'Permanente', table: PERM_LEVE, roll: () => Math.ceil(Math.random()*12) },
+                25: { cat:'PERMANENTE PESADO', dado:'1d100', cor:'#ff4df7', durRoll: () => null, durLabel: () => 'Permanente', table: PERM_PESADA, roll: () => Math.ceil(Math.random()*100) },
+            };
+
+            const cfg = configs[threshold];
+            const roll = cfg.roll();
+            const durVal = cfg.durRoll();
+            const duracao = cfg.durLabel(durVal);
+
+            let resultado = '';
+            if (threshold === 50) {
+                resultado = PERM_LEVE[roll - 1] || PERM_LEVE[0];
+            } else {
+                const entry = cfg.table.find(e => roll >= e[0] && roll <= e[1]);
+                resultado = entry ? entry[2] : '—';
+            }
+
+            const rdm = calcRDM(char);
+
+            // Save condition to character
+            if (!char.conditions) char.conditions = [];
+            char.conditions.push({
+                categoria: cfg.cat,
+                condicao: resultado,
+                roll: `${roll} (${cfg.dado})`,
+                duracao: duracao,
+                sanPct: currentPct,
+                data: new Date().toLocaleDateString('pt-BR'),
+                resolved: false,
+            });
+            saveCharacter(char);
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000ee;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:Rajdhani,sans-serif';
+            overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${cfg.cor};border-radius:20px;padding:24px;width:100%;max-width:400px;max-height:90vh;overflow-y:auto;box-shadow:0 0 40px ${cfg.cor}44">
+                    <div style="text-align:center;margin-bottom:16px">
+                        <div style="font-size:22px;margin-bottom:6px">🧠</div>
+                        <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:13px;color:${cfg.cor};text-transform:uppercase;letter-spacing:2px">SURTO DE LOUCURA</div>
+                        <div style="font-size:11px;font-weight:900;color:${cfg.cor};margin-top:4px">${cfg.cat}</div>
+                        <div style="font-size:9px;color:#6b7280;margin-top:3px">${char.name} atingiu ${currentPct}% de Sanidade</div>
+                    </div>
+
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+                        <div style="background:#060d1a;border:1px solid ${cfg.cor}44;border-radius:12px;padding:12px;text-align:center">
+                            <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-bottom:6px">Rolagem ${cfg.dado}</div>
+                            <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:32px;color:${cfg.cor};text-shadow:0 0 16px ${cfg.cor}">${roll}</div>
+                        </div>
+                        <div style="background:#060d1a;border:1px solid ${cfg.cor}44;border-radius:12px;padding:12px;text-align:center">
+                            <div style="font-size:9px;color:#6b7280;text-transform:uppercase;font-weight:700;margin-bottom:6px">Duração</div>
+                            <div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:22px;color:${cfg.cor};line-height:1.2">${duracao}</div>
+                        </div>
+                    </div>
+
+                    <div style="background:#0a0f1a;border:1px solid ${cfg.cor}55;border-radius:12px;padding:14px;margin-bottom:14px">
+                        <div style="font-size:8px;font-weight:900;color:${cfg.cor};text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚡ CONDIÇÃO</div>
+                        <div style="font-size:12px;color:#e5e7eb;line-height:1.6;font-weight:600">${resultado}</div>
+                    </div>
+
+                    ${rdm > 0 ? `<div style="background:#1f293744;border:1px solid #374151;border-radius:10px;padding:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">
+                        <span style="font-size:9px;color:#9ca3af;font-weight:700">🛡️ RDM (Redução Dano Mental)</span>
+                        <span style="font-family:Orbitron,sans-serif;font-weight:900;font-size:14px;color:#60a5fa">−${rdm}</span>
+                    </div>` : ''}
+
+                    <div style="font-size:8px;color:#6b7280;text-align:center;margin-bottom:12px">Condição registrada na aba <b style="color:${cfg.cor}">COND</b></div>
+
+                    <button onclick="this.closest('div[style*=fixed]').remove();state.activeTab='COND';render(true)"
+                        style="width:100%;padding:13px;border-radius:10px;background:${cfg.cor};color:#000;border:none;font-family:Orbitron,sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">
+                        Ver na Aba COND →
+                    </button>
+                </div>`;
+            document.body.appendChild(overlay);
+        };
+
+        window._showSanDamageModal = function() {
+            const char = state.currentChar;
+            const rdm = calcRDM(char);
+            const sanAtual = char.vitals.san || 100;
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000cc;display:flex;align-items:center;justify-content:center;z-index:9999;padding:24px;font-family:Rajdhani,sans-serif';
+            overlay.innerHTML =
+                '<div style="background:#0d1117;border:2px solid #a78bfa;border-radius:18px;padding:22px;width:100%;max-width:340px;box-shadow:0 0 40px #a78bfa33">'
+                + '<div style="text-align:center;margin-bottom:16px">'
+                +   '<div style="font-size:20px;margin-bottom:4px">🧠</div>'
+                +   '<div style="font-family:Orbitron,sans-serif;font-weight:900;font-size:12px;color:#a78bfa;text-transform:uppercase;letter-spacing:2px">Dano de Sanidade</div>'
+                +   '<div style="font-size:9px;color:#6b7280;margin-top:3px">Sanidade atual: <b style="color:#fff">' + sanAtual + '</b> / 100</div>'
+                + '</div>'
+                + (rdm > 0
+                    ? '<div style="background:#1f293755;border:1px solid #60a5fa44;border-radius:10px;padding:10px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center">'
+                    +   '<span style="font-size:9px;color:#60a5fa;font-weight:700">🛡️ RDM ativo — será subtraído</span>'
+                    +   '<span style="font-family:Orbitron,sans-serif;font-weight:900;font-size:14px;color:#60a5fa">−' + rdm + '</span>'
+                    + '</div>'
+                    : '')
+                + '<div style="margin-bottom:14px">'
+                +   '<label style="font-size:9px;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:6px">Quantidade de dano recebido:</label>'
+                +   '<input id="san-dmg-input" type="number" min="1" placeholder="Ex: 15"'
+                +     ' oninput="window._sanDmgUpdate(this.value)"'
+                +     ' style="width:100%;box-sizing:border-box;background:#060d1a;border:2px solid #374151;border-radius:10px;padding:12px 14px;color:#fff;font-family:Orbitron,sans-serif;font-weight:900;font-size:22px;outline:none;text-align:center;transition:border-color .15s">'
+                +   '<div id="san-dmg-preview" style="text-align:center;margin-top:8px;font-size:10px;color:#6b7280;min-height:18px"></div>'
+                + '</div>'
+                + '<div style="display:flex;gap:8px">'
+                +   '<button onclick="document.getElementById(\'san-dmg-input\').closest(\'div[style*=fixed]\').remove()"'
+                +     ' style="flex:1;padding:12px;border-radius:10px;background:#1f2937;border:1px solid #374151;color:#9ca3af;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer">Cancelar</button>'
+                +   '<button id="san-dmg-confirm" onclick="window._confirmSanDmg()" disabled'
+                +     ' style="flex:2;padding:12px;border-radius:10px;background:#374151;border:none;color:#6b7280;font-family:Orbitron,sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:not-allowed;transition:all .2s">Aplicar Dano</button>'
+                + '</div>'
+                + '</div>';
+            document.body.appendChild(overlay);
+            setTimeout(() => { const inp = document.getElementById('san-dmg-input'); if (inp) inp.focus(); }, 50);
+        };
+
+        window._sanDmgUpdate = function(val) {
+            const char = state.currentChar;
+            const rdm = calcRDM(char);
+            const raw = parseInt(val) || 0;
+            const effective = Math.max(0, raw - rdm);
+            const preview = document.getElementById('san-dmg-preview');
+            const btn = document.getElementById('san-dmg-confirm');
+            const input = document.getElementById('san-dmg-input');
+            if (raw > 0) {
+                if (rdm > 0) {
+                    preview.innerHTML = '<span style="color:#f87171;font-weight:700">' + raw + '</span>'
+                        + ' <span style="color:#6b7280">− ' + rdm + ' RDM =</span>'
+                        + ' <span style="color:#a78bfa;font-weight:900;font-size:13px"> −' + effective + ' Sanidade</span>';
+                } else {
+                    preview.innerHTML = '<span style="color:#a78bfa;font-weight:900;font-size:13px">−' + effective + ' Sanidade</span>';
+                }
+                if (input) input.style.borderColor = '#a78bfa';
+                if (btn) { btn.disabled = false; btn.style.background = '#a78bfa'; btn.style.color = '#000'; btn.style.cursor = 'pointer'; }
+            } else {
+                if (preview) preview.innerHTML = '';
+                if (input) input.style.borderColor = '#374151';
+                if (btn) { btn.disabled = true; btn.style.background = '#374151'; btn.style.color = '#6b7280'; btn.style.cursor = 'not-allowed'; }
+            }
+        };
+
+        window._confirmSanDmg = function() {
+            const char = state.currentChar;
+            const rdm = calcRDM(char);
+            const raw = parseInt(document.getElementById('san-dmg-input')?.value) || 0;
+            if (raw <= 0) return;
+            const effective = Math.max(0, raw - rdm);
+            document.getElementById('san-dmg-input')?.closest('div[style*=fixed]')?.remove();
+            if (effective > 0) updateVital('san', -effective);
+            else { saveCharacter(char); render(true); }
+        };
+
+        window._resolveCondition = function(idx) {
+            const char = state.currentChar;
+            if (!char.conditions || !char.conditions[idx]) return;
+            char.conditions[idx].resolved = true;
+            saveCharacter(char);
+            render(true);
+        };
+
+        window._clearResolvedConditions = function() {
+            const char = state.currentChar;
+            if (!char.conditions) return;
+            char.conditions = char.conditions.filter(c => !c.resolved);
+            saveCharacter(char);
             render(true);
         };
 
