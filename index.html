@@ -1194,12 +1194,23 @@ window.calcAuraCost = function(hb) {
     let custo = 50; // base 50%
     const allR = [...(hb.rg||[]), ...(hb.rc||[])];
 
-    // Coleta todos os pesos de restrições pesadas e extremas
+    // Build full restriction DB including all categories
     const allRDB = [];
     const rg = window.HATSU_DB && window.HATSU_DB.restricoes_gerais;
-    if (rg) ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => (rg[k]||[]).forEach(r => allRDB.push(r)));
-    const catDB = window.HATSU_DB && state.currentChar && window.HATSU_DB.categorias[state.currentChar.class];
-    if (catDB && catDB.restricoes) catDB.restricoes.forEach(r => allRDB.push(r));
+    if (rg) {
+        ['leves','moderadas','pesadas','variaveis','extremas'].forEach(k => {
+            const peso = k === 'variaveis' ? 'variavel' : k.replace(/s$/, '');
+            (rg[k]||[]).forEach(r => allRDB.push({...r, peso}));
+        });
+    }
+    // Include ALL category restrictions (not just current char's class)
+    if (window.HATSU_DB && window.HATSU_DB.categorias) {
+        Object.values(window.HATSU_DB.categorias).forEach(cat => {
+            if (cat && cat.restricoes) cat.restricoes.forEach(r => {
+                if (!allRDB.find(x => x.id === r.id)) allRDB.push(r);
+            });
+        });
+    }
 
     let numPesadas = 0, hasExtrema = false;
 
@@ -1208,22 +1219,23 @@ window.calcAuraCost = function(hb) {
         if (!item) return;
         const peso = item.peso || 'leve';
         if (peso === 'pesada') numPesadas++;
-        if (peso === 'extrema') { hasExtrema = true; numPesadas++; }
+        if (peso === 'extrema') hasExtrema = true;
 
         // rg_l2: Cálculo Pensado 2 — Reduz em 5%
         if (id === 'rg_l2') custo -= 5;
         // rg_m2: Área Definida — Reduz custo em 10%
         if (id === 'rg_m2') custo -= 10;
-        // ri_e18 (Intensificação): Estabilização de Aura — Diminui 15% (mínimo 10%)
+        // ri_e18 (Intensificação): Estabilização de Aura — Diminui 15%
         if (id === 'ri_e18') custo = Math.max(10, custo - 15);
     });
 
-    // eg8: Redução de Custo (efeito geral)
-    const hasEg8 = (hb.eg||[]).includes('eg8');
+    // eg8: Redução de Custo — soma todas as reduções aplicáveis
+    const hasEg8 = (hb.eg||[]).includes('eg8') || (hb.ec||[]).includes('eg8');
     if (hasEg8) {
-        if (hasExtrema) custo -= 25;
-        else if (numPesadas >= 2) custo -= 10;
-        else custo -= 5;
+        let eg8Reducao = 5; // base: -5%
+        if (numPesadas >= 2) eg8Reducao += 10; // +mais 10% por 2 pesadas
+        if (hasExtrema) eg8Reducao += 25;       // +mais 25% por extrema
+        custo -= eg8Reducao;
     }
 
     // rg_p8: Local/Condição Específica — reduz à metade (mínimo 10%)
@@ -1863,7 +1875,57 @@ function renderHatsuCreator(container) {
                     + (currentVal ? '<div style="font-size:8px;color:#4ade80;margin-top:4px">✓ ' + currentVal + '</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Campo obrigatório para finalizar</div>')
                     + '</div>';
             }
-            // Special: rg_e5 Juramento Imutável — oath text
+            // Special: rg_v10 Zetsu por Falha — choose rodadas and alcance/area
+            if (sel && item.id === 'rg_v10') {
+                var v10Val = (hb && hb.specialChoices && hb.specialChoices['rg_v10']) || {};
+                if (typeof v10Val === 'string') v10Val = {}; // migrate old
+                var v10Rodadas = v10Val.rodadas || 0;
+                var v10Tipo = v10Val.tipo || '';
+                var rodadasOpts = [1,2,3,4,5,6];
+                specialInputHtml += '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:' + p.bs + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚡ Zetsu por Falha — configure o risco:</div>'
+                    // Rodadas picker
+                    + '<div style="font-size:8px;color:#9ca3af;font-weight:700;margin-bottom:5px">🔄 Rodadas de Zetsu (= bônus de graus):</div>'
+                    + '<div style="display:flex;gap:4px;margin-bottom:10px">'
+                    + rodadasOpts.map(function(n) {
+                        var active = v10Rodadas === n;
+                        return '<button onclick="event.stopPropagation();(function(){'
+                            + 'var sc=state.hatsuBuilder.specialChoices||{};'
+                            + 'if(!sc.rg_v10||typeof sc.rg_v10!==\'object\')sc.rg_v10={};'
+                            + 'sc.rg_v10.rodadas='+n+';'
+                            + 'state.hatsuBuilder.specialChoices=sc;'
+                            + 'renderHatsuInPlace();'
+                            + '})()" '
+                            + 'style="flex:1;padding:7px 4px;border-radius:7px;font-size:11px;font-weight:900;cursor:pointer;border:1.5px solid '
+                            + (active ? p.bs : '#1f2937') + ';background:' + (active ? p.bs+'22' : 'transparent')
+                            + ';color:' + (active ? p.bs : '#6b7280') + '">' + n + '</button>';
+                    }).join('')
+                    + '</div>'
+                    // Alcance ou Área
+                    + '<div style="font-size:8px;color:#9ca3af;font-weight:700;margin-bottom:5px">📐 Aplicar graus em:</div>'
+                    + '<div style="display:flex;gap:6px;margin-bottom:8px">'
+                    + ['Alcance','Área'].map(function(o) {
+                        var active = v10Tipo === o;
+                        return '<button onclick="event.stopPropagation();(function(){'
+                            + 'var sc=state.hatsuBuilder.specialChoices||{};'
+                            + 'if(!sc.rg_v10||typeof sc.rg_v10!==\'object\')sc.rg_v10={};'
+                            + 'sc.rg_v10.tipo=\'' + o + '\';'
+                            + 'state.hatsuBuilder.specialChoices=sc;'
+                            + 'renderHatsuInPlace();'
+                            + '})()" '
+                            + 'style="flex:1;padding:7px;border-radius:8px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid '
+                            + (active ? p.bs : '#1f2937') + ';background:' + (active ? p.bs+'22' : 'transparent')
+                            + ';color:' + (active ? p.bs : '#9ca3af') + '">'
+                            + (o === 'Alcance' ? '📏' : '🔵') + ' ' + o + '</button>';
+                    }).join('')
+                    + '</div>'
+                    + (v10Rodadas && v10Tipo
+                        ? '<div style="font-size:9px;font-weight:700;color:' + p.bs + ';padding:6px 10px;background:' + p.bs + '18;border-radius:8px">'
+                          + '✓ +' + v10Rodadas + ' Grau(s) em ' + v10Tipo + ' — risco: ' + v10Rodadas + ' rod. de Zetsu'
+                          + '</div>'
+                        : '<div style="font-size:8px;color:#f87171;margin-top:2px">⚠ Escolha as rodadas e onde aplicar</div>')
+                    + '</div>';
+            }
             if (sel && item.id === 'rg_e5') {
                 var jurVal = (hb && hb.specialChoices && hb.specialChoices['rg_e5']) || '';
                 specialInputHtml += '<div style="margin-top:8px" onclick="event.stopPropagation()">'
@@ -2220,6 +2282,27 @@ function renderHatsuCreator(container) {
                         + '</div>';
                 }
 
+                // eg17: Dor pra Disgrama! — choose between duration reduction or concentration penalty
+                if (item.id === 'eg17') {
+                    const chosen = specialChoices['eg17'] || '';
+                    const eg17opts = [
+                        ['Reduz Duração','⏱','−1/3 da duração total'],
+                        ['Penalidade TR','🎲','−5 no TR de Concentração'],
+                    ];
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">⚡ Consequência do Dano Contínuo:</div>'
+                        + '<div style="display:flex;gap:6px">'
+                        + eg17opts.map(function(op) {
+                            var active = chosen === op[0];
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'eg17\',\''+ op[0] +'\')" '
+                                + 'style="flex:1;padding:8px 6px;border-radius:8px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#9ca3af') +';transition:all .15s;text-align:center">'
+                                + op[1]+' <b>'+ op[0] +'</b><br><span style="font-size:7px;opacity:.7">'+ op[2] +'</span></button>';
+                        }).join('')
+                        + '</div>'
+                        + (chosen ? '<div style="font-size:8px;color:'+ color +';margin-top:6px">✓ '+chosen+'</div>'
+                                  : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ Escolha a consequência</div>')
+                        + '</div>';
+                }
                 // eg6: Poder é Intenção — free wrapper
                 if (item.id === 'eg6') {
                     const chosen = specialChoices['eg6'] || '';
@@ -4495,6 +4578,22 @@ function renderHatsuDetail(container) {
         }
     }
 
+    // rg_v10: Zetsu por Falha — graus em alcance ou área baseado nas rodadas configuradas
+    if ((h.restricoes||[]).includes('rg_v10')) {
+        const v10 = (h.specialChoices||{})['rg_v10'] || {};
+        const rod = v10.rodadas || 0;
+        const tipo = v10.tipo || '';
+        if (rod > 0 && tipo) {
+            if (tipo === 'Área') areaBonus.push({ valor: rod * 1.5, fonte: 'Zetsu por Falha ('+rod+' rod. Zetsu)' });
+            else alcanceBonus.push({ valor: rod * 1.5, fonte: 'Zetsu por Falha ('+rod+' rod. Zetsu)' });
+        }
+    }
+    if ((h.efeitos||[]).includes('eg17')) {
+        const eg17choice = (h.specialChoices||{})['eg17'] || '';
+        if (eg17choice === 'Reduz Duração') duracaoBonus.push({ valor: null, fonte: 'Dor pra Disgrama! — −1/3 da duração ao ativar', unidade: 'penalidade' });
+        else if (eg17choice === 'Penalidade TR') duracaoBonus.push({ valor: null, fonte: 'Dor pra Disgrama! — −5 no TR de Concentração', unidade: 'penalidade' });
+    }
+
     const totalAlcanceM = alcanceBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
     const totalAreaM = areaBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
     const totalDuracaoR = duracaoBonus.reduce((s,b) => s + (typeof b.valor === 'number' ? b.valor : 0), 0);
@@ -4562,6 +4661,9 @@ function renderHatsuDetail(container) {
             if (r.id === 'rg_p8' && sc.rg_p8) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:#4ade80;padding:4px 8px;background:#4ade8018;border-radius:6px">📍 ${sc.rg_p8}</div>`;
             if (r.id === 'rg_e5' && sc.rg_e5) specialDetail = `<div style="margin-top:6px;font-size:9px;color:#fb923c;padding:6px 10px;background:#fb923c11;border-radius:6px;border:1px solid #fb923c33;font-style:italic">"${sc.rg_e5}"</div>`;
             if ((r.id === 'rg_l9' || r.id === 'rg_l10') && sc[r.id]) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#60a5fa;padding:2px 7px;background:#60a5fa18;border-radius:5px">${sc[r.id] === 'Área' ? '🔵 Área' : '📏 Alcance'}</div>`;
+            if (r.id === 'rg_v10' && sc.rg_v10 && typeof sc.rg_v10 === 'object' && sc.rg_v10.rodadas) {
+                specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:#c084fc;padding:4px 8px;background:#c084fc18;border-radius:6px">⚡ +${sc.rg_v10.rodadas} grau(s) em ${sc.rg_v10.tipo||'?'} — ${sc.rg_v10.rodadas} rod. de Zetsu por falha</div>`;
+            }
             return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:1px solid ${isPure?'#fbbf2444':'#1f2937'};margin-bottom:8px">
                 <span style="font-size:7px;font-weight:900;padding:3px 6px;border-radius:4px;background:${p.bg};color:${p.tc};text-transform:uppercase;flex-shrink:0;margin-top:2px;letter-spacing:1px">${p.label}</span>
                 <div style="flex:1">
@@ -4587,6 +4689,7 @@ function renderHatsuDetail(container) {
             if (e.id === 'eg3' && sc.eg3) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🩸 Condição: ${sc.eg3}</div>`;
             if (e.id === 'eg4' && sc.eg4) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🔀 Modo: ${sc.eg4}</div>`;
             if (e.id === 'eg6' && sc.eg6) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🎯 Efeito: Poder é Intenção — ${sc.eg6}</div>`;
+            if (e.id === 'eg17' && sc.eg17) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">⚡ Consequência: ${sc.eg17 === 'Reduz Duração' ? '⏱ −1/3 da duração total' : '🎲 −5 no TR de Concentração'}</div>`;
             if (e.id === 'eg1' && sc.eg1) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#60a5fa;padding:2px 7px;background:#60a5fa18;border-radius:5px">${sc.eg1 === 'Área' ? '🔵 Aplicado em Área' : '📏 Aplicado em Alcance'}</div>`;
             if (e.id === 'eg9' && sc.eg9) specialDetail = `<div style="margin-top:6px;font-size:8px;font-weight:700;color:#34d399;padding:2px 7px;background:#34d39918;border-radius:5px">🔵 Forma: ${sc.eg9}</div>`;
             return `<div style="display:flex;align-items:flex-start;gap:10px;background:#0d1117;border-radius:10px;padding:12px;border:2px solid ${ec}22;margin-bottom:8px">
