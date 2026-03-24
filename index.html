@@ -655,24 +655,144 @@
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
+        // ══════════════════════════════════════════════════════════
+        //  CLOUD SYNC via JSONBin.io — sincroniza entre dispositivos
+        //  quando o usuário está logado com Discord
+        // ══════════════════════════════════════════════════════════
+        const JSONBIN_API_KEY = '$2a$10$HxHRPG_PLACEHOLDER_KEY'; // será sobrescrito pelo localStorage
+
+        function getJsonBinKey() {
+            return localStorage.getItem('hxhrpg_jsonbin_key') || JSONBIN_API_KEY;
+        }
+
+        // Retorna a chave localStorage para o usuário atual
+        function getLocalKey() {
+            const uid = state.user ? state.user.id : 'guest';
+            return 'hxhrpg_cloud_bin_' + uid;
+        }
+
+        // Salva o binId do usuário no localStorage (para reutilizar)
+        function saveBinId(binId) {
+            if (state.user) localStorage.setItem(getLocalKey(), binId);
+        }
+        function loadBinId() {
+            if (!state.user) return null;
+            return localStorage.getItem(getLocalKey());
+        }
+
+        // Monta o payload completo (todos os personagens + metadata)
+        function buildCloudPayload() {
+            const chars = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud')) {
+                    try { chars.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
+                }
+            }
+            return { discordId: state.user ? state.user.id : null, chars, updatedAt: new Date().toISOString() };
+        }
+
+        // Cria um novo bin JSONBin
+        async function createBin(payload) {
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey(), 'X-Bin-Name': 'hxhrpg_' + (state.user?.id||'guest'), 'X-Bin-Private': 'false' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.metadata?.id || null;
+            } catch(e) { return null; }
+        }
+
+        // Atualiza bin existente
+        async function updateBin(binId, payload) {
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey() },
+                    body: JSON.stringify(payload)
+                });
+                return res.ok;
+            } catch(e) { return false; }
+        }
+
+        // Lê bin existente
+        async function readBin(binId) {
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+                    headers: { 'X-Master-Key': getJsonBinKey() }
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.record || null;
+            } catch(e) { return null; }
+        }
+
+        // Sincroniza: lê nuvem e mescla com localStorage
+        async function syncFromCloud() {
+            if (!state.user) return;
+            let binId = loadBinId();
+            if (!binId) {
+                // Tenta encontrar pelo nome
+                // Se não existe, vai criar ao salvar
+                return;
+            }
+            const remote = await readBin(binId);
+            if (!remote || !remote.chars) return;
+            // Mescla: para cada char remoto, se local não tem ou remoto é mais novo → usa remoto
+            remote.chars.forEach(rc => {
+                const localKey = 'hxhrpg_' + rc.id;
+                const localRaw = localStorage.getItem(localKey);
+                if (!localRaw) {
+                    localStorage.setItem(localKey, JSON.stringify(rc));
+                } else {
+                    try {
+                        const lc = JSON.parse(localRaw);
+                        const remoteDate = new Date(rc.lastMod || 0);
+                        const localDate  = new Date(lc.lastMod || 0);
+                        if (remoteDate > localDate) localStorage.setItem(localKey, JSON.stringify(rc));
+                    } catch(e) { localStorage.setItem(localKey, JSON.stringify(rc)); }
+                }
+            });
+        }
+
+        // Salva na nuvem (debounced 2s para evitar muitas chamadas)
+        let _cloudSaveTimer = null;
+        async function saveToCloud() {
+            if (!state.user) return;
+            clearTimeout(_cloudSaveTimer);
+            _cloudSaveTimer = setTimeout(async () => {
+                const payload = buildCloudPayload();
+                let binId = loadBinId();
+                if (!binId) {
+                    binId = await createBin(payload);
+                    if (binId) { saveBinId(binId); }
+                } else {
+                    const ok = await updateBin(binId, payload);
+                    if (!ok) {
+                        // Bin pode ter sido deletado, cria novo
+                        binId = await createBin(payload);
+                        if (binId) saveBinId(binId);
+                    }
+                }
+            }, 2000);
+        }
+
         function loadCharacters() {
             const chars = [];
             for(let i=0; i<localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if(key.startsWith('hxhrpg_')) {
+                if(key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud')) {
                     try {
                         const char = JSON.parse(localStorage.getItem(key));
                         // Migrate CAR → PRE for old characters
                         if (char.attributes && char.attributes.CAR !== undefined && char.attributes.PRE === undefined) {
                             char.attributes.PRE = char.attributes.CAR;
                             delete char.attributes.CAR;
-                            // Also migrate skill TRs
-                            if (char.skills) {
-                                char.skills = char.skills.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
-                            }
-                            if (char.expertise) {
-                                char.expertise = char.expertise.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
-                            }
+                            if (char.skills) char.skills = char.skills.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
+                            if (char.expertise) char.expertise = char.expertise.map(s => s === 'TR de CAR' ? 'TR de PRE' : s);
                             localStorage.setItem(key, JSON.stringify(char));
                         }
                         chars.push(char);
@@ -686,6 +806,7 @@
             char.lastMod = new Date().toISOString();
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
+            saveToCloud(); // sincroniza na nuvem se logado
         }
 
         function deleteCharacter(id) {
@@ -696,6 +817,7 @@
                     state.view = 'LIST';
                     state.currentChar = null;
                 }
+                saveToCloud(); // sincroniza deleção na nuvem
                 render();
             }
         }
@@ -963,6 +1085,8 @@
                     state.authorized = true;
                     state.view = 'LIST';
                     render();
+                    // Sync cloud data after login
+                    syncFromCloud().then(() => { loadCharacters(); render(true); });
                     return;
                 }
 
@@ -987,6 +1111,8 @@
                     return;
                 }
                 render();
+                // Sync cloud data after login
+                syncFromCloud().then(() => { loadCharacters(); render(true); });
 
             } catch (e) {
                 console.error("Auth Error", e);
@@ -1086,6 +1212,15 @@
                             <i data-lucide="log-out" size="18"></i>
                         </button>
                     </div>
+
+                    ${state.user ? `<div onclick="window._manualSync()" style="display:flex;align-items:center;justify-content:space-between;background:#0a0f1a;border:1px solid #1f2937;border-radius:10px;padding:8px 12px;margin-bottom:12px;cursor:pointer" title="Clique para sincronizar agora">
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <span style="font-size:10px">☁️</span>
+                            <span style="font-size:8px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px">Sync Nuvem</span>
+                            <span id="sync-status-badge" style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:#4ade8022;color:#4ade80">${loadBinId() ? '✓ Ativo' : 'Configurar'}</span>
+                        </div>
+                        <span style="font-size:8px;color:#374151">↻ Sincronizar</span>
+                    </div>` : ''}
 
                     <div class="text-center mb-8">
                         <h1 class="font-display font-black text-3xl tracking-widest text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">HxH 5e RPG</h1>
@@ -1347,14 +1482,39 @@ window.getMaxLevelForCategory = function(myClass, targetClass, charLevel, extrem
 };
 
 // Calcula P.N gastos em OUTROS hatsus do personagem (excluindo o hatsu sendo editado)
+window.calcPNSpentInDominio = function(char) {
+    const d = char.nenDominio || {};
+    let spent = 0;
+    // Fundamentais: Ten, Ren, Zetsu → 1 ponto por nível (0-3)
+    spent += (d.ten || 0);
+    spent += (d.ren || 0);
+    spent += (d.zetsu || 0);
+    // Avançados: cada um custa 1 ponto extra
+    if (d.en)  spent += 1;
+    if (d.inp) spent += 1; // IN (inp para não conflitar com keyword)
+    if (d.gyo) spent += 1;
+    if (d.shu) spent += 1;
+    if (d.ken) spent += 1;
+    if (d.ko)  spent += 1;
+    if (d.ryu) spent += 1;
+    return spent;
+};
+
 window.calcPNSpentInOtherHatsus = function(char, editingIdx) {
     if (!char || !char.hatsus) return 0;
     let spent = 0;
     char.hatsus.forEach((h, idx) => {
-        if (editingIdx !== undefined && idx === editingIdx) return; // pula o hatsu sendo editado
+        if (editingIdx !== undefined && idx === editingIdx) return;
         spent += (h.pnUsados || 0);
     });
     return spent;
+};
+
+window.calcPNDisponivelParaHatsu = function(char, editingIdx) {
+    const total = window.calcularPHBase ? window.calcularPHBase(char.level) : 6;
+    const dominio = window.calcPNSpentInDominio(char);
+    const outros  = window.calcPNSpentInOtherHatsus(char, editingIdx);
+    return Math.max(0, total - dominio - outros);
 };
 
 window.calcularPHBase = function(level) {
@@ -1750,7 +1910,8 @@ function renderHatsuCreator(container) {
     const pnBase = window.calcularPHBase(char.level);
     const pnBonus = window.calcPNBonusFromRestr(state.hatsuBuilder || {});
     const pnSpentOthers = window.calcPNSpentInOtherHatsus(char, hb.editingIdx);
-    const pnBaseAvail = pnBase - pnSpentOthers; // base pool disponível (nunca negativo)
+    const pnSpentDominio = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(char) : 0;
+    const pnBaseAvail = Math.max(0, pnBase - pnSpentOthers - pnSpentDominio); // base pool disponível
     let pnUsed = 0;
     hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) pnUsed += e.pn; });
     hb.ec.forEach(id => {
@@ -3035,7 +3196,7 @@ window._hAddDuplicateE = function(id, tipo, pn) {
             if (e) { used += e.pn; break; }
         }
     });
-    const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
+    const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
     const arr = tipo === 'eg' ? hb.eg : hb.ec;
     arr.push(id);
     renderHatsuInPlace();
@@ -3171,7 +3332,7 @@ window._hToggleE = function(id, tipo, pn) {
                 if (e) { used += e.pn; break; }
             }
         });
-        const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
+        const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
         arr.push(id);
     }
     renderHatsuInPlace();
@@ -3555,7 +3716,64 @@ function renderCard(item, color) {
                 const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, sanColor, 'bg-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>${rdmVal > 0 ? `<div class="flex items-center justify-center gap-2 text-[9px] text-blue-400 font-bold pb-2 border-b border-gray-800 mb-2"><span>🛡️ RDM (Resist. Mental)</span><span class="font-display text-sm">−${rdmVal}</span></div>` : ''}`;
                 const rollModesHtml = `<div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mb-4">${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}</div>`;
                 const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
-                tabContent = `${infoGridHtml}${vitalsGridHtml}${rollModesHtml}${attributesHtml}`;
+                tabContent = `${infoGridHtml}${vitalsGridHtml}${(() => {
+                    // Active Nen principles quick-use buttons
+                    const d = char.nenDominio || {};
+                    const aura = char.vitals.aura || 0;
+                    const activeAny = (d.ten||0)>0||(d.ren||0)>0||(d.zetsu||0)>0||d.en||d.inp||d.gyo||d.shu||d.ken||d.ko||d.ryu;
+                    if (!activeAny) return '';
+                    const tc2 = (window.HATSU_DB&&window.HATSU_DB.categorias[char.class]&&window.HATSU_DB.categorias[char.class].cor)||themeColor;
+
+                    const PRINCIPIOS = [
+                        { key:'ten', label:'TEN', icon:'🛡️',
+                          custo: (() => {
+                              const isR = char.class === 'REFORÇO' || char.class === 'INTENSIFICAÇÃO';
+                              const nv = d.ten || 1;
+                              if (isR) return nv === 2 ? 5 : 10;
+                              return 20;
+                          })(),
+                          efeito: d.ten===1?'+2 RD':d.ten===2?'+4 RD':'+6 RD',
+                          desc: 'Reação — RD física', show: (d.ten||0)>0 },
+                        { key:'ren', label:'REN', icon:'💪', custo:5,
+                          efeito: '+1 Grau dano',
+                          desc: 'Ação Bônus — aumenta grau', show: (d.ren||0)>0 },
+                        { key:'zetsu', label:'ZETSU', icon:'👁️', custo:0,
+                          efeito: d.zetsu===1?'+5% Aura/3rod':d.zetsu===2?'+10% Aura/2rod':'+10% Aura/1rod',
+                          desc: 'Ação Bônus — recupera aura', show: (d.zetsu||0)>0 },
+                        { key:'en', label:'EN', icon:'🔵', custo:10,
+                          efeito: 'Detecta 3m', desc: '10% + 2 Reações', show: !!d.en },
+                        { key:'inp', label:'IN', icon:'🌑', custo:5,
+                          efeito: 'Oculta objeto', desc: '5% por rodada', show: !!d.inp },
+                        { key:'gyo', label:'GYO', icon:'🔍', custo:10,
+                          efeito: 'Ver aura/oculto', desc: '10% olhos / 30% corpo', show: !!d.gyo },
+                        { key:'shu', label:'SHU', icon:'⚡', custo:10,
+                          efeito: '+1d4 dano+CA', desc: '10% em objeto 1m', show: !!d.shu },
+                        { key:'ken', label:'KEN', icon:'🏰', custo:30,
+                          efeito: 'CA ×2 por 2rod', desc: '30% + 4 Reações', show: !!d.ken },
+                        { key:'ko', label:'KO', icon:'🔥', custo:30,
+                          efeito: 'Dano ×3, CA −80%', desc: '30% Aura', show: !!d.ko },
+                        { key:'ryu', label:'RYU', icon:'🌊', custo:30,
+                          efeito: '+3 CA/Ataque', desc: '30% Aura, 3 turnos', show: !!d.ryu },
+                    ].filter(p => p.show);
+
+                    const btns = PRINCIPIOS.map(p => {
+                        const canAct = aura >= p.custo;
+                        const col = canAct ? tc2 : '#374151';
+                        return `<button onclick="window._activatePrincipio('${p.key}',${p.custo})"
+                            style="display:flex;flex-direction:column;align-items:center;padding:8px 6px;border-radius:10px;border:1.5px solid ${col}44;background:${col}11;cursor:${canAct?'pointer':'not-allowed'};opacity:${canAct?1:0.5};min-width:56px;flex:1;transition:all .15s"
+                            title="${p.desc}">
+                            <span style="font-size:14px;margin-bottom:2px">${p.icon}</span>
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:7px;color:${col};text-transform:uppercase">${p.label}</span>
+                            <span style="font-size:7px;color:#6b7280;margin-top:1px">${p.custo>0?p.custo+'%':p.efeito}</span>
+                            <span style="font-size:7px;color:${col};font-weight:700;margin-top:1px">${p.efeito}</span>
+                        </button>`;
+                    }).join('');
+
+                    return `<div style="padding:8px 12px;border-bottom:1px solid #111827;background:#0a0f1a">
+                        <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">🔮 Princípios de NEN</div>
+                        <div style="display:flex;gap:4px;flex-wrap:wrap">${btns}</div>
+                    </div>`;
+                })()}${rollModesHtml}${attributesHtml}`;
             } else if (state.activeTab === 'BIO') {
                 const bioData = char.bio || {};
                 const sections = [ { id: 'personality', label: 'Personalidade', icon: 'fingerprint' }, { id: 'history', label: 'História', icon: 'scroll' }, { id: 'organizations', label: 'Organizações', icon: 'building-2' }, { id: 'enemies', label: 'Inimigos', icon: 'skull' }, { id: 'allies', label: 'Aliados', icon: 'heart-handshake' } ];
@@ -3660,11 +3878,14 @@ function renderCard(item, color) {
                             </div>`;
                         })()}
 
+
                         ${(() => {
                             const pnTotal = window.calcularPHBase ? window.calcularPHBase(char.level) : 6;
+                            const pnDominio = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(char) : 0;
                             const pnUsedAll = (char.hatsus||[]).reduce((sum, h) => sum + (h.pnUsados||0), 0);
-                            const pnFree = pnTotal - pnUsedAll;
-                            const pct = Math.min(100, Math.round((pnUsedAll / pnTotal) * 100));
+                            const pnUsedTotal = pnUsedAll + pnDominio;
+                            const pnFree = pnTotal - pnUsedTotal;
+                            const pct = Math.min(100, Math.round((pnUsedTotal / pnTotal) * 100));
                             const barColor = pnFree <= 0 ? '#ef4444' : pnFree <= 2 ? '#fbbf24' : '#00ff9d';
                             return `<div style="width:100%;padding:0 4px;margin-bottom:14px">
                                 <div style="background:#0a0f1a;border:1px solid #1f2937;border-radius:12px;padding:12px">
@@ -3676,7 +3897,7 @@ function renderCard(item, color) {
                                         <div style="height:100%;width:${pct}%;background:${barColor};border-radius:99px;box-shadow:0 0 8px ${barColor}88;transition:width .4s"></div>
                                     </div>
                                     <div style="display:flex;justify-content:space-between">
-                                        <span style="font-size:8px;color:#6b7280">${pnUsedAll} P.N usados em ${(char.hatsus||[]).length} Hatsu${(char.hatsus||[]).length!==1?'s':''}</span>
+                                        <span style="font-size:8px;color:#6b7280">${pnUsedAll} P.N Hatsus · ${pnDominio} P.N Domínio</span>
                                         <span style="font-size:8px;color:${pnFree<=0?'#ef4444':'#4b5563'}">${pnFree<=0?'Pool esgotado':pnFree+' livre'+(pnFree!==1?'s':'')}</span>
                                     </div>
                                     ${(char.talentBonus&&char.talentBonus.grausLivres) ? `
@@ -3685,6 +3906,145 @@ function renderCard(item, color) {
                                         <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#60a5fa">+${char.talentBonus.grausLivres}</span>
                                     </div>` : ''}
                                 </div>
+                            </div>`;
+                        })()}
+
+                        ${(() => {
+                            // ── DOMÍNIO DE NEN SECTION ──────────────────────────────
+                            const pnTotal = window.calcularPHBase ? window.calcularPHBase(char.level) : 6;
+                            const pnDominio = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(char) : 0;
+                            const pnHatsu = (char.hatsus||[]).reduce((s,h)=>s+(h.pnUsados||0),0);
+                            const pnFree = Math.max(0, pnTotal - pnDominio - pnHatsu);
+                            const d = char.nenDominio || {};
+                            const tc2 = catColor;
+
+                            const setDom = (key, val) => {
+                                // inline call via onclick
+                                return `(function(){
+                                    var c=state.currentChar;
+                                    if(!c.nenDominio)c.nenDominio={};
+                                    c.nenDominio['${key}']=${val};
+                                    saveCharacter(c);render(true);
+                                })()`;
+                            };
+
+                            // Helper: render level selector (0-3) for fundamental principles
+                            const fundamentalCard = (key, label, icon, desc, levelsData, reqCheck) => {
+                                const cur = d[key] || 0;
+                                const canUp = cur < 3 && pnFree > 0 && (reqCheck ? reqCheck(d) : true);
+                                const canDown = cur > 0;
+                                const levelLabel = ['—','Básico','Intermediário','Maestria'][cur];
+                                const levelColor = cur===0?'#374151':cur===1?'#4ade80':cur===2?'#fbbf24':'#ff4df7';
+                                return `<div style="background:#0a0f1a;border:1.5px solid ${cur>0?tc2+'66':'#1f2937'};border-radius:12px;padding:12px;margin-bottom:8px">
+                                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span style="font-size:16px">${icon}</span>
+                                            <div>
+                                                <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;color:${cur>0?tc2:'#d1d5db'};text-transform:uppercase">${label}</div>
+                                                <div style="font-size:8px;color:#6b7280;margin-top:1px">${desc}</div>
+                                            </div>
+                                        </div>
+                                        <div style="display:flex;align-items:center;gap:6px">
+                                            <button onclick="${setDom(key, Math.max(0, cur-1))}" ${canDown?'':'disabled'}
+                                                style="width:24px;height:24px;border-radius:6px;background:${canDown?'#1f2937':'#111'};border:1px solid #374151;color:${canDown?'#f87171':'#374151'};font-size:14px;cursor:${canDown?'pointer':'not-allowed'};display:flex;align-items:center;justify-content:center">−</button>
+                                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;min-width:20px;text-align:center;color:${levelColor}">${cur}</span>
+                                            <button onclick="${setDom(key, Math.min(3, cur+1))}" ${canUp?'':'disabled'}
+                                                style="width:24px;height:24px;border-radius:6px;background:${canUp?tc2+'22':'#111'};border:1px solid ${canUp?tc2+'55':'#374151'};color:${canUp?tc2:'#374151'};font-size:14px;cursor:${canUp?'pointer':'not-allowed'};display:flex;align-items:center;justify-content:center">+</button>
+                                        </div>
+                                    </div>
+                                    <div style="display:flex;gap:4px;margin-bottom:8px">
+                                        ${[1,2,3].map(i=>`<div style="flex:1;height:4px;border-radius:2px;background:${cur>=i?levelColor:'#1f2937'};transition:background .2s"></div>`).join('')}
+                                    </div>
+                                    ${cur > 0 ? `<div style="font-size:8px;font-weight:700;color:${levelColor};margin-bottom:4px">● ${levelLabel}</div>
+                                    <div style="font-size:8px;color:#9ca3af;line-height:1.5">${levelsData[cur-1]}</div>` : `<div style="font-size:8px;color:#374151;font-style:italic">Não desbloqueado (custa 1 P.N por nível)</div>`}
+                                </div>`;
+                            };
+
+                            // Helper: advanced principle toggle
+                            const advancedCard = (key, label, icon, desc, effect, req, reqMet) => {
+                                const active = !!(d[key]);
+                                const canBuy = !active && pnFree > 0 && reqMet;
+                                const ac = active ? '#a78bfa' : '#374151';
+                                return `<div style="background:#0a0f1a;border:1.5px solid ${active?'#a78bfa44':'#1f2937'};border-radius:12px;padding:10px;margin-bottom:6px;opacity:${reqMet||active?1:0.45}">
+                                    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">
+                                        <div style="flex:1">
+                                            <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+                                                <span style="font-size:13px">${icon}</span>
+                                                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;color:${active?'#a78bfa':'#d1d5db'};text-transform:uppercase">${label}</span>
+                                                ${active?`<span style="font-size:7px;font-weight:900;padding:1px 5px;background:#a78bfa22;color:#a78bfa;border-radius:4px">✓ ATIVO</span>`:''}
+                                            </div>
+                                            <div style="font-size:8px;color:#6b7280;margin-bottom:4px">${desc}</div>
+                                            ${req?`<div style="font-size:7px;color:${reqMet?'#4ade80':'#ef4444'};font-weight:700">Req: ${req}</div>`:''}
+                                            ${active?`<div style="font-size:8px;color:#9ca3af;margin-top:4px;line-height:1.5">${effect}</div>`:''}
+                                        </div>
+                                        <button onclick="${active?setDom(key, false):setDom(key, true)}" ${(canBuy||active)?'':'disabled'}
+                                            style="flex-shrink:0;padding:6px 10px;border-radius:8px;font-size:8px;font-weight:900;cursor:${(canBuy||active)?'pointer':'not-allowed'};border:1.5px solid ${active?'#ef444455':'#a78bfa44'};background:${active?'#ef444411':'#a78bfa11'};color:${active?'#f87171':'#a78bfa'}">
+                                            ${active?'−1 P.N':'+1 P.N'}
+                                        </button>
+                                    </div>
+                                </div>`;
+                            };
+
+                            const isReforco = char.class === 'REFORÇO' || char.class === 'INTENSIFICAÇÃO';
+                            const tenLevels = isReforco ? [
+                                '10% Aura + 1 Reação → +2 RD (Corte, Impacto, Explosão). Bloqueia intimidação por aura.',
+                                '5% Aura + 1 Reação → +4 RD. Imune a proj. que igualem CA.',
+                                '10% Aura + 1 Reação → +6 RD. Desbloqueia SHU.'
+                            ] : [
+                                '20% Aura + 1 Reação → +2 RD (Corte, Impacto, Explosão). Bloqueia intimidação por aura.',
+                                '20% Aura + 1 Reação → +4 RD. Imune a proj. que igualem CA.',
+                                '20% Aura + 1 Reação → +6 RD. Desbloqueia SHU.'
+                            ];
+                            const renLevels = [
+                                '5% Aura + Ação Bônus → +1 Grau/Passo de dano, interação com NEN, proteção vs REN.',
+                                '10% Aura + Ação Bônus → Básico + +3 em Intimidação/Arcanismo com REN. Desbloqueia EN.',
+                                '10% Aura + Ação Bônus → Intermediário + 1×/dia +6 Intimidação sem gastar aura. Desbloqueia GYO.'
+                            ];
+                            const zetsuLevels = [
+                                '3 rodadas → +5% Aura, +1 Reação, +3 Furtividade. (Dano crítico ao sofrer NEN)',
+                                '2 rodadas → +10% Aura, +1 Reação, +3 Furtividade. Desbloqueia IN.',
+                                '1 rodada → +10% Aura, +2 Reações, +6 Furtividade. Criaturas não-inteligentes te ignoram.'
+                            ];
+
+                            const ten = d.ten||0; const ren = d.ren||0; const zetsu = d.zetsu||0;
+
+                            return `<div style="width:100%;padding:0 4px;margin-bottom:16px">
+                                <div style="font-size:9px;font-weight:900;color:#6b7280;text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;text-align:center">🔮 Domínio de NEN</div>
+
+                                <div style="background:#060d1a;border:1px solid #1f2937;border-radius:10px;padding:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+                                    <span style="font-size:8px;color:#6b7280;font-weight:700">P.N em Domínio</span>
+                                    <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:${tc2}">${pnDominio} / ${pnTotal}</span>
+                                </div>
+
+                                <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">⚡ PRINCÍPIOS FUNDAMENTAIS</div>
+                                ${fundamentalCard('ten','TEN — Proteção','🛡️','Envolver/Proteger. Ativa RD contra golpes físicos.',tenLevels,null)}
+                                ${fundamentalCard('ren','REN — Controlar','💪','Praticar/Expandir. Aumenta grau de dano e intimidação.',renLevels,null)}
+                                ${fundamentalCard('zetsu','ZETSU — Suprimir','👁️','Anular/Ocultar. Recupera aura e oculta presença.',zetsuLevels,null)}
+
+                                <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px">🌟 PRINCÍPIOS AVANÇADOS</div>
+                                ${advancedCard('en','EN — Envolver','🔵','Expansão do Ren em esfera de detecção (3m+). 10% Aura + 2 Reações.',
+                                    '10% Aura + 2 Reações → detecta tudo a 3m. Ataque de reação contra quem entrar.',
+                                    'REN 2 + TEN 1', ren>=2 && ten>=1)}
+                                ${advancedCard('inp','IN — Ocultar','🌑','Oculta objetos de aura. 5% Aura por rodada.',
+                                    '5% Aura → oculta item de aura até próximo turno. Com Zetsu Maestria: +1 rodada ou −5%.',
+                                    'ZETSU 2', zetsu>=2)}
+                                ${advancedCard('gyo','GYO — Focar','👁️','Concentra aura nos olhos/corpo. 10%/30% Aura.',
+                                    '10% Aura → ver aura e oculto. 30% Aura → +3 FOR/DES/CON por 1 rodada.',
+                                    'REN Maestria + ZETSU 2', ren>=3 && zetsu>=2)}
+                                ${advancedCard('shu','SHU — Agregar','⚡','Envolve objetos em aura. 10% Aura.',
+                                    '10% Aura → +1d4 Dano e CA em objeto (1m). Golpe considerado mirado sem ônus.',
+                                    'TEN Maestria', ten>=3)}
+
+                                <div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:1px;margin:10px 0 6px">🔱 TÉCNICAS AVANÇADAS</div>
+                                ${advancedCard('ken','KEN — Fortificar','🏰','Combina REN+TEN em proteção total. 30% Aura + 4 Reações.',
+                                    '30% Aura + 4 Reações → CA dobrada por 2 rodadas. Pode triplicar gastando o dobro.',
+                                    'TEN Maestria + REN Maestria', ten>=3 && ren>=3)}
+                                ${advancedCard('ko','KO — Endurecer','🔥','Toda aura em um ponto. 30% Aura → dano ×3, CA −80%.',
+                                    '30% Aura → triplica dano, mas CA cai 80% até próximo turno.',
+                                    'REN Maestria + ZETSU Maestria + TEN 1', ren>=3 && zetsu>=3 && ten>=1)}
+                                ${advancedCard('ryu','RYU — Fluir','🌊','Maestria total em tempo real. 30% Aura.',
+                                    '30% Aura → múltiplos contra-ataques, +3 CA e Ataque por 3 turnos.',
+                                    'TEN + REN + ZETSU Maestria', ten>=3 && ren>=3 && zetsu>=3)}
                             </div>`;
                         })()}
 
@@ -3944,7 +4304,7 @@ function renderCard(item, color) {
             const v = state.currentChar.vitals;
             const char = state.currentChar;
 
-            if (type === 'pv') v.hp += delta;
+            if (type === 'pv') v.hp = Math.min(v.hpMax || v.hp, v.hp + delta);
             if (type === 'aura') v.aura += delta;
             if (type === 'rea') { if (v.rea === undefined) v.rea = 7 + getMod(char.attributes.SAB.value); v.rea += delta; }
             if (type === 'san') {
@@ -4233,7 +4593,12 @@ function renderHatsuDetail(container) {
     const allEDB = [];
     if (window.HATSU_DB) {
         (window.HATSU_DB.efeitos_gerais||[]).forEach(e => allEDB.push({...e, origem:'geral'}));
-        if (catDB.efeitos) catDB.efeitos.forEach(e => allEDB.push({...e, origem:'categoria'}));
+        // Include ALL categories so cross-category effects are found
+        Object.values(window.HATSU_DB.categorias||{}).forEach(cat => {
+            if (cat && cat.efeitos) cat.efeitos.forEach(e => {
+                if (!allEDB.find(x=>x.id===e.id)) allEDB.push({...e, origem:'categoria'});
+            });
+        });
     }
 
     const restricoesSel = (h.restricoes||[]).map(id => allRDB.find(r=>r.id===id)).filter(Boolean);
@@ -4260,16 +4625,26 @@ function renderHatsuDetail(container) {
         'rg_l7':  1,  // "Diálogo" → +1 Grau/Passo Dano
         'rg_m1':  2,  // Alvo Único em Combate → +2 Grau/Passo Dano
         'rg_m13': 2,  // Zetsu Protetivo → +2 Grau/Passo (inclui dano)
+        'rg_p9':  3,  // Perda de Membros → +3 grau de potência
         'rg_v2':  1,  // Canalizar com Concentração → +X (mín 1)
         // Restrições de categoria
         'ri_l1':  1,  // PV < 75% → +1 grau/passo dano
         'rt_m1':  2,  // Dor Reflexiva Elemental → +2 Graus
         // Efeitos gerais com dano
+        'eg7':    1,  // Poder Valioso → +1 Grau de potência
         'eg10':   0,  // Flagelo da Mente → dano psíquico fixo 1d8 (tratado à parte)
         'eg15':   1,  // Dano/Cura Focal → +1 grau/passo
         // Efeitos de Intensificação (graus de dano)
         'ri_e1':  1,'ri_e2': 1,'ri_e3': 2,'ri_e4': 2,'ri_e6': 1,'ri_e8': 2,'ri_e10': 2,
         'ri_e12': 3,'ri_e16': 2,'ri_e20': 3,'ri_e22': 3,'ri_e24': 4,'ri_e26': 4,'ri_e30': 5,
+    };
+
+    // +1 DADO: aumenta a QUANTIDADE de dados (ex: 2d6 → 3d6), aplicado ANTES dos graus
+    // "o maior" = usa o maior dado atual; "o menor" = usa 1 dado do mesmo tipo
+    const DANO_DADO_MAP = {
+        'rg_l16': { n: 1, tipo: 'maior' }, // Tempo de Carregamento
+        'rg_l11': { n: 1, tipo: 'menor' }, // Limitação de Alvos
+        'rt_m3':  { n: 1, tipo: 'maior' }, // Condição no Usuário (Transmutação)
     };
 
     // Efeitos que CONCEDEM dano próprio (tornam o hatsu "com dano" independente do tipo)
@@ -4290,10 +4665,14 @@ function renderHatsuDetail(container) {
     };
 
     // Tipos e categorias que têm dano base (2d6 + attr)
+    // h.tipo pode ser combinado ex: "hostil+instantaneo" — split para checar cada parte
     const tipoTemDano = ['hostil','versatil','instantaneo'];
+    const tiposParts  = (h.tipo||'').split('+').map(t => t.trim());
+    const isHostil    = tiposParts.some(t => tipoTemDano.includes(t));
     const catTemDano  = ['INTENSIFICAÇÃO','REFORÇO','TRANSMUTAÇÃO','EMISSÃO'];
-    const isHostil    = tipoTemDano.includes(h.tipo);
-    const catDmg      = catTemDano.some(c => c === (h.classe||char.class));
+    // h.classe é a categoria cross-category do hatsu (ex: EMISSÃO comprada por manipulador)
+    const hatsuClasse = h.classe || char.class;
+    const catDmg      = catTemDano.some(c => c === hatsuClasse);
 
     // Verifica se algum efeito selecionado concede dano próprio
     const efeitosComDanoProprio = efeitosSel.filter(e => DANO_PROPRIO_MAP[e.id] && e.id !== 'eg10');
@@ -4330,11 +4709,27 @@ function renderHatsuDetail(container) {
     let totalGraus = 0;
     const grauSources = [];
     [...restricoesSel, ...efeitosSel].forEach(item => {
-        const g = DANO_GRAU_MAP[item.id];
-        if (g && g > 0) {
-            totalGraus += g;
-            grauSources.push({ nome: item.nome, graus: g });
+        let g = DANO_GRAU_MAP[item.id];
+        if (!g || g <= 0) return;
+        // rg_l16 agora é DADO, não grau — tratado abaixo
+        if (item.id === 'rg_l16') return;
+        totalGraus += g;
+        grauSources.push({ nome: item.nome, graus: g });
+    });
+
+    // +1 Dado: acumula dados extras (ex: 2d6 → 3d6)
+    let totalDados = 0;
+    const dadoSources = [];
+    [...restricoesSel, ...efeitosSel].forEach(item => {
+        const d = DANO_DADO_MAP[item.id];
+        if (!d) return;
+        // rg_l16: só conta se beneficioChoice foi "dano"
+        if (item.id === 'rg_l16') {
+            const bc = (h.beneficioChoices||{})['rg_l16'] || '';
+            if (!bc.toLowerCase().includes('dano')) return;
         }
+        totalDados += d.n;
+        dadoSources.push({ nome: item.nome, n: d.n, tipo: d.tipo });
     });
 
     // Bônus de Talento aplicado a este hatsu
@@ -4351,31 +4746,75 @@ function renderHatsuDetail(container) {
         'MATERIALIZAÇÃO':'INT',
         'ESPECIALIZAÇÃO':'PRE',
     };
-    let baseAttr = attrMap[h.classe||char.class] || 'FOR';
-    if ((h.classe||char.class) === 'MANIPULAÇÃO') {
-        const hasCSO = (h.efeitos||[]).includes('ma_e1'); // Controle Simples de Objetos
-        const hasCSC = (h.efeitos||[]).includes('ma_e2'); // Controle Simples de Criaturas
-        // If both: default to PRE (creature manipulation is dominant)
-        // If only CSO with no CSC: INT
-        baseAttr = (hasCSO && !hasCSC) ? 'INT' : 'PRE';
+
+    // Detect if attack is ranged (has emission effects or ranged attack)
+    const isRanged = (h.efeitos||[]).some(id => ['em_e1','em_e3','em_e6','em_e9','em_e2','em_e14'].includes(id));
+    // Player-chosen modifier (stored in h.dmgMod); default by category/range
+    let defaultAttr = attrMap[hatsuClasse] || 'FOR';
+    if (hatsuClasse === 'MANIPULAÇÃO') {
+        const hasCSO = (h.efeitos||[]).includes('ma_e1');
+        const hasCSC = (h.efeitos||[]).includes('ma_e2');
+        defaultAttr = (hasCSO && !hasCSC) ? 'INT' : 'PRE';
     }
+    if (isRanged && !['EMISSÃO','TRANSMUTAÇÃO'].includes(hatsuClasse)) defaultAttr = 'DES';
+    const baseAttr = h.dmgMod || defaultAttr;
+
+    // Modifier picker — shown when hatsu has base damage
+    const modPickerAttrs = isRanged ? ['DES','INT'] : ['FOR','DES'];
+    const modPickerHtml = hasBaseDmg ? `<div style="margin-bottom:10px">
+        <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">⚔️ Modificador do Ataque</div>
+        <div style="display:flex;gap:6px">
+            ${modPickerAttrs.map(a => {
+                const active = baseAttr === a;
+                const mod = getMod(char.attributes?.[a]?.value || 10);
+                return `<button onclick="state.currentChar.hatsus[${idx}].dmgMod='${a}';saveCharacter(state.currentChar);renderHatsuInPlace()"
+                    style="flex:1;padding:8px;border-radius:9px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid ${active?tc:'#1f2937'};background:${active?tc+'22':'transparent'};color:${active?tc:'#6b7280'};transition:all .15s">
+                    ${a} <span style="font-size:8px;opacity:.8">(${mod>=0?'+'+mod:mod})</span>
+                </button>`;
+            }).join('')}
+            ${!modPickerAttrs.includes(baseAttr) ? `<button onclick="void(0)"
+                style="padding:8px;border-radius:9px;font-size:9px;font-weight:900;border:1.5px solid ${tc};background:${tc}22;color:${tc}">
+                ${baseAttr} ✓
+            </button>` : ''}
+        </div>
+    </div>` : '';
 
     let calcDanoHtml = '';
     if (hasBaseDmg) {
         const danoColor = totalGraus > 0 ? '#f87171' : '#d1d5db';
         const grauDelta = totalGraus > 0 ? `+${totalGraus}` : totalGraus < 0 ? `${totalGraus}` : '';
 
-        // Bloco de dano base (2d6 escalado)
+        // Bloco de dano base (2d6 escalado) — aparece quando hostil/catDmg (sem efeito próprio de dano)
         let baseDmgSection = '';
         if (isHostil || catDmg) {
-            const finalIdx = Math.min(BASE_DAMAGE_IDX + totalGraus, DAMAGE_TABLE.length - 1);
-            const finalDice = DAMAGE_TABLE[finalIdx];
+            // Step 1: apply +dado (ex: 2d6 → 3d6)
+            let baseIdx = BASE_DAMAGE_IDX; // 2d6
+            let afterDadoNote = '';
+            if (totalDados > 0) {
+                // Parse current base dice: "2d6" → n=2, d=6
+                const baseMatch = DAMAGE_TABLE[baseIdx].match(/^(\d+)d(\d+)$/);
+                if (baseMatch) {
+                    const n = parseInt(baseMatch[1]) + totalDados;
+                    const d = parseInt(baseMatch[2]);
+                    // Find this new dice in the table or construct string
+                    const newDice = n + 'd' + d;
+                    const foundIdx = DAMAGE_TABLE.indexOf(newDice);
+                    if (foundIdx >= 0) baseIdx = foundIdx;
+                    else { baseIdx = BASE_DAMAGE_IDX; afterDadoNote = newDice; } // use constructed string
+                    if (!afterDadoNote) afterDadoNote = '';
+                }
+            }
+            // Step 2: apply graus on top
+            const finalIdx = Math.min(baseIdx + totalGraus, DAMAGE_TABLE.length - 1);
+            const finalDice = afterDadoNote && totalGraus === 0 ? afterDadoNote : DAMAGE_TABLE[Math.max(0, finalIdx)];
+            const baseNote = (totalDados > 0 || totalGraus > 0) ? `(base 2d6)` : '';
             baseDmgSection = `
                 <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:6px">
                     <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:26px;color:${danoColor};text-shadow:0 0 14px ${danoColor}66;line-height:1">${finalDice}</div>
                     <div style="font-size:14px;font-weight:700;color:#6b7280">+ ${baseAttr}</div>
-                    ${totalGraus > 0 ? `<div style="font-size:9px;color:#4b5563;font-style:italic">(base 2d6)</div>` : ''}
-                </div>`;
+                    ${baseNote ? `<div style="font-size:9px;color:#4b5563;font-style:italic">${baseNote}</div>` : ''}
+                </div>
+                ${totalDados > 0 ? `<div style="font-size:8px;color:#fbbf24;margin-bottom:4px">${dadoSources.map(s=>`• ${s.nome}: +${s.n} dado (${s.tipo})`).join(', ')}</div>` : ''}`;
         }
 
         // Danos extras de efeitos próprios
@@ -4407,18 +4846,30 @@ function renderHatsuDetail(container) {
             if (!d) return;
             const typeColors = { 'Projétil':'#38bdf8','Potente':'#38bdf8','Linha':'#38bdf8','Área':'#f87171','Objeto':'#a3e635','Corporal':'#a3e635','Extra':'#fb923c','Bloquear':'#fb923c','Contínuo':'#f43f5e','Ferida':'#f43f5e' };
             const ec = typeColors[d.tipo] || '#9ca3af';
+            // If this is the only damage source (no base), scale it with totalGraus
+            let displayDado = d.dado;
+            if (!isHostil && !catDmg && totalGraus > 0) {
+                // Find base index from dado string (e.g. "1d8" → idx 2)
+                const baseIdx = DAMAGE_TABLE.indexOf(d.dado);
+                if (baseIdx >= 0) {
+                    const scaledIdx = Math.min(baseIdx + totalGraus, DAMAGE_TABLE.length - 1);
+                    displayDado = DAMAGE_TABLE[scaledIdx];
+                }
+            }
             extraDmgSection += `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
-                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:${ec}">${d.dado}</span>
+                <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:16px;color:${ec}">${displayDado}</span>
                 <span style="font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;background:${ec}22;color:${ec}">${d.tipo}</span>
-                <span style="font-size:9px;color:#4b5563">${d.desc}</span>
+                <span style="font-size:9px;color:#4b5563">${d.desc}${!isHostil && !catDmg && totalGraus > 0 ? ` (+${totalGraus} grau)` : ''}</span>
+                <span style="font-size:9px;color:#6b7280">+ ${baseAttr}</span>
             </div>`;
         });
 
-        // Chips de fontes de grau
-        const sourcesHtml = grauSources.length > 0
-            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">${grauSources.map(s =>
-                `<span style="font-size:7px;font-weight:900;background:#ef444418;color:#f87171;padding:2px 6px;border-radius:4px">+${s.graus} grau · ${s.nome}</span>`
-              ).join('')}</div>`
+        // Chips de fontes de grau e dado
+        const sourcesHtml = (grauSources.length > 0 || dadoSources.length > 0)
+            ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+                ${dadoSources.map(s => `<span style="font-size:7px;font-weight:900;background:#fbbf2418;color:#fbbf24;padding:2px 6px;border-radius:4px">+${s.n} dado · ${s.nome}</span>`).join('')}
+                ${grauSources.map(s => `<span style="font-size:7px;font-weight:900;background:#ef444418;color:#f87171;padding:2px 6px;border-radius:4px">+${s.graus} grau · ${s.nome}</span>`).join('')}
+              </div>`
             : '';
 
         calcDanoHtml = `<div style="margin-top:12px;padding-top:12px;border-top:1px solid #1f2937">
@@ -4426,6 +4877,7 @@ function renderHatsuDetail(container) {
                 <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;letter-spacing:1px">💥 Dano Final</div>
                 ${grauDelta ? `<span style="font-size:7px;font-weight:900;padding:2px 8px;border-radius:10px;background:#ef444422;color:#f87171">${grauDelta} grau${Math.abs(totalGraus)!==1?'s':''}</span>` : ''}
             </div>
+            ${modPickerHtml}
             ${baseDmgSection}
             ${extraDmgSection}
             ${sourcesHtml}
@@ -5322,6 +5774,74 @@ function closeHatsuCreator() {
             document.getElementById('san-dmg-input')?.closest('div[style*=fixed]')?.remove();
             if (effective > 0) updateVital('san', -effective);
             else { saveCharacter(char); render(true); }
+        };
+
+        window._activatePrincipio = function(key, custo) {
+            const char = state.currentChar;
+            const d = char.nenDominio || {};
+            const aura = char.vitals.aura || 0;
+            if (custo > 0 && aura < custo) {
+                alert('Aura insuficiente! Necessário: ' + custo + '% — disponível: ' + aura + '%');
+                return;
+            }
+
+            // Deduct aura
+            if (custo > 0) {
+                char.vitals.aura = Math.max(0, aura - custo);
+            }
+
+            // Effect messages per principle
+            const nivel = d[key] || 1;
+            const EFEITOS = {
+                ten:  ['🛡️ TEN ativado — +2 RD (Corte, Impacto, Explosão) por esta reação.',
+                        '🛡️ TEN ativado — +4 RD. Imune a projéteis que igualem CA.',
+                        '🛡️ TEN ativado — +6 RD. Máxima proteção.'],
+                ren:  ['💪 REN ativado — próximo ataque no turno: +1 Grau de dano.',
+                        '💪 REN ativado — +1 Grau de dano e +3 em Intimidação/Arcanismo com REN.',
+                        '💪 REN ativado — Intermediário + pode usar 1×/dia sem custo de aura.'],
+                zetsu:['👁️ ZETSU ativado — aguarde 3 rodadas: +5% Aura, +1 Reação, +3 Furtividade.',
+                        '👁️ ZETSU ativado — aguarde 2 rodadas: +10% Aura, +1 Reação, +3 Furtividade.',
+                        '👁️ ZETSU ativado — aguarde 1 rodada: +10% Aura, +2 Reações, +6 Furtividade.'],
+                en:   ['🔵 EN ativado — detecta forma e movimento em 3m por 1 rodada. Ataque de reação vs quem entrar.'],
+                inp:  ['🌑 IN ativado — objeto de aura oculto até próximo turno.'],
+                gyo:  ['👁️ GYO ativado — visão de aura e objetos ocultos (ou +3 FOR/DES/CON por 1 rodada se corporal).'],
+                shu:  ['⚡ SHU ativado — objeto envolto: +1d4 Dano e CA por 1 rodada. Golpe mirado sem ônus.'],
+                ken:  ['🏰 KEN ativado — CA dobrada por 2 rodadas. Consome 4 Reações.'],
+                ko:   ['🔥 KO ativado — próximo golpe: dano ×3. ATENÇÃO: CA reduzida em 80% até próximo turno!'],
+                ryu:  ['🌊 RYU ativado — +3 CA e Ataque por 3 turnos. Múltiplos contra-ataques permitidos.'],
+            };
+            const msgs = EFEITOS[key];
+            const msg = msgs ? (msgs[nivel-1] || msgs[msgs.length-1]) : 'Princípio ativado.';
+
+            saveCharacter(char);
+            render(true);
+
+            // Show effect toast
+            const toast = document.createElement('div');
+            toast.style.cssText = 'position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#0d1117;border:2px solid #a78bfa;border-radius:14px;padding:14px 20px;z-index:9999;font-family:Rajdhani,sans-serif;max-width:320px;text-align:center;box-shadow:0 0 30px #a78bfa44;animation:fadeIn .2s';
+            toast.innerHTML = '<div style="font-size:12px;color:#e5e7eb;font-weight:700;line-height:1.5">' + msg + '</div>'
+                + (custo > 0 ? '<div style="font-size:9px;color:#6b7280;margin-top:4px">−' + custo + '% Aura</div>' : '');
+            document.body.appendChild(toast);
+            setTimeout(() => { toast.style.opacity='0'; toast.style.transition='opacity .4s'; setTimeout(()=>toast.remove(),400); }, 3000);
+        };
+
+        window._manualSync = async function() {
+            if (!state.user) return;
+            const badge = document.getElementById('sync-status-badge');
+            if (badge) { badge.textContent = '⟳ Sincronizando...'; badge.style.background = '#fbbf2422'; badge.style.color = '#fbbf24'; }
+
+            // If no API key configured, prompt
+            const currentKey = localStorage.getItem('hxhrpg_jsonbin_key') || '';
+            if (!currentKey || currentKey.includes('PLACEHOLDER')) {
+                const key = prompt('Cole sua chave API do JSONBin.io aqui.\n\n1. Acesse jsonbin.io\n2. Crie conta grátis\n3. Vá em API Keys → crie uma Master Key\n4. Cole aqui:');
+                if (!key || !key.trim()) { if (badge) { badge.textContent = '✗ Cancelado'; badge.style.background = '#ef444422'; badge.style.color = '#ef4444'; } return; }
+                localStorage.setItem('hxhrpg_jsonbin_key', key.trim());
+            }
+
+            await syncFromCloud();
+            loadCharacters();
+            render(true);
+            if (badge) { badge.textContent = '✓ Sincronizado'; badge.style.background = '#4ade8022'; badge.style.color = '#4ade80'; }
         };
 
         window._resolveCondition = function(idx) {
