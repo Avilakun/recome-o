@@ -1377,8 +1377,8 @@ window.calcAuraCost = function(hb) {
         custo -= eg8Reducao;
     }
 
-    // rg_p8: Local/Condição Específica — reduz à metade (mínimo 10%)
-    if (allR.includes('rg_p8')) custo = Math.max(10, Math.floor(custo / 2));
+    // rg_p8: Local/Condição Específica — reduz à metade (mínimo 5%)
+    if (allR.includes('rg_p8')) custo = Math.max(5, Math.floor(custo / 2));
 
     // Garante mínimo de 10%
     custo = Math.max(10, custo);
@@ -2398,10 +2398,19 @@ function renderHatsuCreator(container) {
             pureRestr[id] && (allRDB_check.find(r => r.id === id) || {}).peso === 'extrema'
         );
 
-        // Parses a req string and returns { ok: bool, reason: string }
+        // Parses a req string and returns { ok: bool, reason: string, bypassedByReforco: bool }
         function checkReq(req) {
-            if (!req || kamikazeActive) return { ok: true, reason: '' };
+            if (!req || kamikazeActive) return { ok: true, reason: '', bypassedByReforco: false };
             const reasons = [];
+
+            // "Acesso a Reforço" — satisfied if char is REFORÇO/INTENSIFICAÇÃO or has access via affinity
+            if (/acesso\s+a\s+refor[çc]o/i.test(req)) {
+                const REFORCO_CLASSES = ['REFORÇO','INTENSIFICAÇÃO'];
+                const hasReforcoAccess = REFORCO_CLASSES.includes(char.class) ||
+                    (window.CATEGORY_AFFINITY && window.CATEGORY_AFFINITY[char.class] &&
+                     (window.CATEGORY_AFFINITY[char.class]['REFORÇO'] || window.CATEGORY_AFFINITY[char.class]['INTENSIFICAÇÃO']));
+                if (hasReforcoAccess) return { ok: true, reason: '', bypassedByReforco: true }; // bypass level cap too
+            }
 
             // Nível X — but if maxLevelOverride is set, use that as the effective cap
             const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
@@ -2437,7 +2446,7 @@ function renderHatsuCreator(container) {
                 }
             }
 
-            return { ok: reasons.length === 0, reason: reasons.join(' • ') };
+            return { ok: reasons.length === 0, reason: reasons.join(' • '), bypassedByReforco: false };
         }
 
         return items.filter(item => {
@@ -2461,11 +2470,11 @@ function renderHatsuCreator(container) {
         }).map(item => {
             const sel = arr.includes(item.id);
             const afford = pnLeft >= item.pn || sel;
-            const { ok: reqOk, reason: reqReason } = checkReq(item.req);
+            const { ok: reqOk, reason: reqReason, bypassedByReforco } = checkReq(item.req);
 
-            // Cross-category level cap check
+            // Cross-category level cap check — skipped if "Acesso a Reforço" was the bypass reason
             let levelCapBlocked = false, levelCapReason = '';
-            if (maxLevelOverride !== undefined && maxLevelOverride !== null) {
+            if (!bypassedByReforco && maxLevelOverride !== undefined && maxLevelOverride !== null) {
                 const itemLvlMatch = (item.req || '').match(/N[ií]vel\s+(\d+)/i);
                 const itemLevel = itemLvlMatch ? parseInt(itemLvlMatch[1]) : 1;
                 if (itemLevel > maxLevelOverride) {
@@ -3559,8 +3568,20 @@ window._hToggleE = function(id, tipo, pn) {
                 const charLevel = parseInt(char.level) || 0;
                 const getMod = v => Math.floor(((v||10) - 10) / 2);
                 const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
-                const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
-                if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
+
+                // "Acesso a Reforço" bypass — skip level check entirely
+                let bypassedByReforco = false;
+                if (/acesso\s+a\s+refor[çc]o/i.test(req)) {
+                    const REFORCO_CLASSES = ['REFORÇO','INTENSIFICAÇÃO'];
+                    bypassedByReforco = REFORCO_CLASSES.includes(char.class) ||
+                        (window.CATEGORY_AFFINITY && window.CATEGORY_AFFINITY[char.class] &&
+                         (window.CATEGORY_AFFINITY[char.class]['REFORÇO'] || window.CATEGORY_AFFINITY[char.class]['INTENSIFICAÇÃO']));
+                }
+
+                if (!bypassedByReforco) {
+                    const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
+                    if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
+                }
                 // "ATTR ou ATTR X+"
                 const orAttrPat = /\b(FOR|DES|CON|INT|SAB|PRE)\s+ou\s+(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
                 let om; const handledByOr = new Set();
@@ -5020,22 +5041,22 @@ function renderHatsuDetail(container) {
     const baseAttr = h.dmgMod || defaultAttr;
 
     // Modifier picker — shown when hatsu has base damage
-    // Shows all 6 attributes; highlights the active one; default is pre-selected
-    const ALL_ATTRS = ['FOR','DES','CON','INT','SAB','PRE'];
-    const modPickerHtml = hasBaseDmg ? `<div style="margin-bottom:12px">
+    const modPickerAttrs = isRanged ? ['DES','INT'] : ['FOR','DES'];
+    const modPickerHtml = hasBaseDmg ? `<div style="margin-bottom:10px">
         <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;letter-spacing:1px;margin-bottom:6px">⚔️ Modificador do Ataque</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px">
-            ${ALL_ATTRS.map(a => {
+        <div style="display:flex;gap:6px">
+            ${modPickerAttrs.map(a => {
                 const active = baseAttr === a;
                 const mod = getMod(char.attributes?.[a]?.value || 10);
-                const isDefault = a === defaultAttr;
-                return `<button onclick="state.currentChar.hatsus[${idx}].dmgMod='${a}';saveCharacter(state.currentChar);renderHatsuDetailInPlace()"
-                    style="padding:7px 4px;border-radius:9px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid ${active ? tc : '#1f2937'};background:${active ? tc+'22' : 'transparent'};color:${active ? tc : '#6b7280'};transition:all .15s;position:relative;text-align:center">
-                    ${a} <span style="font-size:8px;opacity:.8">(${mod >= 0 ? '+' + mod : mod})</span>
-                    ${isDefault && !active ? `<span style="position:absolute;top:-4px;right:-2px;font-size:6px;background:#374151;color:#9ca3af;border-radius:3px;padding:1px 3px">padrão</span>` : ''}
-                    ${active ? `<span style="position:absolute;top:-4px;right:-2px;font-size:6px;background:${tc}33;color:${tc};border-radius:3px;padding:1px 3px">✓</span>` : ''}
+                return `<button onclick="state.currentChar.hatsus[${idx}].dmgMod='${a}';saveCharacter(state.currentChar);renderHatsuInPlace()"
+                    style="flex:1;padding:8px;border-radius:9px;font-size:9px;font-weight:900;cursor:pointer;border:1.5px solid ${active?tc:'#1f2937'};background:${active?tc+'22':'transparent'};color:${active?tc:'#6b7280'};transition:all .15s">
+                    ${a} <span style="font-size:8px;opacity:.8">(${mod>=0?'+'+mod:mod})</span>
                 </button>`;
             }).join('')}
+            ${!modPickerAttrs.includes(baseAttr) ? `<button onclick="void(0)"
+                style="padding:8px;border-radius:9px;font-size:9px;font-weight:900;border:1.5px solid ${tc};background:${tc}22;color:${tc}">
+                ${baseAttr} ✓
+            </button>` : ''}
         </div>
     </div>` : '';
 
@@ -5553,14 +5574,6 @@ function openHatsuDetail(idx) {
     state.hatsuDetailIdx = idx;
     state.view = 'HATSU_DETAIL';
     render();
-}
-
-// Re-renders only the hatsu detail panel in-place (without full page re-render)
-function renderHatsuDetailInPlace() {
-    const app = document.getElementById('app');
-    if (!app) { render(true); return; }
-    renderHatsuDetail(app);
-    if (window.lucide) lucide.createIcons();
 }
 
 function openHatsuEdit(idx) {
