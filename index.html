@@ -651,7 +651,9 @@
             bioAccordionOpen: null, // Novo estado para a aba BIO
             // Auth State
             user: null,
-            authorized: false
+            authorized: false,
+            attackModal: null, // { nome, dano, tipoDano }
+            pendingRoll: null  // { type, a1, a2, a3 } — aguardando escolha de modo
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -2440,7 +2442,7 @@ function renderHatsuCreator(container) {
 
         // Parses a req string and returns { ok: bool, reason: string, bypassedByReforco: bool }
         function checkReq(req) {
-            if (!req || kamikazeActive) return { ok: true, reason: '', bypassedByReforco: false };
+            if (!req) return { ok: true, reason: '', bypassedByReforco: false };
             const reasons = [];
 
             // "Acesso a Reforço" — satisfied if char is REFORÇO/INTENSIFICAÇÃO or has access via affinity
@@ -2452,12 +2454,15 @@ function renderHatsuCreator(container) {
                 if (hasReforcoAccess) return { ok: true, reason: '', bypassedByReforco: true }; // bypass level cap too
             }
 
-            // Nível X — but if maxLevelOverride is set, use that as the effective cap
+            // Nível X — sempre verificado, mesmo com Kamikaze ativo
             const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
             if (lvlMatch) {
                 const needed = parseInt(lvlMatch[1]);
                 if (charLevel < needed) reasons.push(`Nível ${needed} (você está no Nível ${charLevel})`);
             }
+
+            // Kamikaze ignora todos os outros requisitos (atributos, pré-requisitos de efeitos), mas não o nível
+            if (kamikazeActive) return { ok: reasons.length === 0, reason: reasons.join(' • '), bypassedByReforco: false };
 
             // Handle "ATTR ou ATTR X+" pattern (e.g. "INT ou SAB 3+", "SAB ou INT 3+")
             // Must be checked BEFORE the generic per-attr pattern to avoid double-counting
@@ -3649,6 +3654,15 @@ window._hAddDuplicateE = function(id, tipo, pn) {
     });
     const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
     const arr = tipo === 'eg' ? hb.eg : hb.ec;
+    // Guarda final: efeitos de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+    if (tipo === 'ec') {
+        const _espCatDB2 = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
+        const _espEfIds2 = new Set((_espCatDB2 && _espCatDB2.efeitos || []).map(e => e.id));
+        if (_espEfIds2.has(id)) {
+            const _charCls2 = state.currentChar && state.currentChar.class;
+            if (_charCls2 !== 'MANIPULAÇÃO' && _charCls2 !== 'MATERIALIZAÇÃO') return;
+        }
+    }
     arr.push(id);
     renderHatsuInPlace();
 };
@@ -3699,6 +3713,15 @@ window._hToggleR = function(id, tipo) {
         // Remove benefício escolhido ao desselecionar
         if (hb.beneficioChoices) delete hb.beneficioChoices[id];
     } else {
+        // Guarda final: restrições de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+        if (tipo === 'rc') {
+            const _espCatR = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
+            const _espRIds = new Set((_espCatR && _espCatR.restricoes || []).map(r => r.id));
+            if (_espRIds.has(id)) {
+                const _charClsR = state.currentChar && state.currentChar.class;
+                if (_charClsR !== 'MANIPULAÇÃO' && _charClsR !== 'MATERIALIZAÇÃO') return;
+            }
+        }
         arr.push(id);
         // Verifica se tem benefício alternativo (bnf com " OU ")
         const allRDB = [];
@@ -3745,25 +3768,28 @@ window._hToggleE = function(id, tipo, pn) {
         const item = allEDB.find(e => e.id === id);
         if (item && item.req) {
             const kamikazeActive = (hb.rg||[]).includes('rg_e6');
+            const req = item.req;
+            const charLevel = parseInt(char.level) || 0;
+            const getMod = v => Math.floor(((v||10) - 10) / 2);
+            const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
+
+            // "Acesso a Reforço" bypass — skip level check entirely
+            let bypassedByReforco = false;
+            if (/acesso\s+a\s+refor[çc]o/i.test(req)) {
+                const REFORCO_CLASSES = ['REFORÇO','INTENSIFICAÇÃO'];
+                bypassedByReforco = REFORCO_CLASSES.includes(char.class) ||
+                    (window.CATEGORY_AFFINITY && window.CATEGORY_AFFINITY[char.class] &&
+                     (window.CATEGORY_AFFINITY[char.class]['REFORÇO'] || window.CATEGORY_AFFINITY[char.class]['INTENSIFICAÇÃO']));
+            }
+
+            // Nível sempre verificado (mesmo com Kamikaze)
+            if (!bypassedByReforco) {
+                const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
+                if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
+            }
+
+            // Kamikaze ignora atributos e pré-requisitos de efeitos, mas não o nível (já verificado acima)
             if (!kamikazeActive) {
-                const req = item.req;
-                const charLevel = parseInt(char.level) || 0;
-                const getMod = v => Math.floor(((v||10) - 10) / 2);
-                const attrMod = k => getMod(char.attributes && char.attributes[k] ? char.attributes[k].value : 10);
-
-                // "Acesso a Reforço" bypass — skip level check entirely
-                let bypassedByReforco = false;
-                if (/acesso\s+a\s+refor[çc]o/i.test(req)) {
-                    const REFORCO_CLASSES = ['REFORÇO','INTENSIFICAÇÃO'];
-                    bypassedByReforco = REFORCO_CLASSES.includes(char.class) ||
-                        (window.CATEGORY_AFFINITY && window.CATEGORY_AFFINITY[char.class] &&
-                         (window.CATEGORY_AFFINITY[char.class]['REFORÇO'] || window.CATEGORY_AFFINITY[char.class]['INTENSIFICAÇÃO']));
-                }
-
-                if (!bypassedByReforco) {
-                    const lvlMatch = req.match(/N[ií]vel\s+(\d+)/i);
-                    if (lvlMatch && charLevel < parseInt(lvlMatch[1])) return;
-                }
                 // "ATTR ou ATTR X+"
                 const orAttrPat = /\b(FOR|DES|CON|INT|SAB|PRE)\s+ou\s+(FOR|DES|CON|INT|SAB|PRE)\s+(\d+)\+/gi;
                 let om; const handledByOr = new Set();
@@ -3796,6 +3822,15 @@ window._hToggleE = function(id, tipo, pn) {
             }
         });
         const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
+        // Guarda final: efeitos de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+        if (tipo === 'ec') {
+            const _espCatDB = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
+            const _espEfIds = new Set((_espCatDB && _espCatDB.efeitos || []).map(e => e.id));
+            if (_espEfIds.has(id)) {
+                const _charCls = state.currentChar && state.currentChar.class;
+                if (_charCls !== 'MANIPULAÇÃO' && _charCls !== 'MATERIALIZAÇÃO') return;
+            }
+        }
         arr.push(id);
     }
     renderHatsuInPlace();
@@ -4177,8 +4212,8 @@ function renderCard(item, color) {
                 const sanPct = Math.round((char.vitals.san / char.vitals.sanMax) * 100);
                 const sanColor = sanPct >= 90 ? 'text-green-400' : sanPct >= 75 ? 'text-yellow-400' : sanPct >= 50 ? 'text-orange-400' : 'text-purple-400';
                 const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, sanColor, 'bg-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>${rdmVal > 0 ? `<div class="flex items-center justify-center gap-2 text-[9px] text-blue-400 font-bold pb-2 border-b border-gray-800 mb-2"><span>🛡️ RDM (Resist. Mental)</span><span class="font-display text-sm">−${rdmVal}</span></div>` : ''}`;
-                const rollModesHtml = `<div class="bg-gray-900/80 p-1 rounded-xl flex border border-gray-800 mx-4 mb-4">${rollModeBtn('NORMAL')}${rollModeBtn('VANTAGEM')}${rollModeBtn('DESVANTAGEM')}${rollModeBtn('ÊNFASE')}</div>`;
-                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="rollSkill('${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="rollDice('${key}', ${mod}); toggleAttrPopup(null)" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
+                const rollModesHtml = ''; // removido — modo é escolhido por rolagem via modal
+                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="openRollModeModal('skill', '${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="toggleAttrPopup(null); openRollModeModal('dice', '${key}', ${mod})" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
                 tabContent = `${infoGridHtml}${vitalsGridHtml}${(() => {
                     // Active Nen principles quick-use buttons
                     const d = char.nenDominio || {};
@@ -4236,7 +4271,54 @@ function renderCard(item, color) {
                         <div style="font-size:7px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">🔮 Princípios de NEN</div>
                         <div style="display:flex;gap:4px;flex-wrap:wrap">${btns}</div>
                     </div>`;
-                })()}${rollModesHtml}${attributesHtml}`;
+                })()}${rollModesHtml}${attributesHtml}${(() => {
+                    // ── Seção de Ataques ──────────────────────────────────────
+                    const weapons = (char.inventory || []).map(item => {
+                        const data = findItemData(item.name);
+                        if (!data || !data.dano || data.dano === '-' || data.dano.startsWith('+')) return null;
+                        return { nome: item.name, dano: data.dano, tipoDano: data.tipo_dano || '', tags: data.tags || [] };
+                    }).filter(Boolean);
+                    const attacksList = [{ nome: 'Ataque Desarmado', dano: '1d4', tipoDano: 'Impacto', tags: [] }, ...weapons];
+                    const rows = attacksList.map(w => {
+                        const tagsHtml = (w.tags || []).slice(0, 2).map(t => `<span style="font-size:7px;background:#111827;color:#6b7280;padding:1px 5px;border-radius:3px;border:1px solid #1f2937">${t}</span>`).join('');
+                        const safeNome = w.nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                        const safeDano = w.dano.replace(/'/g, "\\'");
+                        const safeTipo = (w.tipoDano || '').replace(/'/g, "\\'");
+                        return `<div style="display:flex;align-items:center;gap:8px;background:#0a0f1a;border:1px solid #1f2937;border-radius:10px;padding:8px 10px;margin-bottom:6px">
+                            <div style="flex:1;min-width:0">
+                                <div style="font-size:11px;font-weight:700;color:#e5e7eb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.nome}</div>
+                                <div style="display:flex;gap:3px;margin-top:2px;flex-wrap:wrap">${tagsHtml}</div>
+                            </div>
+                            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:12px;color:#f87171;flex-shrink:0;margin:0 4px">${w.dano}</div>
+                            <button onclick="openAttackModal('${safeNome}','${safeDano}','${safeTipo}')" style="flex-shrink:0;background:#ef444422;border:1px solid #ef444455;color:#f87171;border-radius:8px;padding:6px 10px;font-size:10px;font-weight:900;cursor:pointer;letter-spacing:.5px">⚔️</button>
+                        </div>`;
+                    }).join('');
+                    const weaponsSection = `<div style="margin:0 16px 20px"><div style="font-size:8px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:8px;border-top:1px solid #1f2937;padding-top:12px">⚔️ Ataques</div>${rows}</div>`;
+                    if (!state.attackModal) return weaponsSection;
+                    // ── Modal de escolha FOR/DES ──────────────────────────────
+                    const wm = state.attackModal;
+                    const forMod = getMod((char.attributes.FOR || {}).value || 10);
+                    const desMod = getMod((char.attributes.DES || {}).value || 10);
+                    const pb2 = getProficiencyBonus(char.level);
+                    const safeNome2 = wm.nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+                    const safeDano2 = wm.dano.replace(/'/g, "\\'");
+                    const modalHtml = `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm" onclick="closeAttackModal()">
+                        <div style="background:#0d1117;border:2px solid #ef4444;border-radius:16px;padding:20px;width:80%;max-width:300px;box-shadow:0 0 40px #ef444440" onclick="event.stopPropagation()">
+                            <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">${wm.nome}</div>
+                            <div style="font-size:9px;color:#6b7280;margin-bottom:16px">Dano: <b style="color:#f87171">${wm.dano}</b> ${wm.tipoDano} · Qual modificador usar no ataque?</div>
+                            <div style="display:flex;flex-direction:column;gap:8px">
+                                <button onclick="pickAttackAttr('${safeNome2}','${safeDano2}','FOR')" style="width:100%;padding:13px;border-radius:10px;background:#ef444422;border:1px solid #ef444466;color:#f87171;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;cursor:pointer;text-transform:uppercase;letter-spacing:1px">
+                                    💪 FORÇA (${forMod >= 0 ? '+' : ''}${forMod}) · Ataque ${(forMod + pb2) >= 0 ? '+' : ''}${forMod + pb2}
+                                </button>
+                                <button onclick="pickAttackAttr('${safeNome2}','${safeDano2}','DES')" style="width:100%;padding:13px;border-radius:10px;background:#38bdf822;border:1px solid #38bdf866;color:#38bdf8;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;cursor:pointer;text-transform:uppercase;letter-spacing:1px">
+                                    🌬️ DESTREZA (${desMod >= 0 ? '+' : ''}${desMod}) · Ataque ${(desMod + pb2) >= 0 ? '+' : ''}${desMod + pb2}
+                                </button>
+                            </div>
+                            <button onclick="closeAttackModal()" style="width:100%;margin-top:10px;padding:8px;border-radius:8px;background:transparent;border:1px solid #374151;color:#6b7280;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px">Cancelar</button>
+                        </div>
+                    </div>`;
+                    return weaponsSection + modalHtml;
+                })()}`;
             } else if (state.activeTab === 'BIO') {
                 const bioData = char.bio || {};
                 const sections = [ { id: 'personality', label: 'Personalidade', icon: 'fingerprint' }, { id: 'history', label: 'História', icon: 'scroll' }, { id: 'organizations', label: 'Organizações', icon: 'building-2' }, { id: 'enemies', label: 'Inimigos', icon: 'skull' }, { id: 'allies', label: 'Aliados', icon: 'heart-handshake' } ];
@@ -4667,6 +4749,7 @@ function renderCard(item, color) {
                     ${tabContent}
                 </div>`
                 }
+                ${renderRollModeModalHtml()}
                 <div class="h-auto min-h-[4rem] bg-[#0e0e14] border-t border-gray-800 flex items-center justify-around px-2 relative z-50 pb-safe pt-2">
                     ${renderNavItem('FICHA', 'user', themeColor)}${renderNavItem('BIO', 'contact', themeColor)}${renderNavItem('NEN', 'flame', themeColor)}${renderNavItem('TRACOS', 'dna', themeColor)}${renderNavItem('INV', 'backpack', themeColor)}${renderNavItem('DADOS', 'dices', themeColor)}${renderNavItem('COND', 'brain', themeColor)}
                 </div>
@@ -4727,8 +4810,145 @@ function renderCard(item, color) {
         function selectRace(raceName) { state.tempChar.race = raceName; state.allocations = {}; render(true); }
         function toggleRaceTrait(traitName) { const list = state.tempChar.raceTraits || []; const idx = list.indexOf(traitName); if (idx >= 0) { list.splice(idx, 1); if(state.tempChar.traitDetails && state.tempChar.traitDetails[traitName]) { delete state.tempChar.traitDetails[traitName]; } } else { if (list.length >= 3) { alert("Você só pode escolher até 3 características."); return; } list.push(traitName); } state.tempChar.raceTraits = list; render(true); }
         function toggleCreatorSkill(skill, type = 'main') { const list = type === 'main' ? state.tempChar.skills : state.tempChar.otherSkills; const bgSkillsText = state.tempChar.background ? SYSTEM_DB.antecedentes.find(b => b.nome === state.tempChar.background).proficiencias : ""; const isBgSkill = type === 'main' && bgSkillsText.includes(skill); let limit = type === 'main' ? 5 : 4; if (type === 'other') { if (bgSkillsText.includes("Kit") || bgSkillsText.includes("Ferramenta")) { limit = 5; } } const idx = list.indexOf(skill); if (idx >= 0) { list.splice(idx, 1); } else { if (!isBgSkill) { const currentManualCount = list.filter(s => !bgSkillsText.includes(s)).length; if (currentManualCount >= limit) { alert(`Limite de ${limit} escolhas manuais atingido.`); return; } } list.push(skill); } render(true); }
-        function rollDice(attrName, mod) { const roll = getRollResult(state.rollMode); const total = roll.total + mod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${attrName} (${roll.label})`, dice: roll.dice.join(', '), mod: mod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: attrName, total: total, diceVal: roll.total, mod: mod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; render(true); }
-        function rollSkill(skillName, attrKey) { const char = state.currentChar; const mod = getMod(char.attributes[attrKey].value); const isTrained = char.skills.includes(skillName); const isExpert = (char.expertise || []).includes(skillName); const pb = getProficiencyBonus(char.level); let totalMod = mod; if (isExpert) { totalMod += (pb * 2); } else if (isTrained) { totalMod += pb; } const roll = getRollResult(state.rollMode); const total = roll.total + totalMod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${skillName} ${isExpert ? "(Exp)" : ""} (${roll.label})`, dice: roll.dice.join(', '), mod: totalMod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: skillName, total: total, diceVal: roll.total, mod: totalMod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; render(true); }
+        const DISCORD_WEBHOOK_URL = 'https://discord.com/api/webhooks/1488630085023170671/n6afq3FqpQP_H-fPUMmWbfHufnp3LLqhlYk4zrSm9caYWz1k8JXUjF6rD8KnUz9-CwrK';
+        function rollDiceExpr(expr) {
+            const match = (expr || '').match(/^(\d+)d(\d+)$/);
+            if (!match) return { rolls: [1], total: 1 };
+            const n = parseInt(match[1]), d = parseInt(match[2]);
+            const rolls = Array.from({ length: n }, () => Math.floor(Math.random() * d) + 1);
+            return { rolls, total: rolls.reduce((a, b) => a + b, 0) };
+        }
+        function rollHatsuDamage(mode) {
+            const rs = window._hatsuRollState;
+            if (!rs || !rs.dice || !rs.hasBaseDmg) { alert('Este Hatsu não possui dano calculável.'); return; }
+            const char = state.currentChar;
+            const effectiveMode = mode || state.rollMode;
+            const mod = getMod((char.attributes[rs.attr] || {}).value || 10);
+            const dmgResult = rollDiceExpr(rs.dice);
+
+            // Separar extras: valores fixos (somam ao total) vs dados (linha extra)
+            let flatBonus = 0;
+            const flatParts = [];   // ex: ['+2', '+3'] → para exibir na fórmula
+            const extraLines = [];  // dados rolados separadamente
+
+            (rs.sanExtras || []).forEach(e => {
+                const clean = e.dado.replace(/\/\w+$/, ''); // remove /rod etc
+                const num = parseInt(clean);
+                if (!isNaN(num)) { flatBonus += num; flatParts.push(clean); }
+            });
+            (rs.dmgExtras || []).forEach(e => {
+                if (e.dado === '(contínuo)') return;
+                const rollable = /^\+?\d+d\d+$/.test(e.dado);
+                if (rollable) {
+                    const er = rollDiceExpr(e.dado.replace(/^\+/, ''));
+                    extraLines.push(`💥 ${e.tipo}: [${er.rolls.join('+')}] = **${er.total}**`);
+                } else {
+                    const clean = e.dado.replace(/\/\w+$/, '');
+                    const num = parseInt(clean);
+                    if (!isNaN(num)) { flatBonus += num; flatParts.push(clean); }
+                }
+            });
+
+            const total = dmgResult.total + mod + flatBonus;
+            const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const modeLabel = effectiveMode === 'NORMAL' ? '' : ` (${effectiveMode.charAt(0) + effectiveMode.slice(1).toLowerCase()})`;
+            char.history.push({ time, label: `⚡ ${rs.nome} (${rs.attr})${modeLabel}`, dice: dmgResult.rolls.join(', '), mod: mod + flatBonus, total });
+            if (char.history.length > 50) char.history.shift();
+            saveCharacter(char);
+
+            // Fórmula: "2d10 + PRE + 5" com os bônus fixos somados
+            const flatStr = flatParts.length > 0 ? ` + ${flatBonus}` : '';
+            const modStr = mod !== 0 ? ` ${mod >= 0 ? '+' : ''}${mod}` : '';
+            const allModStr = (mod !== 0 || flatBonus !== 0)
+                ? ` ${(mod + flatBonus) >= 0 ? '+' : ''}${mod + flatBonus}`
+                : '';
+            const formula = `${rs.dice} + ${rs.attr}${flatStr}`;
+            const extrasText = extraLines.length > 0 ? '\n' + extraLines.join('\n') : '';
+            const content = `⚡ **${char.name}** usou **${rs.nome}**${modeLabel}\nDano: [${dmgResult.rolls.join('+')}]${allModStr} = **${total}** (${formula})${extrasText}`;
+            fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }).catch(() => {});
+            if (state.activeTab !== 'DADOS') state.unreadRolls = true;
+        }
+        function openAttackModal(weaponName, diceExpr, tipoDano) {
+            state.attackModal = { nome: weaponName, dano: diceExpr, tipoDano: tipoDano || '' };
+            render(true);
+        }
+        function closeAttackModal() { state.attackModal = null; render(true); }
+        function pickAttackAttr(nome, dano, attrKey) {
+            state.attackModal = null;
+            openRollModeModal('attack', nome, dano, attrKey);
+        }
+        function openRollModeModal(type, a1, a2, a3) {
+            state.pendingRoll = { type, a1, a2, a3 };
+            render(true);
+        }
+        function executePendingRoll(mode) {
+            const pr = state.pendingRoll;
+            state.pendingRoll = null;
+            state.rollMode = mode; // persiste o último modo usado
+            if (!pr) return;
+            if (pr.type === 'dice')   rollDice(pr.a1, pr.a2, mode);
+            else if (pr.type === 'skill')  rollSkill(pr.a1, pr.a2, mode);
+            else if (pr.type === 'attack') rollAttack(pr.a1, pr.a2, pr.a3, mode);
+            else if (pr.type === 'hatsu')  rollHatsuDamage(mode);
+        }
+        function cancelPendingRoll() { state.pendingRoll = null; render(true); }
+        function renderRollModeModalHtml() {
+            if (!state.pendingRoll) return '';
+            const MODES = [
+                { id: 'NORMAL',      label: 'Normal',      icon: '🎲', desc: '1d20',        bg: '#1f2937', col: '#9ca3af' },
+                { id: 'VANTAGEM',    label: 'Vantagem',    icon: '⬆️', desc: '2d20 maior',  bg: '#14532d', col: '#4ade80' },
+                { id: 'DESVANTAGEM', label: 'Desvantagem', icon: '⬇️', desc: '2d20 menor',  bg: '#7f1d1d', col: '#f87171' },
+                { id: 'ÊNFASE',      label: 'Ênfase',      icon: '🎯', desc: '2d20 ≈ 10',   bg: '#1e1b4b', col: '#a78bfa' },
+            ];
+            return `<div class="fixed inset-0 z-[200] flex items-end justify-center" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)" onclick="cancelPendingRoll()">
+                <div style="background:#0d1117;border-radius:20px 20px 0 0;border:1px solid #1f2937;border-bottom:none;padding:20px 16px 32px;width:100%;max-width:440px" onclick="event.stopPropagation()">
+                    <div style="width:40px;height:4px;background:#374151;border-radius:2px;margin:0 auto 16px"></div>
+                    <div style="font-size:9px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:2px;margin-bottom:14px;text-align:center">🎲 Modo de Rolagem</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
+                        ${MODES.map(m => `<button onclick="executePendingRoll('${m.id}')"
+                            style="display:flex;flex-direction:column;align-items:center;padding:14px 8px;border-radius:12px;background:${m.bg};border:2px solid ${m.col}44;color:${m.col};cursor:pointer;font-family:'Rajdhani',sans-serif">
+                            <span style="font-size:20px;margin-bottom:4px">${m.icon}</span>
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:9px;text-transform:uppercase;letter-spacing:1px">${m.label}</span>
+                            <span style="font-size:8px;opacity:.6;margin-top:2px">${m.desc}</span>
+                        </button>`).join('')}
+                    </div>
+                    <button onclick="cancelPendingRoll()" style="width:100%;padding:10px;border-radius:10px;background:transparent;border:1px solid #374151;color:#6b7280;font-size:9px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:1px">Cancelar</button>
+                </div>
+            </div>`;
+        }
+        function rollAttack(weaponName, diceExpr, attrKey, mode) {
+            const char = state.currentChar;
+            const mod = getMod((char.attributes[attrKey] || {}).value || 10);
+            const pb = getProficiencyBonus(char.level);
+            const attackRoll = getRollResult(mode || state.rollMode);
+            const attackTotal = attackRoll.total + mod + pb;
+            const dmgResult = rollDiceExpr(diceExpr);
+            const dmgTotal = dmgResult.total + mod;
+            const time = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            char.history.push({ time, label: `⚔️ ${weaponName} (${attrKey})`, dice: attackRoll.dice.join(', '), mod: mod + pb, total: attackTotal });
+            if (char.history.length > 50) char.history.shift();
+            saveCharacter(char);
+            const isCrit = attackRoll.dice.includes(20);
+            const isFumble = attackRoll.dice.length === 1 && attackRoll.dice[0] === 1;
+            const suffix = isCrit ? ' 🎯 **CRÍTICO!**' : isFumble ? ' 💀 **FALHA CRÍTICA!**' : '';
+            const content = `⚔️ **${char.name}** atacou com **${weaponName}**\nAtaque: [${attackRoll.dice.join(', ')}] +${mod + pb} = **${attackTotal}**${suffix}\nDano: [${dmgResult.rolls.join('+')}] +${mod} = **${dmgTotal}** (${diceExpr} + ${attrKey})`;
+            fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }).catch(() => {});
+            state.attackModal = null;
+            state.rollResult = { name: `⚔️ ${weaponName}`, total: attackTotal, diceVal: attackRoll.total, mod: mod + pb, label: attackRoll.label };
+            if (state.activeTab !== 'DADOS') state.unreadRolls = true;
+            render(true);
+        }
+        function sendToDiscord(label, dice, mod, total, charName) {
+            const diceStr = dice.length > 1 ? `[${dice.join(', ')}]` : `[${dice[0]}]`;
+            const modStr = mod !== 0 ? ` ${mod >= 0 ? '+' : ''}${mod}` : '';
+            const isCrit = dice.includes(20);
+            const isFumble = dice.includes(1) && dice.length === 1;
+            let suffix = isCrit ? ' 🎯 **CRÍTICO!**' : isFumble ? ' 💀 **FALHA CRÍTICA!**' : '';
+            const content = `🎲 **${charName}** rolou **${label}**\nDado: ${diceStr}${modStr} = **${total}**${suffix}`;
+            fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }).catch(() => {});
+        }
+        function rollDice(attrName, mod, mode) { const roll = getRollResult(mode || state.rollMode); const total = roll.total + mod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${attrName} (${roll.label})`, dice: roll.dice.join(', '), mod: mod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: attrName, total: total, diceVal: roll.total, mod: mod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; sendToDiscord(`${attrName} (${roll.label})`, roll.dice, mod, total, state.currentChar.name || 'Personagem'); render(true); }
+        function rollSkill(skillName, attrKey, mode) { const char = state.currentChar; const mod = getMod(char.attributes[attrKey].value); const isTrained = char.skills.includes(skillName); const isExpert = (char.expertise || []).includes(skillName); const pb = getProficiencyBonus(char.level); let totalMod = mod; if (isExpert) { totalMod += (pb * 2); } else if (isTrained) { totalMod += pb; } const roll = getRollResult(mode || state.rollMode); const total = roll.total + totalMod; const entry = { time: new Date().toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'}), label: `${skillName} ${isExpert ? "(Exp)" : ""} (${roll.label})`, dice: roll.dice.join(', '), mod: totalMod, total: total }; state.currentChar.history.push(entry); if (state.currentChar.history.length > 50) state.currentChar.history.shift(); saveCharacter(state.currentChar); state.rollResult = { name: skillName, total: total, diceVal: roll.total, mod: totalMod, label: roll.label }; if (state.activeTab !== 'DADOS') state.unreadRolls = true; sendToDiscord(`${skillName}${isExpert ? ' (Exp)' : ''} (${roll.label})`, roll.dice, totalMod, total, char.name || 'Personagem'); render(true); }
         function closeRollModal() { state.rollResult = null; render(true); }
         function copyToClipboard(idx) { const h = state.currentChar.history[idx]; if(!h) return; const text = `**${h.label}**\nRolagem: [${h.dice}] ${h.mod>=0?'+':''}${h.mod} = **${h.total}**`; navigator.clipboard.writeText(text).then(() => { const btn = document.activeElement; if(btn && btn.tagName === 'BUTTON') { const originalHTML = btn.innerHTML; btn.innerHTML = '<i data-lucide="check" size="14"></i>'; btn.classList.add('text-green-500'); setTimeout(() => { btn.innerHTML = originalHTML; btn.classList.remove('text-green-500'); lucide.createIcons(); }, 1000); } }); }
         function getRollResult(mode) { const r1 = Math.floor(Math.random() * 20) + 1; const r2 = Math.floor(Math.random() * 20) + 1; if (mode === 'NORMAL') return { total: r1, dice: [r1], label: 'Normal' }; if (mode === 'VANTAGEM') return { total: Math.max(r1, r2), dice: [r1, r2], label: 'Vantagem' }; if (mode === 'DESVANTAGEM') return { total: Math.min(r1, r2), dice: [r1, r2], label: 'Desvantagem' }; if (mode === 'ÊNFASE') { const dist1 = Math.abs(r1 - 10.5); const dist2 = Math.abs(r2 - 10.5); return { total: dist1 > dist2 ? r1 : r2, dice: [r1, r2], label: 'Ênfase' }; } return { total: r1, dice: [r1], label: 'Normal' }; }
@@ -4750,8 +4970,8 @@ function renderCard(item, color) {
         function setRollMode(mode) { state.rollMode = mode; render(true); }
         function updateSheetAttr(key, delta) { state.currentChar.attributes[key].value += delta; saveCharacter(state.currentChar); render(true); }
         function toggleAttrPopup(key) { if (state.openAttrPopup === key) state.openAttrPopup = null; else state.openAttrPopup = key; render(true); }
-        function handleAttributeClick(key) { if (state.clickTimer) { clearTimeout(state.clickTimer); state.clickTimer = null; const attr = state.currentChar.attributes[key]; rollDice(key, getMod(attr.value)); } else { state.clickTimer = setTimeout(() => { state.clickTimer = null; toggleAttrPopup(key); }, 250); } }
-        function handleShieldClick(key) { if (state.clickTimer) { clearTimeout(state.clickTimer); state.clickTimer = null; const skillName = `TR de ${key}`; rollSkill(skillName, key); } else { state.clickTimer = setTimeout(() => { state.clickTimer = null; handleSkillStatus(`TR de ${key}`); }, 250); } }
+        function handleAttributeClick(key) { if (state.clickTimer) { clearTimeout(state.clickTimer); state.clickTimer = null; const attr = state.currentChar.attributes[key]; openRollModeModal('dice', key, getMod(attr.value)); } else { state.clickTimer = setTimeout(() => { state.clickTimer = null; toggleAttrPopup(key); }, 250); } }
+        function handleShieldClick(key) { if (state.clickTimer) { clearTimeout(state.clickTimer); state.clickTimer = null; const skillName = `TR de ${key}`; openRollModeModal('skill', skillName, key); } else { state.clickTimer = setTimeout(() => { state.clickTimer = null; handleSkillStatus(`TR de ${key}`); }, 250); } }
         function handleSkillStatus(skillName) { const char = state.currentChar; const isTrained = char.skills.includes(skillName); if (!isTrained) { if (confirm(`Deseja adicionar proficiência em ${skillName}?`)) { state.currentChar.skills.push(skillName); saveCharacter(state.currentChar); render(true); } } else { state.skillSelectionModal = skillName; render(true); } }
         function closeSkillModal() { state.skillSelectionModal = null; render(true); }
         function setSkillLevel(skillName, level) { const char = state.currentChar; if (!char.expertise) char.expertise = []; if (level === 'remove') { char.skills = char.skills.filter(s => s !== skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'trained') { if (!char.skills.includes(skillName)) char.skills.push(skillName); char.expertise = char.expertise.filter(s => s !== skillName); } else if (level === 'expert') { if (!char.skills.includes(skillName)) char.skills.push(skillName); if (!char.expertise.includes(skillName)) char.expertise.push(skillName); } saveCharacter(char); closeSkillModal(); }
@@ -5283,6 +5503,7 @@ function renderHatsuDetail(container) {
         <div style="font-size:7px;color:#4b5563;margin-top:4px">★ sugerido para ${hatsuClasse}</div>
     </div>` : '';
 
+    let _hatsuFinalDice = null;
     let calcDanoHtml = '';
     if (hasBaseDmg) {
         const danoColor = totalGraus > 0 ? '#f87171' : '#d1d5db';
@@ -5315,6 +5536,7 @@ function renderHatsuDetail(container) {
             // Step 2: apply graus on top
             const finalIdx = Math.min(baseIdx + totalGraus + flageloGrauPuro, DAMAGE_TABLE.length - 1);
             const finalDice = afterDadoNote && (totalGraus + flageloGrauPuro) === 0 ? afterDadoNote : DAMAGE_TABLE[Math.max(0, finalIdx)];
+            _hatsuFinalDice = finalDice;
             const baseNote = (totalDados > 0 || totalGraus > 0 || flageloGrauPuro > 0) ? `(base 2d6)` : '';
             const psiLabel = isPuroFlagelo ? `<span style="font-size:10px;font-weight:700;color:#a78bfa;margin-left:4px">Psíquico</span>` : '';
             baseDmgSection = `
@@ -5403,6 +5625,17 @@ function renderHatsuDetail(container) {
             ${sourcesHtml}
         </div>`;
     }
+    window._hatsuRollState = {
+        dice: _hatsuFinalDice,
+        attr: baseAttr,
+        nome: h.nome,
+        hasBaseDmg,
+        sanExtras: sanidadeExtras.map(e => ({ dado: e._san.dado, desc: e._san.desc })),
+        dmgExtras: efeitosComDanoProprio.map(e => {
+            const d = DANO_PROPRIO_MAP[e.id];
+            return d ? { dado: d.dado, tipo: d.tipo, desc: d.desc } : null;
+        }).filter(Boolean)
+    };
     // ── Fim cálculo de dano ────────────────────────────────────────────────────
 
     // ── Cálculo de CD do TR ───────────────────────────────────────────────────
@@ -5803,14 +6036,19 @@ function renderHatsuDetail(container) {
         </div>
 
         <!-- RODAPÉ -->
-        <div style="padding:12px 14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0;display:flex;gap:8px">
-            <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
-                style="flex:1;padding:12px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:#9ca3af;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← Voltar</button>
-            <button onclick="deleteHatsuConfirm(${idx},'sheet')"
-                style="padding:12px 14px;border-radius:10px;background:#7f1d1d44;border:1px solid #ef444455;color:#f87171;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">🗑️</button>
-            <button onclick="openHatsuEdit(${idx})"
-                style="flex:1;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;border:none;box-shadow:0 0 16px ${tc}55">✏️ Editar</button>
+        <div style="padding:12px 14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0">
+            ${hasBaseDmg ? `<button onclick="openRollModeModal('hatsu')"
+                style="width:100%;margin-bottom:8px;padding:13px;border-radius:10px;background:#22c55e22;border:2px solid #22c55e66;color:#22c55e;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;box-shadow:0 0 16px #22c55e22">🎲 Rolar Dano no Discord</button>` : ''}
+            <div style="display:flex;gap:8px">
+                <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
+                    style="flex:1;padding:12px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:#9ca3af;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← Voltar</button>
+                <button onclick="deleteHatsuConfirm(${idx},'sheet')"
+                    style="padding:12px 14px;border-radius:10px;background:#7f1d1d44;border:1px solid #ef444455;color:#f87171;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">🗑️</button>
+                <button onclick="openHatsuEdit(${idx})"
+                    style="flex:1;padding:12px;border-radius:10px;background:${tc};color:#000;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;border:none;box-shadow:0 0 16px ${tc}55">✏️ Editar</button>
+            </div>
         </div>
+        ${renderRollModeModalHtml()}
     </div>`;
 
     if (window.lucide) lucide.createIcons();
