@@ -4858,13 +4858,33 @@ function renderCard(item, color) {
 
             // Fórmula: "2d10 + PRE + 5" com os bônus fixos somados
             const flatStr = flatParts.length > 0 ? ` + ${flatBonus}` : '';
-            const modStr = mod !== 0 ? ` ${mod >= 0 ? '+' : ''}${mod}` : '';
             const allModStr = (mod !== 0 || flatBonus !== 0)
                 ? ` ${(mod + flatBonus) >= 0 ? '+' : ''}${mod + flatBonus}`
                 : '';
             const formula = `${rs.dice} + ${rs.attr}${flatStr}`;
             const extrasText = extraLines.length > 0 ? '\n' + extraLines.join('\n') : '';
-            const content = `⚡ **${char.name}** usou **${rs.nome}**${modeLabel}\nDano: [${dmgResult.rolls.join('+')}]${allModStr} = **${total}** (${formula})${extrasText}`;
+
+            // ── Rolagem de Ataque ─────────────────────────────────────────────
+            let attackLine = '';
+            if (rs.hasAttack) {
+                const nivel = rs.nivel || parseInt(char.level) || 1;
+                const pb = getProficiencyBonus(nivel);
+                // Segredo Mortal: força vantagem se modo for Normal
+                const attackMode = (rs.acertoVantagem && effectiveMode === 'NORMAL') ? 'VANTAGEM' : effectiveMode;
+                const attackRoll = getRollResult(attackMode);
+                const acertoBonus = rs.acertoBonus || 0;
+                const attackTotal = attackRoll.total + mod + pb + acertoBonus;
+                const isCrit = attackRoll.dice.includes(20);
+                const isFumble = attackRoll.dice.length === 1 && attackRoll.dice[0] === 1;
+                const critSuffix = isCrit ? ' 🎯 **CRÍTICO!**' : isFumble ? ' 💀 **FALHA CRÍTICA!**' : '';
+                let attackModStr = `+${mod + pb + acertoBonus}`;
+                if ((mod + pb + acertoBonus) < 0) attackModStr = `${mod + pb + acertoBonus}`;
+                const attackModeLabel = attackMode !== 'NORMAL' ? ` (${attackMode.charAt(0) + attackMode.slice(1).toLowerCase()})` : '';
+                attackLine = `\nAtaque${attackModeLabel}: [${attackRoll.dice.join(', ')}] ${attackModStr} = **${attackTotal}**${critSuffix}`;
+            }
+            // ── Fim rolagem de ataque ─────────────────────────────────────────
+
+            const content = `⚡ **${char.name}** usou **${rs.nome}**${modeLabel}${attackLine}\nDano: [${dmgResult.rolls.join('+')}]${allModStr} = **${total}** (${formula})${extrasText}`;
             fetch(DISCORD_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) }).catch(() => {});
             if (state.activeTab !== 'DADOS') state.unreadRolls = true;
         }
@@ -5625,11 +5645,67 @@ function renderHatsuDetail(container) {
             ${sourcesHtml}
         </div>`;
     }
+    // ── Cálculo de bônus de acerto ───────────────────────────────────────────
+    // Hatsus hostis/versáteis/instantâneos que NÃO usam CD precisam de jogada de ataque
+    const hasAttack = hasBaseDmg && !hasCDCategory;
+
+    const ACERTO_BNF_MAP = {
+        'rg_l12': 1,  // Limitação de Movimento 1: +1 em Jogadas de Acerto
+        'rg_m11': 2,  // Limite Emocional: +2 em Jogadas de Acerto
+        'ri_l3':  1,  // Sem Defesas (Reforço): +1 na jogada de ataque
+    };
+
+    let acertoBonus = 0;
+    let acertoVantagem = false;
+    const acertoBonusSources = [];
+
+    [...restricoesSel, ...efeitosSel].forEach(item => {
+        // Bônus fixos
+        const bonus = ACERTO_BNF_MAP[item.id];
+        if (bonus) {
+            acertoBonus += bonus;
+            acertoBonusSources.push({ nome: item.nome, bonus });
+        }
+        // Condicionais: rg_l1 (Cálculo Pensado 1) — +1 acerto ou dano
+        if (item.id === 'rg_l1') {
+            const bc = (h.beneficioChoices||{})[item.id] || '';
+            if (bc.toLowerCase().includes('acerto')) {
+                acertoBonus += 1;
+                acertoBonusSources.push({ nome: item.nome, bonus: 1 });
+            }
+        }
+        // Condicionais: rg_l13 (Limitação de Movimento 2) — +1 acerto ou +1 CD
+        if (item.id === 'rg_l13') {
+            const bc = (h.beneficioChoices||{})[item.id] || '';
+            if (bc.toLowerCase().includes('acerto')) {
+                acertoBonus += 1;
+                acertoBonusSources.push({ nome: item.nome, bonus: 1 });
+            }
+        }
+        // Condicionais: rg_m13 (Zetsu Protetivo) — +2 acerto ou dano ou rodadas
+        if (item.id === 'rg_m13') {
+            const bc = (h.beneficioChoices||{})[item.id] || '';
+            if (bc.toLowerCase().includes('acerto')) {
+                acertoBonus += 2;
+                acertoBonusSources.push({ nome: item.nome, bonus: 2 });
+            }
+        }
+        // Segredo Mortal: vantagem em acerto
+        if (item.id === 'rg_p12') {
+            acertoVantagem = true;
+        }
+    });
+    // ── Fim cálculo de acerto ─────────────────────────────────────────────────
+
     window._hatsuRollState = {
         dice: _hatsuFinalDice,
         attr: baseAttr,
         nome: h.nome,
         hasBaseDmg,
+        hasAttack,
+        acertoBonus,
+        acertoVantagem,
+        nivel: parseInt(h.nivel || char.level || 1),
         sanExtras: sanidadeExtras.map(e => ({ dado: e._san.dado, desc: e._san.desc })),
         dmgExtras: efeitosComDanoProprio.map(e => {
             const d = DANO_PROPRIO_MAP[e.id];
@@ -6038,7 +6114,7 @@ function renderHatsuDetail(container) {
         <!-- RODAPÉ -->
         <div style="padding:12px 14px;border-top:1px solid #111827;background:#0a0f1a;flex-shrink:0">
             ${hasBaseDmg ? `<button onclick="openRollModeModal('hatsu')"
-                style="width:100%;margin-bottom:8px;padding:13px;border-radius:10px;background:#22c55e22;border:2px solid #22c55e66;color:#22c55e;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;box-shadow:0 0 16px #22c55e22">🎲 Rolar Dano no Discord</button>` : ''}
+                style="width:100%;margin-bottom:8px;padding:13px;border-radius:10px;background:#22c55e22;border:2px solid #22c55e66;color:#22c55e;font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:pointer;letter-spacing:1px;box-shadow:0 0 16px #22c55e22">🎲 Rolar Hatsu no Discord</button>` : ''}
             <div style="display:flex;gap:8px">
                 <button onclick="state.view='SHEET';state.activeTab='NEN';render()"
                     style="flex:1;padding:12px;border-radius:10px;background:#111827;border:1px solid #1f2937;color:#9ca3af;font-family:'Orbitron',sans-serif;font-weight:900;font-size:10px;text-transform:uppercase;cursor:pointer;letter-spacing:1px">← Voltar</button>
