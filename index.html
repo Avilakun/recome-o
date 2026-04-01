@@ -653,7 +653,11 @@
             user: null,
             authorized: false,
             attackModal: null, // { nome, dano, tipoDano }
-            pendingRoll: null  // { type, a1, a2, a3 } — aguardando escolha de modo
+            pendingRoll: null,  // { type, a1, a2, a3 } — aguardando escolha de modo
+            // Compartilhamento
+            sharedChars: [],   // Personagens compartilhados comigo [{ownerDiscordId, ownerBinId, ownerUsername, charId, charName, charClass, charRace, charLevel, charImageUrl}]
+            viewOnly: false,   // Modo somente leitura (personagem compartilhado)
+            shareModal: null   // { charId, users: [], loading, saving, selected: [], currentSharedWith: [] }
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -682,16 +686,29 @@
             return localStorage.getItem(getLocalKey());
         }
 
-        // Monta o payload completo (todos os personagens + metadata)
+        // Monta o payload completo (todos os personagens + metadata + dados de compartilhamento)
         function buildCloudPayload() {
             const chars = [];
             for (let i = 0; i < localStorage.length; i++) {
                 const key = localStorage.key(i);
-                if (key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud')) {
+                if (key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud') && !key.startsWith('hxhrpg_shared')) {
                     try { chars.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
                 }
             }
-            return { discordId: state.user ? state.user.id : null, chars, updatedAt: new Date().toISOString() };
+            const uid = state.user?.id || '';
+            let sharedOutgoing = [];
+            let sharedIncoming = [];
+            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
+            try { sharedIncoming = JSON.parse(localStorage.getItem('hxhrpg_shared_in_' + uid) || '[]'); } catch(e) {}
+            return {
+                discordId: state.user ? state.user.id : null,
+                username: state.user?.username || null,
+                avatar: state.user?.avatar || null,
+                chars,
+                sharedOutgoing,
+                sharedIncoming,
+                updatedAt: new Date().toISOString()
+            };
         }
 
         // Cria um novo bin JSONBin
@@ -758,7 +775,246 @@
                     } catch(e) { localStorage.setItem(localKey, JSON.stringify(rc)); }
                 }
             });
+            // Sincroniza dados de compartilhamento
+            const uid = state.user.id;
+            if (remote.sharedIncoming) {
+                localStorage.setItem('hxhrpg_shared_in_' + uid, JSON.stringify(remote.sharedIncoming));
+                state.sharedChars = remote.sharedIncoming;
+            }
+            if (remote.sharedOutgoing) {
+                localStorage.setItem('hxhrpg_shared_out_' + uid, JSON.stringify(remote.sharedOutgoing));
+            }
         }
+
+        // ==================== COMPARTILHAMENTO DE PERSONAGENS ====================
+
+        // Lista todos os usuários registrados (todos os bins hxhrpg_* no JSONBin)
+        async function listRegisteredUsers() {
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b', {
+                    headers: { 'X-Master-Key': getJsonBinKey() }
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                const bins = data.record || [];
+                // Filtra bins de usuários (hxhrpg_{discordId}, exclui cloud/shared)
+                const userBins = bins.filter(b => {
+                    const name = b.snippetMeta?.name || '';
+                    return name.startsWith('hxhrpg_') && !name.startsWith('hxhrpg_cloud') && !name.startsWith('hxhrpg_shared');
+                });
+                const users = [];
+                for (const bin of userBins.slice(0, 40)) {
+                    try {
+                        const record = await readBin(bin.id);
+                        if (record?.discordId && record.discordId !== state.user?.id) {
+                            users.push({
+                                discordId: record.discordId,
+                                username: record.username || record.discordId,
+                                avatar: record.avatar || null,
+                                binId: bin.id
+                            });
+                        }
+                    } catch(e) {}
+                }
+                return users;
+            } catch(e) { return []; }
+        }
+
+        // Abre o modal de compartilhamento para um personagem
+        async function openShareModal(charId) {
+            const uid = state.user?.id || '';
+            let sharedOutgoing = [];
+            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
+            const entry = sharedOutgoing.find(s => s.charId === charId);
+            const currentSharedWith = entry ? entry.sharedWith : [];
+            const currentSelected = currentSharedWith.map(u => u.discordId);
+            state.shareModal = { charId, users: [], loading: true, saving: false, selected: [...currentSelected], currentSharedWith: [...currentSharedWith] };
+            render();
+            const users = await listRegisteredUsers();
+            if (state.shareModal && state.shareModal.charId === charId) {
+                state.shareModal.users = users;
+                state.shareModal.loading = false;
+                render();
+            }
+        }
+
+        function closeShareModal() {
+            state.shareModal = null;
+            render();
+        }
+
+        function toggleShareUser(discordId) {
+            if (!state.shareModal) return;
+            const idx = state.shareModal.selected.indexOf(discordId);
+            if (idx >= 0) state.shareModal.selected.splice(idx, 1);
+            else state.shareModal.selected.push(discordId);
+            render();
+        }
+
+        // Adiciona entrada de personagem compartilhado no bin do destinatário
+        async function addSharedIncomingEntry(targetBinId, entry) {
+            const record = await readBin(targetBinId);
+            if (!record) return false;
+            let incoming = record.sharedIncoming || [];
+            incoming = incoming.filter(e => !(e.charId === entry.charId && e.ownerDiscordId === entry.ownerDiscordId));
+            incoming.push(entry);
+            record.sharedIncoming = incoming;
+            return await updateBin(targetBinId, record);
+        }
+
+        // Remove entrada de personagem compartilhado do bin do destinatário
+        async function removeSharedIncomingEntry(targetBinId, charId, ownerDiscordId) {
+            const record = await readBin(targetBinId);
+            if (!record) return false;
+            record.sharedIncoming = (record.sharedIncoming || []).filter(
+                e => !(e.charId === charId && e.ownerDiscordId === ownerDiscordId)
+            );
+            return await updateBin(targetBinId, record);
+        }
+
+        // Salva imediatamente na nuvem (sem debounce)
+        async function saveToCloudNow() {
+            if (!state.user) return;
+            const payload = buildCloudPayload();
+            let binId = loadBinId();
+            if (!binId) {
+                binId = await createBin(payload);
+                if (binId) saveBinId(binId);
+            } else {
+                const ok = await updateBin(binId, payload);
+                if (!ok) {
+                    binId = await createBin(payload);
+                    if (binId) saveBinId(binId);
+                }
+            }
+        }
+
+        // Salva as alterações do modal de compartilhamento
+        async function saveShareChanges() {
+            if (!state.shareModal || state.shareModal.saving) return;
+            const { charId, users, selected, currentSharedWith } = state.shareModal;
+            state.shareModal.saving = true;
+            render();
+            const char = state.characters.find(c => c.id === charId);
+            if (!char) { closeShareModal(); return; }
+            // Novos usuários a adicionar
+            const toAdd = selected.filter(did => !currentSharedWith.find(u => u.discordId === did));
+            // Usuários a remover
+            const toRemove = currentSharedWith.filter(u => !selected.includes(u.discordId));
+            // Atualiza sharedOutgoing no localStorage
+            const uid = state.user?.id || '';
+            let sharedOutgoing = [];
+            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
+            const newSharedWith = selected.map(did => {
+                const existing = currentSharedWith.find(u => u.discordId === did);
+                if (existing) return existing;
+                const userInfo = users.find(u => u.discordId === did);
+                return { discordId: did, username: userInfo?.username || did, binId: userInfo?.binId || '' };
+            });
+            const entryIdx = sharedOutgoing.findIndex(s => s.charId === charId);
+            if (newSharedWith.length === 0) {
+                if (entryIdx >= 0) sharedOutgoing.splice(entryIdx, 1);
+            } else {
+                if (entryIdx >= 0) sharedOutgoing[entryIdx].sharedWith = newSharedWith;
+                else sharedOutgoing.push({ charId, sharedWith: newSharedWith });
+            }
+            localStorage.setItem('hxhrpg_shared_out_' + uid, JSON.stringify(sharedOutgoing));
+            // Atualiza bins dos destinatários
+            const myBinId = loadBinId();
+            for (const did of toAdd) {
+                const userInfo = users.find(u => u.discordId === did);
+                if (!userInfo?.binId) continue;
+                await addSharedIncomingEntry(userInfo.binId, {
+                    ownerDiscordId: state.user.id,
+                    ownerBinId: myBinId,
+                    ownerUsername: state.user.username,
+                    charId: char.id,
+                    charName: char.name,
+                    charClass: char.class,
+                    charRace: char.race,
+                    charLevel: char.level,
+                    charImageUrl: char.imageUrl || null
+                });
+            }
+            for (const u of toRemove) {
+                if (!u.binId) continue;
+                await removeSharedIncomingEntry(u.binId, charId, state.user.id);
+            }
+            await saveToCloudNow();
+            closeShareModal();
+        }
+
+        // Abre um personagem compartilhado em modo de visualização
+        async function openSharedChar(ownerBinId, charId) {
+            const record = await readBin(ownerBinId);
+            if (!record || !record.chars) { alert('Não foi possível carregar este personagem.'); return; }
+            const char = record.chars.find(c => c.id === charId);
+            if (!char) { alert('Personagem não encontrado.'); return; }
+            state.currentChar = char;
+            state.viewOnly = true;
+            state.view = 'SHEET';
+            state.activeTab = 'FICHA';
+            render();
+        }
+
+        // Sai do modo de visualização
+        function exitViewOnly() {
+            state.viewOnly = false;
+            state.currentChar = null;
+            state.view = 'LIST';
+            render();
+        }
+
+        // Renderiza o modal de compartilhamento
+        function renderShareModal() {
+            if (!state.shareModal) return '';
+            const { charId, users, loading, saving, selected } = state.shareModal;
+            const char = state.characters.find(c => c.id === charId);
+            let content = '';
+            if (loading) {
+                content = `<div class="flex flex-col items-center justify-center py-8 gap-3">
+                    <div class="w-8 h-8 border-2 border-neon-green border-t-transparent rounded-full animate-spin"></div>
+                    <span class="text-xs text-gray-400">Buscando jogadores no sistema...</span>
+                </div>`;
+            } else if (users.length === 0) {
+                content = `<div class="text-center py-8 text-gray-500 text-xs leading-relaxed">Nenhum outro jogador encontrado.<br>Eles precisam ter feito login ao menos uma vez.</div>`;
+            } else {
+                content = `<div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">` +
+                    users.map(u => {
+                        const isSel = selected.includes(u.discordId);
+                        const avatarHtml = u.avatar
+                            ? `<img src="https://cdn.discordapp.com/avatars/${u.discordId}/${u.avatar}.png" class="w-9 h-9 rounded-full flex-shrink-0">`
+                            : `<div class="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><i data-lucide="user" size="16"></i></div>`;
+                        return `<div onclick="toggleShareUser('${u.discordId}')" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSel ? 'border-neon-green bg-neon-green/10' : 'border-gray-800 bg-gray-900 hover:border-gray-600'}">
+                            ${avatarHtml}
+                            <span class="flex-1 text-sm font-bold text-white">${u.username}</span>
+                            <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${isSel ? 'border-neon-green bg-neon-green' : 'border-gray-600'}">
+                                ${isSel ? `<i data-lucide="check" size="12" class="text-black"></i>` : ''}
+                            </div>
+                        </div>`;
+                    }).join('') + `</div>`;
+            }
+            return `<div class="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 backdrop-blur-sm" onclick="closeShareModal()">
+                <div class="bg-[#0e0e14] border border-gray-800 rounded-t-3xl w-full max-w-[480px] p-6 pb-safe shadow-2xl" onclick="event.stopPropagation()">
+                    <div class="flex items-center gap-3 mb-5">
+                        <div class="w-9 h-9 rounded-full bg-neon-green/10 border border-neon-green/30 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="share-2" size="16" class="text-neon-green"></i>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest">Compartilhar Personagem</h3>
+                            <p class="text-[10px] text-gray-500 mt-0.5">${char?.name || ''} — acesso somente leitura</p>
+                        </div>
+                        <button onclick="closeShareModal()" class="text-gray-500 hover:text-white transition-colors p-1"><i data-lucide="x" size="20"></i></button>
+                    </div>
+                    ${content}
+                    ${!loading ? `<button onclick="saveShareChanges()" ${saving ? 'disabled' : ''} class="mt-4 w-full py-3 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 ${saving ? 'opacity-60 cursor-not-allowed' : ''}">
+                        ${saving ? `<div class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> Salvando...` : `<i data-lucide="save" size="16"></i> SALVAR`}
+                    </button>` : ''}
+                </div>
+            </div>`;
+        }
+
+        // ==================== FIM DO COMPARTILHAMENTO ====================
 
         // Salva na nuvem (debounced 2s para evitar muitas chamadas)
         let _cloudSaveTimer = null;
@@ -806,9 +1062,15 @@
                 }
             }
             state.characters = chars.sort((a,b) => new Date(b.lastMod) - new Date(a.lastMod));
+            // Carrega personagens compartilhados comigo
+            try {
+                const uid = state.user?.id || '';
+                state.sharedChars = JSON.parse(localStorage.getItem('hxhrpg_shared_in_' + uid) || '[]');
+            } catch(e) { state.sharedChars = []; }
         }
 
         function saveCharacter(char) {
+            if (state.viewOnly) return; // Não salva personagens em modo de visualização
             char.lastMod = new Date().toISOString();
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
@@ -1175,14 +1437,38 @@
         renderLogin(app);
     } else if (state.view === 'LIST') {
         if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+        state.viewOnly = false; // Reseta modo de visualização ao voltar para a lista
         renderList(app);
     }
     else if (state.view === 'CREATOR') renderCreator(app);
-    else if (state.view === 'SHEET') renderSheet(app);
+    else if (state.view === 'SHEET') {
+        renderSheet(app);
+        // Banner de modo somente leitura para personagens compartilhados
+        if (state.viewOnly) {
+            const ownerEntry = state.sharedChars.find(s => s.charId === state.currentChar?.id);
+            const ownerName = ownerEntry?.ownerUsername || 'outro jogador';
+            const banner = document.createElement('div');
+            banner.innerHTML = `<div class="fixed top-0 inset-x-0 z-50 flex items-center gap-2 px-4 py-2 bg-blue-950/95 border-b border-blue-800 text-blue-300 text-xs font-bold backdrop-blur-sm max-w-[480px] mx-auto">
+                <i data-lucide="eye" size="13"></i>
+                <span class="flex-1 uppercase tracking-widest">Visualização — ${ownerName}</span>
+                <button onclick="exitViewOnly()" class="flex items-center gap-1 text-blue-400 hover:text-white transition-colors font-bold">
+                    <i data-lucide="arrow-left" size="13"></i> Voltar
+                </button>
+            </div>`;
+            app.appendChild(banner.firstElementChild);
+        }
+    }
     // ADICIONE AQUI:
     else if (state.view === 'HATSU_CREATOR') renderHatsuCreator(app);
     else if (state.view === 'HATSU_DETAIL') renderHatsuDetail(app);
-    
+
+    // Modal de compartilhamento (overlay global)
+    if (state.shareModal) {
+        const modalWrapper = document.createElement('div');
+        modalWrapper.innerHTML = renderShareModal();
+        if (modalWrapper.firstElementChild) app.appendChild(modalWrapper.firstElementChild);
+    }
+
     // Roll Popup Overlay (O restante do seu código continua igual...)
     if (state.rollResult) {
         // ... (seu código do modal de rolagem)
@@ -1249,6 +1535,7 @@
                             <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
                             <p class="text-[10px] text-gray-400 uppercase">${char.race} • <span style="color:${color}">${char.class}</span></p>
                         </div>
+                        <button onclick="event.stopPropagation(); openShareModal('${char.id}')" class="p-2 text-gray-600 hover:text-neon-green transition-colors" title="Compartilhar"><i data-lucide="share-2" size="16"></i></button>
                         <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                     </div>`;
                 });
@@ -1268,11 +1555,32 @@
                             <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
                             <p class="text-[10px] text-gray-400 uppercase">LVL ${char.level} • <span style="color:${color}">${char.class}</span></p>
                         </div>
+                        <button onclick="event.stopPropagation(); openShareModal('${char.id}')" class="p-2 text-gray-600 hover:text-neon-green transition-colors" title="Compartilhar"><i data-lucide="share-2" size="16"></i></button>
                         <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                     </div>`;
                 });
             }
-            html += `</div></div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
+            html += `</div>`;
+            // Seção: personagens compartilhados comigo
+            if (state.sharedChars && state.sharedChars.length > 0) {
+                html += `<div><div class="flex items-center gap-2 mb-3"><i data-lucide="eye" class="text-neon-blue w-4 h-4"></i><h2 class="text-xs font-bold text-neon-blue uppercase tracking-widest">Compartilhado Comigo</h2></div>`;
+                state.sharedChars.forEach(sc => {
+                    const color = SYSTEM_DB.classes.find(c => c.id === sc.charClass)?.color || '#fff';
+                    const avatar = sc.charImageUrl
+                        ? `<img src="${sc.charImageUrl}" class="w-12 h-12 rounded-full object-cover border border-gray-700 bg-gray-800 flex-shrink-0" alt="${sc.charName}">`
+                        : `<div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500 flex-shrink-0"><i data-lucide="user" size="20"></i></div>`;
+                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-neon-blue/40 transition-all cursor-pointer mb-2" onclick="openSharedChar('${sc.ownerBinId}', '${sc.charId}')" style="border-left: 3px solid #00f0ff">
+                        ${avatar}
+                        <div class="flex-1 min-w-0">
+                            <h3 class="font-display font-bold text-white text-base truncate">${sc.charName}</h3>
+                            <p class="text-[10px] text-gray-400 uppercase">De: <span class="text-blue-400">${sc.ownerUsername}</span> • <span style="color:${color}">${sc.charClass}</span></p>
+                        </div>
+                        <i data-lucide="eye" size="16" class="text-neon-blue/50 flex-shrink-0"></i>
+                    </div>`;
+                });
+                html += `</div>`;
+            }
+            html += `</div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
             container.innerHTML = html;
         }
         //HATSU CREATOR — baseado no Manual de Hatsus HxH5e RPG 2.0
