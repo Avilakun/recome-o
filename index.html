@@ -654,10 +654,6 @@
             authorized: false,
             attackModal: null, // { nome, dano, tipoDano }
             pendingRoll: null,  // { type, a1, a2, a3 } — aguardando escolha de modo
-            // Compartilhamento
-            sharedChars: [],   // Personagens compartilhados comigo [{ownerDiscordId, ownerBinId, ownerUsername, charId, charName, charClass, charRace, charLevel, charImageUrl}]
-            viewOnly: false,   // Modo somente leitura (personagem compartilhado)
-            shareModal: null   // { charId, users: [], loading, saving, selected: [], currentSharedWith: [] }
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -695,18 +691,11 @@
                     try { chars.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
                 }
             }
-            const uid = state.user?.id || '';
-            let sharedOutgoing = [];
-            let sharedIncoming = [];
-            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
-            try { sharedIncoming = JSON.parse(localStorage.getItem('hxhrpg_shared_in_' + uid) || '[]'); } catch(e) {}
             return {
                 discordId: state.user ? state.user.id : null,
                 username: state.user?.username || null,
                 avatar: state.user?.avatar || null,
                 chars,
-                sharedOutgoing,
-                sharedIncoming,
                 updatedAt: new Date().toISOString()
             };
         }
@@ -775,101 +764,6 @@
                     } catch(e) { localStorage.setItem(localKey, JSON.stringify(rc)); }
                 }
             });
-            // Sincroniza dados de compartilhamento
-            const uid = state.user.id;
-            if (remote.sharedIncoming) {
-                localStorage.setItem('hxhrpg_shared_in_' + uid, JSON.stringify(remote.sharedIncoming));
-                state.sharedChars = remote.sharedIncoming;
-            }
-            if (remote.sharedOutgoing) {
-                localStorage.setItem('hxhrpg_shared_out_' + uid, JSON.stringify(remote.sharedOutgoing));
-            }
-        }
-
-        // ==================== COMPARTILHAMENTO DE PERSONAGENS ====================
-
-        // Lista todos os usuários registrados (todos os bins hxhrpg_* no JSONBin)
-        async function listRegisteredUsers() {
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b', {
-                    headers: { 'X-Master-Key': getJsonBinKey() }
-                });
-                if (!res.ok) return [];
-                const data = await res.json();
-                const bins = data.record || [];
-                // Filtra bins de usuários (hxhrpg_{discordId}, exclui cloud/shared)
-                const userBins = bins.filter(b => {
-                    const name = b.snippetMeta?.name || '';
-                    return name.startsWith('hxhrpg_') && !name.startsWith('hxhrpg_cloud') && !name.startsWith('hxhrpg_shared');
-                });
-                const users = [];
-                for (const bin of userBins.slice(0, 40)) {
-                    try {
-                        const record = await readBin(bin.id);
-                        if (record?.discordId && record.discordId !== state.user?.id) {
-                            users.push({
-                                discordId: record.discordId,
-                                username: record.username || record.discordId,
-                                avatar: record.avatar || null,
-                                binId: bin.id
-                            });
-                        }
-                    } catch(e) {}
-                }
-                return users;
-            } catch(e) { return []; }
-        }
-
-        // Abre o modal de compartilhamento para um personagem
-        async function openShareModal(charId) {
-            const uid = state.user?.id || '';
-            let sharedOutgoing = [];
-            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
-            const entry = sharedOutgoing.find(s => s.charId === charId);
-            const currentSharedWith = entry ? entry.sharedWith : [];
-            const currentSelected = currentSharedWith.map(u => u.discordId);
-            state.shareModal = { charId, users: [], loading: true, saving: false, selected: [...currentSelected], currentSharedWith: [...currentSharedWith] };
-            render();
-            const users = await listRegisteredUsers();
-            if (state.shareModal && state.shareModal.charId === charId) {
-                state.shareModal.users = users;
-                state.shareModal.loading = false;
-                render();
-            }
-        }
-
-        function closeShareModal() {
-            state.shareModal = null;
-            render();
-        }
-
-        function toggleShareUser(discordId) {
-            if (!state.shareModal) return;
-            const idx = state.shareModal.selected.indexOf(discordId);
-            if (idx >= 0) state.shareModal.selected.splice(idx, 1);
-            else state.shareModal.selected.push(discordId);
-            render();
-        }
-
-        // Adiciona entrada de personagem compartilhado no bin do destinatário
-        async function addSharedIncomingEntry(targetBinId, entry) {
-            const record = await readBin(targetBinId);
-            if (!record) return false;
-            let incoming = record.sharedIncoming || [];
-            incoming = incoming.filter(e => !(e.charId === entry.charId && e.ownerDiscordId === entry.ownerDiscordId));
-            incoming.push(entry);
-            record.sharedIncoming = incoming;
-            return await updateBin(targetBinId, record);
-        }
-
-        // Remove entrada de personagem compartilhado do bin do destinatário
-        async function removeSharedIncomingEntry(targetBinId, charId, ownerDiscordId) {
-            const record = await readBin(targetBinId);
-            if (!record) return false;
-            record.sharedIncoming = (record.sharedIncoming || []).filter(
-                e => !(e.charId === charId && e.ownerDiscordId === ownerDiscordId)
-            );
-            return await updateBin(targetBinId, record);
         }
 
         // Salva imediatamente na nuvem (sem debounce)
@@ -888,133 +782,6 @@
                 }
             }
         }
-
-        // Salva as alterações do modal de compartilhamento
-        async function saveShareChanges() {
-            if (!state.shareModal || state.shareModal.saving) return;
-            const { charId, users, selected, currentSharedWith } = state.shareModal;
-            state.shareModal.saving = true;
-            render();
-            const char = state.characters.find(c => c.id === charId);
-            if (!char) { closeShareModal(); return; }
-            // Novos usuários a adicionar
-            const toAdd = selected.filter(did => !currentSharedWith.find(u => u.discordId === did));
-            // Usuários a remover
-            const toRemove = currentSharedWith.filter(u => !selected.includes(u.discordId));
-            // Atualiza sharedOutgoing no localStorage
-            const uid = state.user?.id || '';
-            let sharedOutgoing = [];
-            try { sharedOutgoing = JSON.parse(localStorage.getItem('hxhrpg_shared_out_' + uid) || '[]'); } catch(e) {}
-            const newSharedWith = selected.map(did => {
-                const existing = currentSharedWith.find(u => u.discordId === did);
-                if (existing) return existing;
-                const userInfo = users.find(u => u.discordId === did);
-                return { discordId: did, username: userInfo?.username || did, binId: userInfo?.binId || '' };
-            });
-            const entryIdx = sharedOutgoing.findIndex(s => s.charId === charId);
-            if (newSharedWith.length === 0) {
-                if (entryIdx >= 0) sharedOutgoing.splice(entryIdx, 1);
-            } else {
-                if (entryIdx >= 0) sharedOutgoing[entryIdx].sharedWith = newSharedWith;
-                else sharedOutgoing.push({ charId, sharedWith: newSharedWith });
-            }
-            localStorage.setItem('hxhrpg_shared_out_' + uid, JSON.stringify(sharedOutgoing));
-            // Atualiza bins dos destinatários
-            const myBinId = loadBinId();
-            for (const did of toAdd) {
-                const userInfo = users.find(u => u.discordId === did);
-                if (!userInfo?.binId) continue;
-                await addSharedIncomingEntry(userInfo.binId, {
-                    ownerDiscordId: state.user.id,
-                    ownerBinId: myBinId,
-                    ownerUsername: state.user.username,
-                    charId: char.id,
-                    charName: char.name,
-                    charClass: char.class,
-                    charRace: char.race,
-                    charLevel: char.level,
-                    charImageUrl: char.imageUrl || null
-                });
-            }
-            for (const u of toRemove) {
-                if (!u.binId) continue;
-                await removeSharedIncomingEntry(u.binId, charId, state.user.id);
-            }
-            await saveToCloudNow();
-            closeShareModal();
-        }
-
-        // Abre um personagem compartilhado em modo de visualização
-        async function openSharedChar(ownerBinId, charId) {
-            const record = await readBin(ownerBinId);
-            if (!record || !record.chars) { alert('Não foi possível carregar este personagem.'); return; }
-            const char = record.chars.find(c => c.id === charId);
-            if (!char) { alert('Personagem não encontrado.'); return; }
-            state.currentChar = char;
-            state.viewOnly = true;
-            state.view = 'SHEET';
-            state.activeTab = 'FICHA';
-            render();
-        }
-
-        // Sai do modo de visualização
-        function exitViewOnly() {
-            state.viewOnly = false;
-            state.currentChar = null;
-            state.view = 'LIST';
-            render();
-        }
-
-        // Renderiza o modal de compartilhamento
-        function renderShareModal() {
-            if (!state.shareModal) return '';
-            const { charId, users, loading, saving, selected } = state.shareModal;
-            const char = state.characters.find(c => c.id === charId);
-            let content = '';
-            if (loading) {
-                content = `<div class="flex flex-col items-center justify-center py-8 gap-3">
-                    <div class="w-8 h-8 border-2 border-neon-green border-t-transparent rounded-full animate-spin"></div>
-                    <span class="text-xs text-gray-400">Buscando jogadores no sistema...</span>
-                </div>`;
-            } else if (users.length === 0) {
-                content = `<div class="text-center py-8 text-gray-500 text-xs leading-relaxed">Nenhum outro jogador encontrado.<br>Eles precisam ter feito login ao menos uma vez.</div>`;
-            } else {
-                content = `<div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar pr-1">` +
-                    users.map(u => {
-                        const isSel = selected.includes(u.discordId);
-                        const avatarHtml = u.avatar
-                            ? `<img src="https://cdn.discordapp.com/avatars/${u.discordId}/${u.avatar}.png" class="w-9 h-9 rounded-full flex-shrink-0">`
-                            : `<div class="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center flex-shrink-0"><i data-lucide="user" size="16"></i></div>`;
-                        return `<div onclick="toggleShareUser('${u.discordId}')" class="flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${isSel ? 'border-neon-green bg-neon-green/10' : 'border-gray-800 bg-gray-900 hover:border-gray-600'}">
-                            ${avatarHtml}
-                            <span class="flex-1 text-sm font-bold text-white">${u.username}</span>
-                            <div class="w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${isSel ? 'border-neon-green bg-neon-green' : 'border-gray-600'}">
-                                ${isSel ? `<i data-lucide="check" size="12" class="text-black"></i>` : ''}
-                            </div>
-                        </div>`;
-                    }).join('') + `</div>`;
-            }
-            return `<div class="fixed inset-0 z-[200] flex items-end justify-center bg-black/80 backdrop-blur-sm" onclick="closeShareModal()">
-                <div class="bg-[#0e0e14] border border-gray-800 rounded-t-3xl w-full max-w-[480px] p-6 pb-safe shadow-2xl" onclick="event.stopPropagation()">
-                    <div class="flex items-center gap-3 mb-5">
-                        <div class="w-9 h-9 rounded-full bg-neon-green/10 border border-neon-green/30 flex items-center justify-center flex-shrink-0">
-                            <i data-lucide="share-2" size="16" class="text-neon-green"></i>
-                        </div>
-                        <div class="flex-1">
-                            <h3 class="font-display font-bold text-white text-sm uppercase tracking-widest">Compartilhar Personagem</h3>
-                            <p class="text-[10px] text-gray-500 mt-0.5">${char?.name || ''} — acesso somente leitura</p>
-                        </div>
-                        <button onclick="closeShareModal()" class="text-gray-500 hover:text-white transition-colors p-1"><i data-lucide="x" size="20"></i></button>
-                    </div>
-                    ${content}
-                    ${!loading ? `<button onclick="saveShareChanges()" ${saving ? 'disabled' : ''} class="mt-4 w-full py-3 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 ${saving ? 'opacity-60 cursor-not-allowed' : ''}">
-                        ${saving ? `<div class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></div> Salvando...` : `<i data-lucide="save" size="16"></i> SALVAR`}
-                    </button>` : ''}
-                </div>
-            </div>`;
-        }
-
-        // ==================== FIM DO COMPARTILHAMENTO ====================
 
         // Salva na nuvem (debounced 2s para evitar muitas chamadas)
         let _cloudSaveTimer = null;
@@ -1062,15 +829,9 @@
                 }
             }
             state.characters = chars.sort((a,b) => new Date(b.lastMod) - new Date(a.lastMod));
-            // Carrega personagens compartilhados comigo
-            try {
-                const uid = state.user?.id || '';
-                state.sharedChars = JSON.parse(localStorage.getItem('hxhrpg_shared_in_' + uid) || '[]');
-            } catch(e) { state.sharedChars = []; }
         }
 
         function saveCharacter(char) {
-            if (state.viewOnly) return; // Não salva personagens em modo de visualização
             char.lastMod = new Date().toISOString();
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
@@ -1437,37 +1198,15 @@
         renderLogin(app);
     } else if (state.view === 'LIST') {
         if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
-        state.viewOnly = false; // Reseta modo de visualização ao voltar para a lista
         renderList(app);
     }
     else if (state.view === 'CREATOR') renderCreator(app);
     else if (state.view === 'SHEET') {
         renderSheet(app);
-        // Banner de modo somente leitura para personagens compartilhados
-        if (state.viewOnly) {
-            const ownerEntry = state.sharedChars.find(s => s.charId === state.currentChar?.id);
-            const ownerName = ownerEntry?.ownerUsername || 'outro jogador';
-            const banner = document.createElement('div');
-            banner.innerHTML = `<div class="fixed top-0 inset-x-0 z-50 flex items-center gap-2 px-4 py-2 bg-blue-950/95 border-b border-blue-800 text-blue-300 text-xs font-bold backdrop-blur-sm max-w-[480px] mx-auto">
-                <i data-lucide="eye" size="13"></i>
-                <span class="flex-1 uppercase tracking-widest">Visualização — ${ownerName}</span>
-                <button onclick="exitViewOnly()" class="flex items-center gap-1 text-blue-400 hover:text-white transition-colors font-bold">
-                    <i data-lucide="arrow-left" size="13"></i> Voltar
-                </button>
-            </div>`;
-            app.appendChild(banner.firstElementChild);
-        }
     }
     // ADICIONE AQUI:
     else if (state.view === 'HATSU_CREATOR') renderHatsuCreator(app);
     else if (state.view === 'HATSU_DETAIL') renderHatsuDetail(app);
-
-    // Modal de compartilhamento (overlay global)
-    if (state.shareModal) {
-        const modalWrapper = document.createElement('div');
-        modalWrapper.innerHTML = renderShareModal();
-        if (modalWrapper.firstElementChild) app.appendChild(modalWrapper.firstElementChild);
-    }
 
     // Roll Popup Overlay (O restante do seu código continua igual...)
     if (state.rollResult) {
@@ -1535,7 +1274,6 @@
                             <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
                             <p class="text-[10px] text-gray-400 uppercase">${char.race} • <span style="color:${color}">${char.class}</span></p>
                         </div>
-                        <button onclick="event.stopPropagation(); openShareModal('${char.id}')" class="p-2 text-gray-600 hover:text-neon-green transition-colors" title="Compartilhar"><i data-lucide="share-2" size="16"></i></button>
                         <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                     </div>`;
                 });
@@ -1555,31 +1293,11 @@
                             <h3 class="font-display font-bold text-white text-base">${char.name}</h3>
                             <p class="text-[10px] text-gray-400 uppercase">LVL ${char.level} • <span style="color:${color}">${char.class}</span></p>
                         </div>
-                        <button onclick="event.stopPropagation(); openShareModal('${char.id}')" class="p-2 text-gray-600 hover:text-neon-green transition-colors" title="Compartilhar"><i data-lucide="share-2" size="16"></i></button>
                         <button onclick="event.stopPropagation(); deleteCharacter('${char.id}')" class="p-2 text-gray-600 hover:text-neon-red transition-colors"><i data-lucide="trash-2" size="16"></i></button>
                     </div>`;
                 });
             }
             html += `</div>`;
-            // Seção: personagens compartilhados comigo
-            if (state.sharedChars && state.sharedChars.length > 0) {
-                html += `<div><div class="flex items-center gap-2 mb-3"><i data-lucide="eye" class="text-neon-blue w-4 h-4"></i><h2 class="text-xs font-bold text-neon-blue uppercase tracking-widest">Compartilhado Comigo</h2></div>`;
-                state.sharedChars.forEach(sc => {
-                    const color = SYSTEM_DB.classes.find(c => c.id === sc.charClass)?.color || '#fff';
-                    const avatar = sc.charImageUrl
-                        ? `<img src="${sc.charImageUrl}" class="w-12 h-12 rounded-full object-cover border border-gray-700 bg-gray-800 flex-shrink-0" alt="${sc.charName}">`
-                        : `<div class="w-12 h-12 rounded-full bg-gray-800 flex items-center justify-center border border-gray-700 text-gray-500 flex-shrink-0"><i data-lucide="user" size="20"></i></div>`;
-                    html += `<div class="bg-gray-900 border border-gray-800 rounded-xl p-4 flex items-center gap-4 hover:border-neon-blue/40 transition-all cursor-pointer mb-2" onclick="openSharedChar('${sc.ownerBinId}', '${sc.charId}')" style="border-left: 3px solid #00f0ff">
-                        ${avatar}
-                        <div class="flex-1 min-w-0">
-                            <h3 class="font-display font-bold text-white text-base truncate">${sc.charName}</h3>
-                            <p class="text-[10px] text-gray-400 uppercase">De: <span class="text-blue-400">${sc.ownerUsername}</span> • <span style="color:${color}">${sc.charClass}</span></p>
-                        </div>
-                        <i data-lucide="eye" size="16" class="text-neon-blue/50 flex-shrink-0"></i>
-                    </div>`;
-                });
-                html += `</div>`;
-            }
             html += `</div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
             container.innerHTML = html;
         }
@@ -4521,7 +4239,7 @@ function renderCard(item, color) {
                 const sanColor = sanPct >= 90 ? 'text-green-400' : sanPct >= 75 ? 'text-yellow-400' : sanPct >= 50 ? 'text-orange-400' : 'text-purple-400';
                 const vitalsGridHtml = `<div class="grid grid-cols-3 gap-y-2 gap-x-2 px-2 py-2 border-b border-gray-800 bg-[#0b0c10] mb-4">${renderNeonVital('SAN', char.vitals.san, char.vitals.sanMax, sanColor, 'bg-white')}${renderNeonVital('REA', char.vitals.rea || (7 + getMod(char.attributes.SAB.value)), null, 'text-white', 'bg-white text-white', true)}${renderNeonVital('AURA', char.vitals.aura, char.vitals.auraMax, `text-[${themeColor}]`, `bg-[${themeColor}] text-[${themeColor}]`, true, 5)}${renderNeonVital('CA', char.vitals.ca, null, 'text-white', 'bg-white text-white', false)}<div class="flex flex-col items-center justify-center cursor-pointer group" onclick="handleArmorClick()"><span class="text-[9px] font-bold text-gray-500 uppercase tracking-wider mb-0.5">ARMADURA</span><div class="w-10 h-10 rounded-full border border-gray-700 flex items-center justify-center bg-gray-900 group-hover:border-[${themeColor}] group-hover:shadow-[0_0_10px_rgba(var(--theme-rgb),0.3)] transition-all"><i data-lucide="shield" size="20" class="text-gray-400 group-hover:text-[${themeColor}] transition-colors"></i></div><div class="w-8 h-0.5 rounded-full mt-1.5 bg-gray-800 opacity-80"></div></div>${renderNeonVital('PV', char.vitals.hp, char.vitals.hpMax, 'text-neon-red', 'bg-neon-red text-neon-red')}</div>${rdmVal > 0 ? `<div class="flex items-center justify-center gap-2 text-[9px] text-blue-400 font-bold pb-2 border-b border-gray-800 mb-2"><span>🛡️ RDM (Resist. Mental)</span><span class="font-display text-sm">−${rdmVal}</span></div>` : ''}`;
                 const rollModesHtml = ''; // removido — modo é escolhido por rolagem via modal
-                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><div class="flex items-center gap-2 cursor-pointer" onclick="openRollModeModal('skill', '${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-500')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="16" class="text-gray-600 group-hover:text-white transition-colors"></i></div></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="toggleAttrPopup(null); openRollModeModal('dice', '${key}', ${mod})" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
+                const attributesHtml = `<div class="grid grid-cols-2 gap-3 p-4 pt-0">${Object.entries(char.attributes).map(([key, attr]) => { const mod = getMod(attr.value); const fullName = ATTR_FULL_NAMES[key]; const icons = ATTR_ICONS_MAP[key] || ["star","star"]; const saveSkillName = `TR de ${key}`; const isTrained = char.skills.includes(saveSkillName); const isExpert = (char.expertise || []).includes(saveSkillName); const pb = getProficiencyBonus(char.level); let saveBonus = mod; if(isExpert) saveBonus += pb * 2; else if(isTrained) saveBonus += pb; const saveBonusStr = saveBonus >= 0 ? `+${saveBonus}` : `${saveBonus}`; return `<div class="bg-gray-900 border border-gray-800 rounded-3xl p-3 relative overflow-hidden transition-all duration-300 hover:border-[${themeColor}] hover:shadow-[0_0_20px_rgba(var(--theme-rgb),0.1)] h-full flex flex-col justify-between group" onclick="handleAttributeClick('${key}')"><div class="relative w-full flex justify-center items-center mb-1 min-h-[30px]"><div class="flex items-center gap-2 text-[${themeColor}] bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm z-10 shadow-[0_0_15px_${themeColor}40]"><i data-lucide="${icons[0]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i><span class="text-[9px] font-black text-white uppercase tracking-[0.15em] drop-shadow-[0_0_5px_rgba(0,0,0,0.8)]">${fullName}</span><i data-lucide="${icons[1]}" size="10" class="drop-shadow-[0_0_8px_${themeColor}]"></i></div></div><div class="flex items-center justify-center my-0 relative flex-1"><button onclick="event.stopPropagation(); updateSheetAttr('${key}', -1)" class="absolute left-0 text-gray-600 hover:text-white p-1"><i data-lucide="minus" size="14"></i></button><span class="text-4xl font-display font-bold text-white tracking-tighter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">${attr.value}</span><button onclick="event.stopPropagation(); updateSheetAttr('${key}', 1)" class="absolute right-0 text-gray-600 hover:text-white p-1"><i data-lucide="plus" size="14"></i></button></div><div class="flex justify-center mt-1 mb-1"><div class="px-4 py-0.5 rounded-full border border-[${themeColor}]/30 bg-[${themeColor}]/5 text-[${themeColor}] text-xs font-bold shadow-[0_0_10px_rgba(var(--theme-rgb),0.2)]">${mod >= 0 ? '+'+mod : mod}</div></div><div onclick="event.stopPropagation(); handleShieldClick('${key}')" class="absolute right-2 bottom-2 cursor-pointer z-20 hover:scale-110 transition-transform flex items-center justify-center" title="TR de ${fullName}: ${saveBonusStr}"><i data-lucide="shield" size="18" class="${isTrained ? (isExpert ? 'text-neon-yellow fill-neon-yellow/10 drop-shadow-[0_0_5px_rgba(255,230,0,0.8)]' : `text-[${themeColor}] fill-[${themeColor}]/10 drop-shadow-[0_0_5px_${themeColor}]`) : 'text-gray-800 fill-gray-900'} transition-colors"></i><span class="absolute text-[7px] font-bold ${isTrained ? 'text-white' : 'text-gray-500'}" style="padding-top: 1px;">${saveBonusStr}</span></div></div>`; }).join('')}${state.openAttrPopup ? (() => { const key = state.openAttrPopup; const attr = char.attributes[key]; const mod = getMod(attr.value); const skillsList = SKILL_MAP[key] || []; return `<div class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200" onclick="toggleAttrPopup(null)"><div class="bg-gray-900 border-2 border-[${themeColor}] rounded-2xl p-6 w-[85%] max-w-[320px] shadow-[0_0_50px_rgba(0,0,0,0.8)] relative transform scale-100 animate-in zoom-in-95 duration-200" onclick="event.stopPropagation()"><button onclick="toggleAttrPopup(null)" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i data-lucide="x" size="20"></i></button><div class="text-center mb-6"><h2 class="text-2xl font-display font-black text-white uppercase tracking-widest drop-shadow-[0_0_10px_${themeColor}]">${ATTR_FULL_NAMES[key]}</h2><div class="flex justify-center items-center gap-4 mt-2"><div class="text-4xl font-display font-bold text-[${themeColor}]">${attr.value}</div><div class="bg-gray-800 px-4 py-1 rounded-full text-sm font-bold text-white border border-gray-700">Mod ${mod >= 0 ? '+'+mod : mod}</div></div></div><div class="space-y-3 mb-6"><h4 class="text-[10px] font-bold text-gray-500 uppercase border-b border-gray-800 pb-2 text-center">Perícias Associadas</h4><div class="flex flex-col gap-2 max-h-[200px] overflow-y-auto custom-scrollbar">${skillsList.length > 0 ? skillsList.map(s => { const isTrained = char.skills.includes(s); const isExpert = (char.expertise || []).includes(s); const pb = getProficiencyBonus(char.level); let totalBonus = mod; if (isExpert) totalBonus += (pb * 2); else if (isTrained) totalBonus += pb; let iconName = 'circle'; let iconColorClass = 'text-gray-600'; if (isExpert) { iconName = 'badge-check'; iconColorClass = 'text-neon-yellow fill-neon-yellow/20'; } else if (isTrained) { iconName = 'check-circle-2'; iconColorClass = `text-[${themeColor}]`; } return `<div class="flex items-center justify-between p-3 rounded-xl border transition-all group ${isTrained ? `bg-[${themeColor}]/10 border-[${themeColor}]/30` : 'bg-gray-950 border-gray-800 hover:border-gray-600'}"><div class="flex items-center gap-3 cursor-pointer" onclick="handleSkillStatus('${s}')"><i data-lucide="${iconName}" size="20" class="${iconColorClass} hover:scale-110 transition-transform"></i><span class="text-xs font-bold uppercase tracking-wide ${isTrained ? 'text-white' : 'text-gray-400'}">${s}</span></div><button class="flex items-center gap-2 px-2 py-1 rounded-lg border ${isExpert ? 'border-neon-yellow/40 bg-neon-yellow/10' : (isTrained ? `border-[${themeColor}]/40 bg-[${themeColor}]/10` : 'border-gray-700 bg-gray-900')} hover:brightness-125 transition-all cursor-pointer" onclick="toggleAttrPopup(null); openRollModeModal('skill', '${s}', '${key}')"><span class="text-xs font-mono font-bold ${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-400')}">${totalBonus >= 0 ? '+'+totalBonus : totalBonus}</span><i data-lucide="dices" size="14" class="${isExpert ? 'text-neon-yellow' : (isTrained ? `text-[${themeColor}]` : 'text-gray-400')} transition-colors"></i></button></div>` }).join('') : '<span class="text-xs text-gray-600 italic block text-center py-2">Nenhuma perícia associada.</span>'}</div></div><button onclick="toggleAttrPopup(null); openRollModeModal('dice', '${key}', ${mod})" class="w-full py-3 bg-[${themeColor}] text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2 shadow-[0_0_20px_${themeColor}40]"><i data-lucide="dices" size="18"></i> ROLAR ATRIBUTO PURO</button></div></div>${state.skillSelectionModal ? `<div class="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 animate-in fade-in duration-200" onclick="closeSkillModal()"><div class="bg-gray-900 border border-gray-700 rounded-xl p-6 w-[85%] max-w-[300px] shadow-2xl relative" onclick="event.stopPropagation()"><h3 class="text-lg font-display font-bold text-white mb-1">${state.skillSelectionModal}</h3><p class="text-xs text-gray-400 mb-4 uppercase tracking-widest">Selecione o nível de treinamento</p><div class="space-y-2"><button onclick="setSkillLevel('${state.skillSelectionModal}', 'remove')" class="w-full p-3 rounded-lg border border-red-900/50 bg-red-500/10 text-red-500 font-bold text-xs uppercase hover:bg-red-500 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="x" size="16"></i> Remover Proficiência</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'trained')" class="w-full p-3 rounded-lg border border-gray-700 bg-gray-800 text-gray-300 font-bold text-xs uppercase hover:bg-gray-700 hover:text-white transition-colors flex items-center gap-2"><i data-lucide="check-circle-2" size="16"></i> Normal (1x Bônus)</button><button onclick="setSkillLevel('${state.skillSelectionModal}', 'expert')" class="w-full p-3 rounded-lg border border-neon-yellow/30 bg-neon-yellow/10 text-neon-yellow font-bold text-xs uppercase hover:bg-neon-yellow hover:text-black transition-colors flex items-center gap-2"><i data-lucide="badge-check" size="16"></i> Especialização (2x Bônus)</button></div><button onclick="closeSkillModal()" class="mt-4 w-full py-2 text-xs text-gray-500 hover:text-white uppercase font-bold tracking-widest">Cancelar</button></div></div>` : ''}`; })() : ''}</div>`;
                 tabContent = `${infoGridHtml}${vitalsGridHtml}${(() => {
                     // Active Nen principles quick-use buttons
                     const d = char.nenDominio || {};
