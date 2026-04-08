@@ -251,6 +251,15 @@
             "1463667613338046535"
         ];
 
+        // IDs Discord dos administradores do sistema
+        const ADMIN_USERS = [
+            "833442072174264351"
+        ];
+
+        // ID do bin JSONBin com o registro de admins/mestres
+        // Deixe vazio na primeira vez — o admin criará via painel
+        let ADMIN_REGISTRY_BIN_ID = localStorage.getItem('hxhrpg_admin_registry_bin_id') || '';
+
         // --- DADOS DO SISTEMA ---
         const ITEM_DB = {
             armas: {
@@ -657,6 +666,12 @@
             selectedWebhook: 0, // índice do webhook Discord ativo (quando não há padrão)
             defaultWebhook: -1, // -1 = escolhe por rolagem; >= 0 = usa direto sem perguntar
             dadosSubTab: 'HISTORICO', // sub-aba da aba DADOS: 'HISTORICO' | 'DISCORD'
+            isAdmin: false,
+            isMestre: false,
+            assignedPlayers: [], // para mestres: lista de {id, username, avatar, binId}
+            adminRegistry: null, // dados do registro admin carregados do JSONBin
+            viewingUser: null,   // usuário que admin/mestre está visualizando
+            viewingChars: [],    // fichas do usuário sendo visualizado
         };
 
         // --- GERENCIAMENTO DE STORAGE ---
@@ -1113,11 +1128,24 @@
                 state.user = user;
 
                 // Check Whitelist (Paid Users) - Bypass Server Check
-                if (PAID_USERS.includes(user.id)) {
+                if (PAID_USERS.includes(user.id) || ADMIN_USERS.includes(user.id)) {
                     state.authorized = true;
                     state.view = 'LIST';
+                    // Load admin registry to determine roles
+                    if (ADMIN_REGISTRY_BIN_ID) {
+                        loadAdminRegistry().then(registry => {
+                            state.adminRegistry = registry;
+                            const roles = checkUserRoles(user.id, registry);
+                            state.isAdmin = roles.isAdmin;
+                            state.isMestre = roles.isMestre;
+                            state.assignedPlayers = roles.assignedPlayers;
+                            render(true);
+                            if (ADMIN_REGISTRY_BIN_ID) registerUserInRegistry();
+                        });
+                    } else {
+                        state.isAdmin = ADMIN_USERS.includes(user.id);
+                    }
                     render();
-                    // Sync cloud data after login
                     syncFromCloud().then(() => { loadCharacters(); render(true); });
                     return;
                 }
@@ -1132,6 +1160,18 @@
                     if (member.roles && member.roles.includes(DISCORD_CONFIG.roleId)) {
                         state.authorized = true;
                         state.view = 'LIST';
+                        // Load admin registry to determine roles
+                        if (ADMIN_REGISTRY_BIN_ID) {
+                            loadAdminRegistry().then(registry => {
+                                state.adminRegistry = registry;
+                                const roles = checkUserRoles(user.id, registry);
+                                state.isAdmin = roles.isAdmin;
+                                state.isMestre = roles.isMestre;
+                                state.assignedPlayers = roles.assignedPlayers;
+                                render(true);
+                                registerUserInRegistry();
+                            });
+                        }
                     } else {
                         alert('Acesso Negado: Você não possui o cargo necessário no servidor.');
                         logoutDiscord();
@@ -1151,6 +1191,151 @@
                 logoutDiscord();
             }
         }
+
+        // ══════════════════════════════════════════════════════════
+        //  ADMIN REGISTRY — gerenciamento de admins e mestres
+        // ══════════════════════════════════════════════════════════
+
+        async function loadAdminRegistry() {
+            if (!ADMIN_REGISTRY_BIN_ID) return null;
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b/' + ADMIN_REGISTRY_BIN_ID + '/latest', {
+                    headers: { 'X-Master-Key': getJsonBinKey() }
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                return data.record || null;
+            } catch(e) { return null; }
+        }
+
+        async function saveAdminRegistry(registry) {
+            if (!ADMIN_REGISTRY_BIN_ID) return false;
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b/' + ADMIN_REGISTRY_BIN_ID, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey() },
+                    body: JSON.stringify(registry)
+                });
+                return res.ok;
+            } catch(e) { return false; }
+        }
+
+        async function createAdminRegistry() {
+            const initial = { admins: [], mestres: {}, users: [] };
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey(), 'X-Bin-Name': 'hxhrpg_admin_registry', 'X-Bin-Private': 'false' },
+                    body: JSON.stringify(initial)
+                });
+                if (!res.ok) return null;
+                const data = await res.json();
+                const binId = data.metadata?.id || null;
+                if (binId) {
+                    ADMIN_REGISTRY_BIN_ID = binId;
+                    localStorage.setItem('hxhrpg_admin_registry_bin_id', binId);
+                }
+                return binId;
+            } catch(e) { return null; }
+        }
+
+        async function registerUserInRegistry() {
+            if (!state.user || !ADMIN_REGISTRY_BIN_ID) return;
+            const registry = await loadAdminRegistry();
+            if (!registry) return;
+            const users = registry.users || [];
+            const idx = users.findIndex(u => u.id === state.user.id);
+            const entry = { id: state.user.id, username: state.user.username, avatar: state.user.avatar, binId: loadBinId() || null, lastSeen: new Date().toISOString() };
+            if (idx >= 0) users[idx] = entry; else users.push(entry);
+            registry.users = users;
+            state.adminRegistry = registry;
+            await saveAdminRegistry(registry);
+        }
+
+        function checkUserRoles(userId, registry) {
+            if (!registry) return { isAdmin: false, isMestre: false, assignedPlayers: [] };
+            const isAdmin = (registry.admins || []).includes(userId) || ADMIN_USERS.includes(userId);
+            const mestreData = (registry.mestres || {})[userId];
+            const isMestre = !!mestreData;
+            const assignedPlayerIds = mestreData || [];
+            const assignedPlayers = (registry.users || []).filter(u => assignedPlayerIds.includes(u.id));
+            return { isAdmin, isMestre, assignedPlayers };
+        }
+
+        async function adminGrantAdmin(targetUserId) {
+            const registry = state.adminRegistry || await loadAdminRegistry();
+            if (!registry) return;
+            if (!registry.admins.includes(targetUserId)) registry.admins.push(targetUserId);
+            state.adminRegistry = registry;
+            await saveAdminRegistry(registry);
+            render(true);
+        }
+
+        async function adminRevokeAdmin(targetUserId) {
+            const registry = state.adminRegistry || await loadAdminRegistry();
+            if (!registry) return;
+            registry.admins = (registry.admins || []).filter(id => id !== targetUserId);
+            state.adminRegistry = registry;
+            await saveAdminRegistry(registry);
+            render(true);
+        }
+
+        async function adminAssignMestre(mestreId, playerIds) {
+            const registry = state.adminRegistry || await loadAdminRegistry();
+            if (!registry) return;
+            if (!registry.mestres) registry.mestres = {};
+            if (playerIds.length === 0) {
+                delete registry.mestres[mestreId];
+            } else {
+                registry.mestres[mestreId] = playerIds;
+            }
+            state.adminRegistry = registry;
+            await saveAdminRegistry(registry);
+            render(true);
+        }
+
+        async function adminRevokeMestre(mestreId) {
+            await adminAssignMestre(mestreId, []);
+        }
+
+        async function fetchUserChars(binId) {
+            if (!binId) return [];
+            try {
+                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
+                    headers: { 'X-Master-Key': getJsonBinKey() }
+                });
+                if (!res.ok) return [];
+                const data = await res.json();
+                return (data.record && data.record.chars) ? data.record.chars : [];
+            } catch(e) { return []; }
+        }
+
+        async function viewUserChars(user) {
+            state.viewingUser = user;
+            state.viewingChars = [];
+            state.view = 'PLAYER_CHARS';
+            render();
+            const chars = await fetchUserChars(user.binId);
+            state.viewingChars = chars;
+            render(true);
+        }
+
+        async function saveViewingChar(char) {
+            // Salva a ficha no bin do usuário visualizado
+            const user = state.viewingUser;
+            if (!user || !user.binId) return;
+            const chars = await fetchUserChars(user.binId);
+            const idx = chars.findIndex(c => c.id === char.id);
+            char.lastMod = new Date().toISOString();
+            if (idx >= 0) chars[idx] = char; else chars.push(char);
+            // Rebuild payload and save
+            const payload = { discordId: user.id, username: user.username, avatar: user.avatar, chars, updatedAt: new Date().toISOString() };
+            await updateBin(user.binId, payload);
+            state.viewingChars = chars;
+            render(true);
+        }
+
+        // ──────────────────────────────────────────────────────────
 
         function renderLogin(container) {
             container.innerHTML = `
@@ -1203,6 +1388,18 @@
         if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
         renderList(app);
     }
+    else if (state.view === 'ADMIN') {
+        if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+        renderAdmin(app);
+    }
+    else if (state.view === 'MESTRE_PLAYERS') {
+        if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+        renderMestrePlayers(app);
+    }
+    else if (state.view === 'PLAYER_CHARS') {
+        if (!state.authorized) { state.view = 'LOGIN'; render(); return; }
+        renderPlayerChars(app);
+    }
     else if (state.view === 'CREATOR') renderCreator(app);
     else if (state.view === 'SHEET') {
         renderSheet(app);
@@ -1242,9 +1439,13 @@
                                 <span class="text-sm font-display font-bold text-white uppercase tracking-wide">${state.user ? state.user.username : 'Hunter'}</span>
                             </div>
                         </div>
-                        <button onclick="logoutDiscord()" class="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-lg border border-transparent hover:border-red-900/30 hover:bg-red-900/10">
-                            <i data-lucide="log-out" size="18"></i>
-                        </button>
+                        <div class="flex items-center gap-2">
+                            ${state.isMestre ? `<button onclick="state.view='MESTRE_PLAYERS';render()" style="padding:6px 12px;background:#7c3aed22;border:1px solid #7c3aed55;border-radius:8px;color:#a78bfa;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;font-family:'Orbitron',sans-serif">⚔️ Jogadores</button>` : ''}
+                            ${state.isAdmin ? `<button onclick="state.view='ADMIN';render()" style="padding:6px 12px;background:#dc262622;border:1px solid #dc262655;border-radius:8px;color:#f87171;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;font-family:'Orbitron',sans-serif">🛡 Admin</button>` : ''}
+                            <button onclick="logoutDiscord()" class="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-lg border border-transparent hover:border-red-900/30 hover:bg-red-900/10">
+                                <i data-lucide="log-out" size="18"></i>
+                            </button>
+                        </div>
                     </div>
 
                     ${state.user ? `<div onclick="window._manualSync()" style="display:flex;align-items:center;justify-content:space-between;background:#0a0f1a;border:1px solid #1f2937;border-radius:10px;padding:8px 12px;margin-bottom:12px;cursor:pointer" title="Clique para sincronizar agora">
@@ -1304,6 +1505,237 @@
             html += `</div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
             container.innerHTML = html;
         }
+
+        // ══════════════════════════════════════════════════════════
+        //  RENDER ADMIN PANEL
+        // ══════════════════════════════════════════════════════════
+        function renderAdmin(container) {
+            if (!state.isAdmin) { state.view = 'LIST'; render(); return; }
+            const registry = state.adminRegistry || { admins: [], mestres: {}, users: [] };
+            const users = registry.users || [];
+            const admins = registry.admins || [];
+            const mestres = registry.mestres || {};
+
+            const userRows = users.map(u => {
+                const isAdm = admins.includes(u.id) || ADMIN_USERS.includes(u.id);
+                const isHardcoded = ADMIN_USERS.includes(u.id);
+                const isMst = !!mestres[u.id];
+                const avatar = u.avatar ? `<img src="https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png" style="width:32px;height:32px;border-radius:50%;border:1px solid #374151">` : `<div style="width:32px;height:32px;border-radius:50%;background:#1f2937;display:flex;align-items:center;justify-content:center;color:#6b7280;font-size:14px">?</div>`;
+                return `<div style="background:#111827;border:1px solid #1f2937;border-radius:12px;padding:12px 14px;margin-bottom:8px">
+                    <div style="display:flex;align-items:center;gap:10px">
+                        ${avatar}
+                        <div style="flex:1;min-width:0">
+                            <div style="font-weight:900;color:#fff;font-size:12px">${u.username || u.id}</div>
+                            <div style="font-size:9px;color:#4b5563;font-family:monospace">${u.id}</div>
+                            <div style="display:flex;gap:4px;margin-top:4px;flex-wrap:wrap">
+                                ${isAdm ? `<span style="font-size:8px;background:#dc262633;color:#f87171;border-radius:4px;padding:2px 6px;font-weight:900">🛡 ADMIN${isHardcoded?' (fixo)':''}</span>` : ''}
+                                ${isMst ? `<span style="font-size:8px;background:#7c3aed33;color:#a78bfa;border-radius:4px;padding:2px 6px;font-weight:900">⚔️ MESTRE</span>` : ''}
+                            </div>
+                        </div>
+                        <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+                            <button onclick="viewUserChars(${JSON.stringify(u).replace(/"/g,'&quot;')})" style="padding:5px 8px;border-radius:7px;background:#0f2937;border:1px solid #1e4a6f;color:#60a5fa;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">Ver Fichas</button>
+                            ${!isHardcoded && isAdm ? `<button onclick="adminRevokeAdmin('${u.id}')" style="padding:5px 8px;border-radius:7px;background:#3b0f0f;border:1px solid #7f1d1d;color:#f87171;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">– Admin</button>` : ''}
+                            ${!isAdm ? `<button onclick="adminGrantAdmin('${u.id}')" style="padding:5px 8px;border-radius:7px;background:#0f1f3b;border:1px solid #1e3a6e;color:#93c5fd;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">+ Admin</button>` : ''}
+                            ${isMst ? `<button onclick="adminRevokeMestre('${u.id}')" style="padding:5px 8px;border-radius:7px;background:#2e1065;border:1px solid #4c1d95;color:#c4b5fd;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">– Mestre</button>` : `<button onclick="window._openMestreModal('${u.id}')" style="padding:5px 8px;border-radius:7px;background:#1a0a3a;border:1px solid #4c1d95;color:#a78bfa;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">+ Mestre</button>`}
+                        </div>
+                    </div>
+                    ${isMst ? `<div style="margin-top:8px;padding:8px;background:#0d0d18;border-radius:8px;border:1px solid #2d1a5e">
+                        <div style="font-size:8px;color:#7c3aed;font-weight:900;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Jogadores atribuídos:</div>
+                        ${(mestres[u.id]||[]).length === 0 ? '<div style="font-size:9px;color:#4b5563;font-style:italic">Nenhum</div>' : (mestres[u.id]||[]).map(pid => { const pu = users.find(x=>x.id===pid); return `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:3px"><span style="font-size:10px;color:#c4b5fd">${pu?pu.username:pid}</span><button onclick="window._removeMestrePlayer('${u.id}','${pid}')" style="font-size:10px;background:none;border:none;color:#7f1d1d;cursor:pointer">✕</button></div>`; }).join('')}
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+
+            const setupSection = !ADMIN_REGISTRY_BIN_ID ? `
+                <div style="background:#0f1a0f;border:2px dashed #166534;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
+                    <div style="font-size:10px;color:#4ade80;font-weight:900;text-transform:uppercase;margin-bottom:8px">⚠️ Registry não configurado</div>
+                    <div style="font-size:9px;color:#6b7280;margin-bottom:12px">Crie o bin de registro para habilitar todas as funções admin.</div>
+                    <button onclick="window._createAdminRegistry()" style="padding:8px 16px;background:#166534;border:none;border-radius:8px;color:#4ade80;font-size:9px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">Criar Registry</button>
+                </div>` : '';
+
+            container.innerHTML = `
+                <div style="background:#0a0a0f;min-height:100%;display:flex;flex-direction:column">
+                    <div style="padding:16px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:12px;flex-shrink:0">
+                        <button onclick="state.view='LIST';render()" style="background:none;border:none;color:#6b7280;cursor:pointer;padding:4px"><i data-lucide="arrow-left" size="20"></i></button>
+                        <div>
+                            <div style="font-size:9px;color:#f87171;font-weight:900;text-transform:uppercase;letter-spacing:.15em">Painel</div>
+                            <div style="font-size:16px;font-weight:900;color:#fff;font-family:'Orbitron',sans-serif">ADMINISTRAÇÃO</div>
+                        </div>
+                        <button onclick="window._reloadRegistry()" style="margin-left:auto;padding:6px 10px;background:#111827;border:1px solid #374151;border-radius:8px;color:#9ca3af;font-size:8px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">↻ Atualizar</button>
+                    </div>
+                    <div style="flex:1;overflow-y:auto;padding:16px">
+                        ${setupSection}
+                        <div style="font-size:9px;color:#6b7280;font-weight:900;text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px">Usuários Registrados (${users.length})</div>
+                        ${users.length === 0 ? '<div style="text-align:center;color:#4b5563;font-style:italic;padding:32px 0;border:2px dashed #1f2937;border-radius:12px;font-size:11px">Nenhum usuário registrado ainda.</div>' : userRows}
+                    </div>
+                </div>
+                <!-- Modal atribuir mestre -->
+                <div id="mestre-modal" style="display:none;position:fixed;inset:0;background:#000000bb;z-index:999;display:flex;align-items:center;justify-content:center;padding:20px">
+                    <div style="background:#111827;border:1px solid #374151;border-radius:16px;padding:20px;width:100%;max-width:360px">
+                        <div style="font-size:11px;font-weight:900;color:#a78bfa;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px">Atribuir como Mestre</div>
+                        <div id="mestre-modal-target" style="font-size:10px;color:#9ca3af;margin-bottom:12px"></div>
+                        <div style="font-size:9px;color:#6b7280;margin-bottom:8px">Selecione os jogadores que este mestre pode ver:</div>
+                        <div id="mestre-player-list" style="max-height:200px;overflow-y:auto;margin-bottom:14px"></div>
+                        <div style="display:flex;gap:8px">
+                            <button onclick="document.getElementById('mestre-modal').style.display='none'" style="flex:1;padding:10px;border-radius:9px;background:#1f2937;border:none;color:#9ca3af;font-size:9px;font-weight:900;cursor:pointer;font-family:'Orbitron',sans-serif">Cancelar</button>
+                            <button onclick="window._confirmMestreModal()" style="flex:1;padding:10px;border-radius:9px;background:#4c1d95;border:none;color:#c4b5fd;font-size:9px;font-weight:900;cursor:pointer;font-family:'Orbitron',sans-serif">Confirmar</button>
+                        </div>
+                    </div>
+                </div>`;
+
+            document.getElementById('mestre-modal').style.display = 'none';
+
+            window._reloadRegistry = async function() {
+                const reg = await loadAdminRegistry();
+                state.adminRegistry = reg;
+                const roles = checkUserRoles(state.user.id, reg);
+                state.isAdmin = roles.isAdmin;
+                state.isMestre = roles.isMestre;
+                state.assignedPlayers = roles.assignedPlayers;
+                render();
+            };
+
+            window._createAdminRegistry = async function() {
+                const binId = await createAdminRegistry();
+                if (binId) { alert(`Registry criado!\nBin ID: ${binId}\n\nSalvo automaticamente no localStorage.`); const reg = await loadAdminRegistry(); state.adminRegistry = reg; render(); }
+                else alert('Erro ao criar o registry. Verifique a chave JSONBin.');
+            };
+
+            window._openMestreModal = function(mestreId) {
+                const reg = state.adminRegistry || { admins:[], mestres:{}, users:[] };
+                const users = reg.users || [];
+                const targetUser = users.find(u => u.id === mestreId);
+                document.getElementById('mestre-modal-target').textContent = 'Mestre: ' + (targetUser ? targetUser.username : mestreId);
+                const existing = (reg.mestres || {})[mestreId] || [];
+                const listEl = document.getElementById('mestre-player-list');
+                listEl.innerHTML = users.filter(u => u.id !== mestreId).map(u => `
+                    <label style="display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;cursor:pointer;margin-bottom:4px;background:#0d1117">
+                        <input type="checkbox" value="${u.id}" ${existing.includes(u.id)?'checked':''} style="width:14px;height:14px;accent-color:#7c3aed">
+                        <span style="font-size:11px;color:#e5e7eb">${u.username || u.id}</span>
+                    </label>`).join('');
+                document.getElementById('mestre-modal').style.display = 'flex';
+                window._pendingMestreId = mestreId;
+            };
+
+            window._confirmMestreModal = function() {
+                const checked = [...document.querySelectorAll('#mestre-player-list input[type=checkbox]:checked')].map(el => el.value);
+                adminAssignMestre(window._pendingMestreId, checked);
+                document.getElementById('mestre-modal').style.display = 'none';
+            };
+
+            window._removeMestrePlayer = function(mestreId, playerId) {
+                const reg = state.adminRegistry || { admins:[], mestres:{}, users:[] };
+                const current = (reg.mestres || {})[mestreId] || [];
+                adminAssignMestre(mestreId, current.filter(id => id !== playerId));
+            };
+
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ══════════════════════════════════════════════════════════
+        //  RENDER MESTRE — lista de jogadores do mestre
+        // ══════════════════════════════════════════════════════════
+        function renderMestrePlayers(container) {
+            if (!state.isMestre) { state.view = 'LIST'; render(); return; }
+            const players = state.assignedPlayers || [];
+            const rows = players.length === 0
+                ? '<div style="text-align:center;color:#4b5563;font-style:italic;padding:32px 0;border:2px dashed #1f2937;border-radius:12px;font-size:11px">Nenhum jogador atribuído ainda.</div>'
+                : players.map(u => {
+                    const avatar = u.avatar ? `<img src="https://cdn.discordapp.com/avatars/${u.id}/${u.avatar}.png" style="width:40px;height:40px;border-radius:50%;border:1px solid #374151">` : `<div style="width:40px;height:40px;border-radius:50%;background:#1f2937;display:flex;align-items:center;justify-content:center;color:#6b7280">?</div>`;
+                    return `<div onclick="viewUserChars(${JSON.stringify(u).replace(/"/g,'&quot;')})" style="background:#111827;border:1px solid #1f2937;border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='#7c3aed'" onmouseout="this.style.borderColor='#1f2937'">
+                        ${avatar}
+                        <div>
+                            <div style="font-weight:900;color:#fff;font-size:13px">${u.username || u.id}</div>
+                            <div style="font-size:9px;color:#6b7280;margin-top:2px">Ver fichas →</div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+            container.innerHTML = `
+                <div style="background:#0a0a0f;min-height:100%;display:flex;flex-direction:column">
+                    <div style="padding:16px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:12px;flex-shrink:0">
+                        <button onclick="state.view='LIST';render()" style="background:none;border:none;color:#6b7280;cursor:pointer;padding:4px"><i data-lucide="arrow-left" size="20"></i></button>
+                        <div>
+                            <div style="font-size:9px;color:#a78bfa;font-weight:900;text-transform:uppercase;letter-spacing:.15em">Mestre</div>
+                            <div style="font-size:16px;font-weight:900;color:#fff;font-family:'Orbitron',sans-serif">JOGADORES</div>
+                        </div>
+                    </div>
+                    <div style="flex:1;overflow-y:auto;padding:16px">${rows}</div>
+                </div>`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // ══════════════════════════════════════════════════════════
+        //  RENDER PLAYER CHARS — fichas de outro usuário
+        // ══════════════════════════════════════════════════════════
+        function renderPlayerChars(container) {
+            const user = state.viewingUser;
+            const chars = state.viewingChars || [];
+            const backView = state.isAdmin ? 'ADMIN' : 'MESTRE_PLAYERS';
+            const level0 = chars.filter(c => c.level === 0);
+            const levelHigh = chars.filter(c => c.level > 0);
+
+            const makeCard = (char, canEdit) => {
+                const color = SYSTEM_DB.classes.find(c => c.id === char.class)?.color || '#fff';
+                const avatar = char.imageUrl
+                    ? `<img src="${char.imageUrl}" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid #374151">`
+                    : `<div style="width:44px;height:44px;border-radius:50%;background:#1f2937;display:flex;align-items:center;justify-content:center;color:#6b7280"><i data-lucide="user" size="18"></i></div>`;
+                return `<div onclick="window._openViewingChar('${char.id}')" style="background:#111827;border:1px solid #1f2937;border-left:3px solid ${color};border-radius:12px;padding:14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;cursor:pointer" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderLeftColor='${color}';this.style.borderTopColor='#1f2937';this.style.borderRightColor='#1f2937';this.style.borderBottomColor='#1f2937'">
+                    ${avatar}
+                    <div style="flex:1">
+                        <div style="font-weight:900;color:#fff;font-size:13px">${char.name}</div>
+                        <div style="font-size:9px;color:#9ca3af;text-transform:uppercase">${char.race || ''} • <span style="color:${color}">${char.class || ''}</span> ${char.level > 0 ? `• Lv ${char.level}` : ''}</div>
+                    </div>
+                </div>`;
+            };
+
+            const rows0 = level0.length === 0
+                ? '<div style="text-align:center;color:#4b5563;font-style:italic;padding:20px;border:2px dashed #1f2937;border-radius:12px;font-size:11px">Nenhuma ficha nível 0.</div>'
+                : level0.map(c => makeCard(c, state.isAdmin)).join('');
+            const rowsH = levelHigh.length === 0
+                ? '<div style="text-align:center;color:#4b5563;font-style:italic;padding:20px;border:2px dashed #1f2937;border-radius:12px;font-size:11px">Nenhum Hunter.</div>'
+                : levelHigh.map(c => makeCard(c, state.isAdmin)).join('');
+
+            const userAvatar = user && user.avatar ? `<img src="https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png" style="width:36px;height:36px;border-radius:50%;border:1px solid #374151">` : '';
+
+            container.innerHTML = `
+                <div style="background:#0a0a0f;min-height:100%;display:flex;flex-direction:column">
+                    <div style="padding:16px;border-bottom:1px solid #1f2937;display:flex;align-items:center;gap:10px;flex-shrink:0">
+                        <button onclick="state.view='${backView}';state.viewingUser=null;state.viewingChars=[];render()" style="background:none;border:none;color:#6b7280;cursor:pointer;padding:4px"><i data-lucide="arrow-left" size="20"></i></button>
+                        ${userAvatar}
+                        <div>
+                            <div style="font-size:9px;color:#60a5fa;font-weight:900;text-transform:uppercase;letter-spacing:.1em">Fichas de</div>
+                            <div style="font-size:15px;font-weight:900;color:#fff;font-family:'Orbitron',sans-serif">${user ? user.username : ''}</div>
+                        </div>
+                        ${state.isAdmin ? '<span style="margin-left:auto;font-size:8px;background:#dc262633;color:#f87171;border-radius:4px;padding:3px 8px;font-weight:900">MODO ADMIN</span>' : '<span style="margin-left:auto;font-size:8px;background:#7c3aed33;color:#a78bfa;border-radius:4px;padding:3px 8px;font-weight:900">LEITURA</span>'}
+                    </div>
+                    <div style="flex:1;overflow-y:auto;padding:16px">
+                        ${chars.length === 0 ? '<div style="text-align:center;color:#4b5563;font-style:italic;padding:40px;border:2px dashed #1f2937;border-radius:12px">Carregando fichas...</div>' : ''}
+                        ${chars.length > 0 ? `<div style="font-size:9px;color:#4b5563;font-weight:900;text-transform:uppercase;margin-bottom:8px">Nível 0</div>${rows0}<div style="font-size:9px;color:#4ade80;font-weight:900;text-transform:uppercase;margin:16px 0 8px">Usuários de Nen</div>${rowsH}` : ''}
+                    </div>
+                </div>`;
+
+            window._openViewingChar = function(charId) {
+                const char = state.viewingChars.find(c => c.id === charId);
+                if (!char) return;
+                if (state.isAdmin) {
+                    // Admin abre a ficha no modo edição — usa o sistema normal
+                    // Substitui o currentChar temporariamente
+                    state._prevChar = state.currentChar;
+                    state._viewingMode = true;
+                    state.currentChar = char;
+                    state.view = 'SHEET';
+                    state.activeTab = 'FICHA';
+                    render();
+                } else {
+                    // Mestre: leitura apenas — exibe modal simples
+                    alert(`Ficha: ${char.name}\nClasse: ${char.class}\nNível: ${char.level}\nRaça: ${char.race}`);
+                }
+            };
+
+            if (window.lucide) lucide.createIcons();
+        }
+
         //HATSU CREATOR — baseado no Manual de Hatsus HxH5e RPG 2.0
 
 // Calculate bonus P.N granted by selected restrictions
@@ -4695,7 +5127,7 @@ function renderCard(item, color) {
                                 </div>
                                 <div style="display:flex;gap:6px;flex-shrink:0">
                                     <button onclick="setDefaultWebhook(${i})" title="${isDefault ? 'Remover padrão' : 'Marcar como padrão'}" style="padding:6px 8px;border-radius:8px;border:2px solid ${isDefault ? '#f59e0b' : '#374151'};background:${isDefault ? '#92400e' : 'transparent'};color:${isDefault ? '#fbbf24' : '#6b7280'};cursor:pointer;font-size:13px;line-height:1">⭐</button>
-                                    <button onclick="deleteWebhook(${i})" title="Apagar webhook" style="padding:6px 8px;border-radius:8px;border:2px solid #7f1d1d;background:transparent;color:#f87171;cursor:pointer;font-size:13px;line-height:1">🗑</button>
+                                    ${state.isAdmin ? `<button onclick="deleteWebhook(${i})" title="Apagar webhook" style="padding:6px 8px;border-radius:8px;border:2px solid #7f1d1d;background:transparent;color:#f87171;cursor:pointer;font-size:13px;line-height:1">🗑</button>` : ''}
                                 </div>
                             </div>
                         </div>`;
@@ -4706,12 +5138,12 @@ function renderCard(item, color) {
                     <div style="color:#94a3b8">${_defWh >= 0 && _whs[_defWh] ? `Padrão ativo: <strong style="color:#fff">${_whs[_defWh].name}</strong> — rolagens enviadas direto.` : _whs.length > 1 ? 'Nenhum padrão — você escolherá o destino a cada rolagem.' : _whs.length === 1 ? `Usando <strong style="color:#fff">${_whs[0].name}</strong> automaticamente.` : 'Nenhum webhook configurado.'}</div>
                 </div>`;
 
-                const _addFormHtml = `<div style="background:#0d1117;border:2px dashed #1f2937;border-radius:12px;padding:16px;margin-top:12px">
+                const _addFormHtml = state.isAdmin ? `<div style="background:#0d1117;border:2px dashed #1f2937;border-radius:12px;padding:16px;margin-top:12px">
                     <div style="font-size:9px;font-weight:900;color:#4b5563;text-transform:uppercase;letter-spacing:.15em;margin-bottom:12px">+ Novo Webhook</div>
                     <input id="wh-name-input" placeholder="Nome (ex: Mesa Principal)" style="width:100%;background:#111827;border:1px solid #374151;border-radius:8px;padding:9px 12px;color:#fff;font-size:11px;margin-bottom:8px;box-sizing:border-box;outline:none" />
                     <input id="wh-url-input" placeholder="https://discord.com/api/webhooks/..." style="width:100%;background:#111827;border:1px solid #374151;border-radius:8px;padding:9px 12px;color:#fff;font-size:10px;font-family:monospace;margin-bottom:10px;box-sizing:border-box;outline:none" />
                     <button onclick="addWebhook(document.getElementById('wh-name-input').value, document.getElementById('wh-url-input').value)" style="width:100%;padding:10px;border-radius:9px;background:#1d4ed8;border:none;color:#fff;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.1em;cursor:pointer;font-family:'Orbitron',sans-serif">Adicionar</button>
-                </div>`;
+                </div>` : `<div style="background:#0d1117;border:2px dashed #1f2937;border-radius:12px;padding:12px;margin-top:12px;text-align:center"><div style="font-size:9px;color:#4b5563;font-style:italic">Somente administradores podem adicionar webhooks.</div></div>`;
 
                 const _discordHtml = `${_statusHtml}${_webhookListHtml}${_addFormHtml}`;
 
