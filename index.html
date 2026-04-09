@@ -257,9 +257,6 @@
             "513323323355037717"
         ];
 
-        // ID do bin JSONBin com o registro de admins/mestres
-        const ADMIN_REGISTRY_BIN_ID = '69d635d0856a6821890efc2b';
-
         // --- DADOS DO SISTEMA ---
         const ITEM_DB = {
             armas: {
@@ -679,118 +676,46 @@
         //  CLOUD SYNC via JSONBin.io — sincroniza entre dispositivos
         //  quando o usuário está logado com Discord
         // ══════════════════════════════════════════════════════════
-        const JSONBIN_API_KEY = '$2a$10$ChmKgMdw/wSeDfy6zwRy5.z2QYhrDbBiISkXp8aW3bRrt6hHGHG8S';
+        // ══════════════════════════════════════════════════════════
+        //  SUPABASE — armazenamento central
+        // ══════════════════════════════════════════════════════════
+        const SUPABASE_URL = 'https://qbppvrsevwucrbrtdonx.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFicHB2cnNldnd1Y3JicnRkb254Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjA3OTgsImV4cCI6MjA5MTI5Njc5OH0.HCLqFi7jTrRpNZymWjGs-O2L3uPjWHGzD2Z2k2Dce-M';
 
-        function getJsonBinKey() {
-            return JSONBIN_API_KEY;
+        function sbH(extra) {
+            return Object.assign({ 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY }, extra || {});
         }
-
-        // Retorna a chave localStorage para o usuário atual
-        function getLocalKey() {
-            const uid = state.user ? state.user.id : 'guest';
-            return 'hxhrpg_cloud_bin_' + uid;
-        }
-
-        // Salva o binId do usuário no localStorage (para reutilizar)
-        function saveBinId(binId) {
-            if (state.user) localStorage.setItem(getLocalKey(), binId);
-        }
-        function loadBinId() {
-            if (!state.user) return null;
-            return localStorage.getItem(getLocalKey());
-        }
-
-        // Monta o payload completo (todos os personagens + metadata + dados de compartilhamento)
-        function buildCloudPayload() {
-            const chars = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud') && !key.startsWith('hxhrpg_shared')) {
-                    try { chars.push(JSON.parse(localStorage.getItem(key))); } catch(e) {}
-                }
-            }
-            return {
-                discordId: state.user ? state.user.id : null,
-                username: state.user?.username || null,
-                avatar: state.user?.avatar || null,
-                chars,
-                updatedAt: new Date().toISOString()
-            };
-        }
-
-        // Cria um novo bin JSONBin
-        async function createBin(payload) {
+        async function sbSelect(table, query) {
             try {
-                const res = await fetch('https://api.jsonbin.io/v3/b', {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query || ''}`, { headers: sbH() });
+                return res.ok ? res.json() : null;
+            } catch { return null; }
+        }
+        async function sbUpsert(table, data) {
+            try {
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey(), 'X-Bin-Name': 'hxhrpg_' + (state.user?.id||'guest'), 'X-Bin-Private': 'false' },
-                    body: JSON.stringify(payload)
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                return data.metadata?.id || null;
-            } catch(e) { return null; }
-        }
-
-        // Atualiza bin existente
-        async function updateBin(binId, payload) {
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey() },
-                    body: JSON.stringify(payload)
+                    headers: sbH({ 'Prefer': 'resolution=merge-duplicates' }),
+                    body: JSON.stringify(data)
                 });
                 return res.ok;
-            } catch(e) { return false; }
+            } catch { return false; }
         }
-
-        // Lê bin existente
-        async function readBin(binId) {
+        async function sbDelete(table, query) {
             try {
-                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
-                    headers: { 'X-Master-Key': getJsonBinKey() }
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                return data.record || null;
-            } catch(e) { return null; }
+                const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { method: 'DELETE', headers: sbH() });
+                return res.ok;
+            } catch { return false; }
         }
 
-        // Lê bin publicamente sem chave (para migração de bins antigos de outros usuários)
-        async function readBinPublic(binId) {
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest');
-                if (!res.ok) return null;
-                const data = await res.json();
-                return data.record || null;
-            } catch(e) { return null; }
-        }
-
-        // Sincroniza: lê nuvem e mescla com localStorage
+        // Sincroniza fichas do Supabase para o localStorage
         async function syncFromCloud() {
             if (!state.user) return;
-            let binId = loadBinId();
-            if (!binId) return;
-
-            // Tenta ler com a chave central
-            let remote = await readBin(binId);
-
-            // Se falhou (bin de conta antiga), tenta leitura pública e migra
-            if (!remote) {
-                remote = await readBinPublic(binId);
-                if (remote && remote.chars) {
-                    // Migra: cria novo bin sob a conta central com os dados antigos
-                    const newBinId = await createBin(remote);
-                    if (newBinId) {
-                        saveBinId(newBinId);
-                        binId = newBinId;
-                    }
-                }
-            }
-
-            if (!remote || !remote.chars) return;
-            // Mescla: para cada char remoto, se local não tem ou remoto é mais novo → usa remoto
-            remote.chars.forEach(rc => {
+            const data = await sbSelect('characters', `user_id=eq.${state.user.id}&select=data,last_mod`);
+            if (!data || !data.length) return;
+            data.forEach(row => {
+                const rc = row.data;
+                if (!rc || !rc.id) return;
                 const localKey = 'hxhrpg_' + rc.id;
                 const localRaw = localStorage.getItem(localKey);
                 if (!localRaw) {
@@ -798,51 +723,29 @@
                 } else {
                     try {
                         const lc = JSON.parse(localRaw);
-                        const remoteDate = new Date(rc.lastMod || 0);
-                        const localDate  = new Date(lc.lastMod || 0);
-                        if (remoteDate > localDate) localStorage.setItem(localKey, JSON.stringify(rc));
-                    } catch(e) { localStorage.setItem(localKey, JSON.stringify(rc)); }
+                        if (new Date(rc.lastMod || 0) > new Date(lc.lastMod || 0))
+                            localStorage.setItem(localKey, JSON.stringify(rc));
+                    } catch { localStorage.setItem(localKey, JSON.stringify(rc)); }
                 }
             });
         }
 
-        // Salva imediatamente na nuvem (sem debounce)
+        // Salva imediatamente no Supabase (sem debounce)
         async function saveToCloudNow() {
             if (!state.user) return;
-            const payload = buildCloudPayload();
-            let binId = loadBinId();
-            if (!binId) {
-                binId = await createBin(payload);
-                if (binId) saveBinId(binId);
-            } else {
-                const ok = await updateBin(binId, payload);
-                if (!ok) {
-                    binId = await createBin(payload);
-                    if (binId) saveBinId(binId);
-                }
+            const chars = state.characters || [];
+            for (const char of chars) {
+                if (!char || !char.id) continue;
+                await sbUpsert('characters', { id: char.id, user_id: state.user.id, data: char, last_mod: char.lastMod || new Date().toISOString() });
             }
         }
 
-        // Salva na nuvem (debounced 2s para evitar muitas chamadas)
+        // Salva no Supabase (debounced 2s)
         let _cloudSaveTimer = null;
         async function saveToCloud() {
             if (!state.user) return;
             clearTimeout(_cloudSaveTimer);
-            _cloudSaveTimer = setTimeout(async () => {
-                const payload = buildCloudPayload();
-                let binId = loadBinId();
-                if (!binId) {
-                    binId = await createBin(payload);
-                    if (binId) { saveBinId(binId); }
-                } else {
-                    const ok = await updateBin(binId, payload);
-                    if (!ok) {
-                        // Bin pode ter sido deletado, cria novo
-                        binId = await createBin(payload);
-                        if (binId) saveBinId(binId);
-                    }
-                }
-            }, 2000);
+            _cloudSaveTimer = setTimeout(saveToCloudNow, 2000);
         }
 
         function loadCharacters() {
@@ -875,18 +778,18 @@
             char.lastMod = new Date().toISOString();
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
-            saveToCloud(); // sincroniza na nuvem se logado
+            if (state.user) sbUpsert('characters', { id: char.id, user_id: state.user.id, data: char, last_mod: char.lastMod });
         }
 
         function deleteCharacter(id) {
             if(confirm('Tem certeza que deseja apagar esta ficha?')) {
                 localStorage.removeItem('hxhrpg_' + id);
+                if (state.user) sbDelete('characters', `id=eq.${id}`);
                 loadCharacters();
                 if (state.currentChar && state.currentChar.id === id) {
                     state.view = 'LIST';
                     state.currentChar = null;
                 }
-                saveToCloud(); // sincroniza deleção na nuvem
                 render();
             }
         }
@@ -1153,21 +1056,16 @@
                 if (PAID_USERS.includes(user.id) || ADMIN_USERS.includes(user.id)) {
                     state.authorized = true;
                     state.view = 'LIST';
-                    // Load admin registry to determine roles
-                    if (ADMIN_REGISTRY_BIN_ID) {
-                        loadAdminRegistry().then(registry => {
-                            state.adminRegistry = registry;
-                            const roles = checkUserRoles(user.id, registry);
-                            state.isAdmin = roles.isAdmin;
-                            state.isMestre = roles.isMestre;
-                            state.assignedPlayers = roles.assignedPlayers;
-                            render(true);
-                        });
-                    } else {
-                        state.isAdmin = ADMIN_USERS.includes(user.id);
-                    }
+                    loadAdminRegistry().then(registry => {
+                        state.adminRegistry = registry;
+                        const roles = checkUserRoles(user.id, registry);
+                        state.isAdmin = roles.isAdmin;
+                        state.isMestre = roles.isMestre;
+                        state.assignedPlayers = roles.assignedPlayers;
+                        render(true);
+                    });
                     render();
-                    syncFromCloud().then(() => { registerUserInRegistry(); loadCharacters(); render(true); });
+                    syncFromCloud().then(() => { loadCharacters(); saveToCloudNow(); registerUserInRegistry(); render(true); });
                     return;
                 }
 
@@ -1181,17 +1079,14 @@
                     if (member.roles && member.roles.includes(DISCORD_CONFIG.roleId)) {
                         state.authorized = true;
                         state.view = 'LIST';
-                        // Load admin registry to determine roles
-                        if (ADMIN_REGISTRY_BIN_ID) {
-                            loadAdminRegistry().then(registry => {
-                                state.adminRegistry = registry;
-                                const roles = checkUserRoles(user.id, registry);
-                                state.isAdmin = roles.isAdmin;
-                                state.isMestre = roles.isMestre;
-                                state.assignedPlayers = roles.assignedPlayers;
-                                render(true);
-                            });
-                        }
+                        loadAdminRegistry().then(registry => {
+                            state.adminRegistry = registry;
+                            const roles = checkUserRoles(user.id, registry);
+                            state.isAdmin = roles.isAdmin;
+                            state.isMestre = roles.isMestre;
+                            state.assignedPlayers = roles.assignedPlayers;
+                            render(true);
+                        });
                     } else {
                         alert('Acesso Negado: Você não possui o cargo necessário no servidor.');
                         logoutDiscord();
@@ -1204,7 +1099,7 @@
                 }
                 render();
                 // Sync cloud data after login
-                syncFromCloud().then(() => { registerUserInRegistry(); loadCharacters(); render(true); });
+                syncFromCloud().then(() => { loadCharacters(); saveToCloudNow(); registerUserInRegistry(); render(true); });
 
             } catch (e) {
                 console.error("Auth Error", e);
@@ -1217,59 +1112,25 @@
         // ══════════════════════════════════════════════════════════
 
         async function loadAdminRegistry() {
-            if (!ADMIN_REGISTRY_BIN_ID) return null;
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b/' + ADMIN_REGISTRY_BIN_ID + '/latest', {
-                    headers: { 'X-Master-Key': getJsonBinKey() }
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                return data.record || null;
-            } catch(e) { return null; }
-        }
-
-        async function saveAdminRegistry(registry) {
-            if (!ADMIN_REGISTRY_BIN_ID) return false;
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b/' + ADMIN_REGISTRY_BIN_ID, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey() },
-                    body: JSON.stringify(registry)
-                });
-                return res.ok;
-            } catch(e) { return false; }
-        }
-
-        async function createAdminRegistry() {
-            const initial = { admins: [], mestres: {}, users: [] };
-            try {
-                const res = await fetch('https://api.jsonbin.io/v3/b', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'X-Master-Key': getJsonBinKey(), 'X-Bin-Name': 'hxhrpg_admin_registry', 'X-Bin-Private': 'false' },
-                    body: JSON.stringify(initial)
-                });
-                if (!res.ok) return null;
-                const data = await res.json();
-                const binId = data.metadata?.id || null;
-                if (binId) {
-                    ADMIN_REGISTRY_BIN_ID = binId;
-                    localStorage.setItem('hxhrpg_admin_registry_bin_id', binId);
-                }
-                return binId;
-            } catch(e) { return null; }
+            const [usersData, adminsData, mestresData] = await Promise.all([
+                sbSelect('users', 'select=*'),
+                sbSelect('admins', 'select=*'),
+                sbSelect('mestres', 'select=*')
+            ]);
+            if (!usersData || !adminsData || !mestresData) return null;
+            const mestreMap = {};
+            mestresData.forEach(m => {
+                if (!mestreMap[m.mestre_id]) mestreMap[m.mestre_id] = [];
+                mestreMap[m.mestre_id].push(m.player_id);
+            });
+            return { admins: adminsData.map(a => a.user_id), mestres: mestreMap, users: usersData };
         }
 
         async function registerUserInRegistry() {
-            if (!state.user || !ADMIN_REGISTRY_BIN_ID) return;
+            if (!state.user) return;
+            await sbUpsert('users', { id: state.user.id, username: state.user.username, avatar: state.user.avatar, last_seen: new Date().toISOString() });
             const registry = await loadAdminRegistry();
-            if (!registry) return;
-            const users = registry.users || [];
-            const idx = users.findIndex(u => u.id === state.user.id);
-            const entry = { id: state.user.id, username: state.user.username, avatar: state.user.avatar, binId: loadBinId() || null, lastSeen: new Date().toISOString() };
-            if (idx >= 0) users[idx] = entry; else users.push(entry);
-            registry.users = users;
-            state.adminRegistry = registry;
-            await saveAdminRegistry(registry);
+            if (registry) state.adminRegistry = registry;
         }
 
         function checkUserRoles(userId, registry) {
@@ -1283,34 +1144,26 @@
         }
 
         async function adminGrantAdmin(targetUserId) {
-            const registry = state.adminRegistry || await loadAdminRegistry();
-            if (!registry) return;
-            if (!registry.admins.includes(targetUserId)) registry.admins.push(targetUserId);
+            await sbUpsert('admins', { user_id: targetUserId });
+            const registry = await loadAdminRegistry();
             state.adminRegistry = registry;
-            await saveAdminRegistry(registry);
             render(true);
         }
 
         async function adminRevokeAdmin(targetUserId) {
-            const registry = state.adminRegistry || await loadAdminRegistry();
-            if (!registry) return;
-            registry.admins = (registry.admins || []).filter(id => id !== targetUserId);
+            await sbDelete('admins', `user_id=eq.${targetUserId}`);
+            const registry = await loadAdminRegistry();
             state.adminRegistry = registry;
-            await saveAdminRegistry(registry);
             render(true);
         }
 
         async function adminAssignMestre(mestreId, playerIds) {
-            const registry = state.adminRegistry || await loadAdminRegistry();
-            if (!registry) return;
-            if (!registry.mestres) registry.mestres = {};
-            if (playerIds.length === 0) {
-                delete registry.mestres[mestreId];
-            } else {
-                registry.mestres[mestreId] = playerIds;
+            await sbDelete('mestres', `mestre_id=eq.${mestreId}`);
+            if (playerIds.length > 0) {
+                await sbUpsert('mestres', playerIds.map(pid => ({ mestre_id: mestreId, player_id: pid })));
             }
+            const registry = await loadAdminRegistry();
             state.adminRegistry = registry;
-            await saveAdminRegistry(registry);
             render(true);
         }
 
@@ -1318,20 +1171,11 @@
             await adminAssignMestre(mestreId, []);
         }
 
-        async function fetchUserChars(binId) {
-            if (!binId) return [];
-            try {
-                let res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest', {
-                    headers: { 'X-Master-Key': getJsonBinKey() }
-                });
-                // Fallback: tenta leitura pública se a chave central não tiver acesso (bin de conta antiga)
-                if (!res.ok) {
-                    res = await fetch('https://api.jsonbin.io/v3/b/' + binId + '/latest');
-                }
-                if (!res.ok) return [];
-                const data = await res.json();
-                return (data.record && data.record.chars) ? data.record.chars : [];
-            } catch(e) { return []; }
+        async function fetchUserChars(userId) {
+            if (!userId) return [];
+            const data = await sbSelect('characters', `user_id=eq.${userId}&select=data&order=last_mod.desc`);
+            if (!data) return [];
+            return data.map(row => row.data).filter(Boolean);
         }
 
         async function viewUserChars(user) {
@@ -1339,22 +1183,17 @@
             state.viewingChars = [];
             state.view = 'PLAYER_CHARS';
             render();
-            const chars = await fetchUserChars(user.binId);
+            const chars = await fetchUserChars(user.id);
             state.viewingChars = chars;
             render(true);
         }
 
         async function saveViewingChar(char) {
-            // Salva a ficha no bin do usuário visualizado
             const user = state.viewingUser;
-            if (!user || !user.binId) return;
-            const chars = await fetchUserChars(user.binId);
-            const idx = chars.findIndex(c => c.id === char.id);
+            if (!user) return;
             char.lastMod = new Date().toISOString();
-            if (idx >= 0) chars[idx] = char; else chars.push(char);
-            // Rebuild payload and save
-            const payload = { discordId: user.id, username: user.username, avatar: user.avatar, chars, updatedAt: new Date().toISOString() };
-            await updateBin(user.binId, payload);
+            await sbUpsert('characters', { id: char.id, user_id: user.id, data: char, last_mod: char.lastMod });
+            const chars = await fetchUserChars(user.id);
             state.viewingChars = chars;
             render(true);
         }
@@ -1476,7 +1315,7 @@
                         <div style="display:flex;align-items:center;gap:6px">
                             <span style="font-size:10px">☁️</span>
                             <span style="font-size:8px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:1px">Sync Nuvem</span>
-                            <span id="sync-status-badge" style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:#4ade8022;color:#4ade80">${loadBinId() ? '✓ Ativo' : 'Configurar'}</span>
+                            <span id="sync-status-badge" style="font-size:7px;font-weight:900;padding:2px 6px;border-radius:4px;background:#4ade8022;color:#4ade80">✓ Ativo</span>
                         </div>
                         <span style="font-size:8px;color:#374151">↻ Sincronizar</span>
                     </div>` : ''}
@@ -1570,12 +1409,7 @@
                 </div>`;
             }).join('');
 
-            const setupSection = !ADMIN_REGISTRY_BIN_ID ? `
-                <div style="background:#0f1a0f;border:2px dashed #166534;border-radius:12px;padding:16px;margin-bottom:16px;text-align:center">
-                    <div style="font-size:10px;color:#4ade80;font-weight:900;text-transform:uppercase;margin-bottom:8px">⚠️ Registry não configurado</div>
-                    <div style="font-size:9px;color:#6b7280;margin-bottom:12px">Crie o bin de registro para habilitar todas as funções admin.</div>
-                    <button onclick="window._createAdminRegistry()" style="padding:8px 16px;background:#166534;border:none;border-radius:8px;color:#4ade80;font-size:9px;font-weight:900;text-transform:uppercase;cursor:pointer;font-family:'Orbitron',sans-serif">Criar Registry</button>
-                </div>` : '';
+            const setupSection = '';
 
             container.innerHTML = `
                 <div style="background:#0a0a0f;min-height:100%;display:flex;flex-direction:column">
@@ -1623,15 +1457,13 @@
                     alert('ID inválido. Digite um Discord User ID válido (17-20 dígitos numéricos).');
                     return;
                 }
-                const registry = state.adminRegistry || await loadAdminRegistry();
-                if (!registry) { alert('Registry não encontrado.'); return; }
                 if (ADMIN_USERS.includes(targetId)) { alert('Este usuário já é admin fixo (hardcoded).'); return; }
-                if ((registry.admins || []).includes(targetId)) { alert('Este ID já é admin.'); return; }
-                if (!registry.admins) registry.admins = [];
-                registry.admins.push(targetId);
-                state.adminRegistry = registry;
-                await saveAdminRegistry(registry);
+                const existing = await sbSelect('admins', `user_id=eq.${targetId}&select=user_id`);
+                if (existing && existing.length > 0) { alert('Este ID já é admin.'); return; }
+                await sbUpsert('admins', { user_id: targetId });
                 if (input) input.value = '';
+                const registry = await loadAdminRegistry();
+                state.adminRegistry = registry;
                 render(true);
             };
 
@@ -1643,12 +1475,6 @@
                 state.isMestre = roles.isMestre;
                 state.assignedPlayers = roles.assignedPlayers;
                 render();
-            };
-
-            window._createAdminRegistry = async function() {
-                const binId = await createAdminRegistry();
-                if (binId) { alert(`Registry criado!\nBin ID: ${binId}\n\nSalvo automaticamente no localStorage.`); const reg = await loadAdminRegistry(); state.adminRegistry = reg; render(); }
-                else alert('Erro ao criar o registry. Verifique a chave JSONBin.');
             };
 
             window._openMestreModal = function(mestreId) {
