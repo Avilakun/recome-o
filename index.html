@@ -776,12 +776,19 @@
 
         function saveCharacter(char) {
             char.lastMod = new Date().toISOString();
+            // Se admin está editando ficha de outro usuário, salva no dono original
+            if (state._viewingMode && state.viewingUser) {
+                saveViewingChar(char);
+                return;
+            }
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
             if (state.user) sbUpsert('characters', { id: char.id, user_id: state.user.id, data: char, last_mod: char.lastMod });
         }
 
         function deleteCharacter(id) {
+            // Admin em modo visualização não pode deletar fichas de outros
+            if (state._viewingMode) return;
             if(confirm('Tem certeza que deseja apagar esta ficha?')) {
                 localStorage.removeItem('hxhrpg_' + id);
                 if (state.user) sbDelete('characters', `id=eq.${id}`);
@@ -1016,8 +1023,18 @@
         }
 
         function bypassLogin() {
-            state.user = { username: 'Tester', id: '000000', avatar: null }; // Dummy user
+            state.user = { username: 'Tester', id: '000000', avatar: null };
             state.authorized = true;
+            state.view = 'LIST';
+            render();
+        }
+
+        function bypassLoginAdmin() {
+            state.user = { username: 'Tester Admin', id: '000000', avatar: null };
+            state.authorized = true;
+            state.isAdmin = true;
+            state.isMestre = false;
+            state.assignedPlayers = [];
             state.view = 'LIST';
             render();
         }
@@ -1244,7 +1261,10 @@
     }
 
     app.innerHTML = '';
-    
+    // Remove banner de leitura se existir
+    const _oldBanner = document.getElementById('readonly-banner');
+    if (_oldBanner) _oldBanner.remove();
+
     if (state.view === 'LOGIN') {
         renderLogin(app);
     } else if (state.view === 'LIST') {
@@ -1282,6 +1302,31 @@
     }
 
     if (window.lucide) lucide.createIcons();
+
+    // Modo leitura para Mestre: bloqueia interação sem impedir scroll
+    if (state.readOnly && state.view === 'SHEET') {
+        // Torna o conteúdo da sheet não-interativo (inert = sem cliques, sem foco, mas scroll ok)
+        const sheetRoot = app.firstElementChild;
+        if (sheetRoot) sheetRoot.setAttribute('inert', '');
+
+        // Banner fixo com botão de voltar (fora do elemento inert)
+        const banner = document.createElement('div');
+        banner.id = 'readonly-banner';
+        banner.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:7px 16px;background:#4c1d95;border-bottom:1px solid #7c3aed;display:flex;align-items:center;justify-content:space-between;z-index:9999;max-width:480px;margin:0 auto;';
+        banner.innerHTML = `
+            <span style="font-size:9px;font-weight:900;color:#e9d5ff;text-transform:uppercase;letter-spacing:.15em;font-family:'Orbitron',sans-serif">⚔️ Leitura — ${state.viewingUser?.username || ''}</span>
+            <button id="readonly-back-btn" style="font-size:9px;font-weight:900;color:#e9d5ff;background:#6d28d9;border:1px solid #a78bfa;border-radius:6px;padding:4px 12px;cursor:pointer;font-family:'Orbitron',sans-serif">← Voltar</button>
+        `;
+        document.body.appendChild(banner);
+
+        document.getElementById('readonly-back-btn').addEventListener('click', () => {
+            state.readOnly = false;
+            state.currentChar = state._prevChar || null;
+            state._viewingMode = false;
+            state.view = 'PLAYER_CHARS';
+            render();
+        });
+    }
 }
 
         function renderList(container) {
@@ -1365,7 +1410,9 @@
                 });
             }
             html += `</div>`;
-            html += `</div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto"><button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button></div></div>`;
+            html += `</div><div class="fixed bottom-0 left-0 right-0 p-4 pb-safe bg-gradient-to-t from-black to-transparent max-w-[480px] mx-auto">
+                <button onclick="startCreator()" class="w-full py-4 bg-neon-green text-black font-black font-display tracking-widest rounded-xl hover:brightness-110 shadow-[0_0_20px_rgba(0,255,157,0.4)] transition-all flex items-center justify-center gap-2"><i data-lucide="plus"></i> CRIAR NOVA FICHA</button>
+            </div></div>`;
             container.innerHTML = html;
         }
 
@@ -1594,19 +1641,13 @@
             window._openViewingChar = function(charId) {
                 const char = state.viewingChars.find(c => c.id === charId);
                 if (!char) return;
-                if (state.isAdmin) {
-                    // Admin abre a ficha no modo edição — usa o sistema normal
-                    // Substitui o currentChar temporariamente
-                    state._prevChar = state.currentChar;
-                    state._viewingMode = true;
-                    state.currentChar = char;
-                    state.view = 'SHEET';
-                    state.activeTab = 'FICHA';
-                    render();
-                } else {
-                    // Mestre: leitura apenas — exibe modal simples
-                    alert(`Ficha: ${char.name}\nClasse: ${char.class}\nNível: ${char.level}\nRaça: ${char.race}`);
-                }
+                state._prevChar = state.currentChar;
+                state._viewingMode = true;
+                state.readOnly = !state.isAdmin;
+                state.currentChar = char;
+                state.view = 'SHEET';
+                state.activeTab = 'FICHA';
+                render();
             };
 
             if (window.lucide) lucide.createIcons();
@@ -1637,6 +1678,8 @@ window.calcPNBonusFromRestr = function(hb) {
 
         allSelected.forEach(id => {
             if (!pureRestr[id]) return;
+            // Restrições com P.N automático não usam o sistema pura (são ignoradas aqui)
+            if (['rg_e9', 'rg_p3', 'ri_p3'].includes(id)) return;
             const r = allRDB.find(x => x.id === id);
             if (r) {
                 const pn = PURE_PN[r.peso] || 0;
@@ -1646,11 +1689,13 @@ window.calcPNBonusFromRestr = function(hb) {
     }
 
     allSelected.forEach(id => {
-        // ri_p3: +3 P.N fixos (Restrição Pesada de Intensificação: "1x por combate")
-        if (id === 'ri_p3') bonus += 3;
+        // Restrições com P.N automático (sem toggle pura): sempre somam ao selecionar
+        if (id === 'rg_e9') bonus += 7;  // Vida por Poder: +7 automático
+        if (id === 'ri_p3') bonus += 3;  // 1x por Combate: +3 automático
+        if (id === 'rg_p3') bonus += 3;  // Dano Permanente: +3 automático
 
-        // rg_v7: Limite de Uso Contínuo — P.N variável via benefício escolhido
-        if (id === 'rg_v7') {
+        // rg_v7: Limite de Uso Contínuo — P.N variável via benefício escolhido (quando não pura)
+        if (id === 'rg_v7' && !pureRestr[id]) {
             const choice = hb.beneficioChoices && hb.beneficioChoices['rg_v7'];
             if (choice) {
                 const m = choice.match(/(\d+)\s*P\.N/);
@@ -1659,11 +1704,70 @@ window.calcPNBonusFromRestr = function(hb) {
                 bonus += 1;
             }
         }
-
-        if (id === 'rg_e9') bonus += 7;
-        if (id === 'rg_p3') bonus += 3;
     });
     return bonus;
+};
+
+// ── P.N de restrições EXTREMAS puras (único tipo que permite compra duplicada no mesmo nível) ──
+window.calcPNFromExtremeRestr = function(hb) {
+    if (!hb) return 0;
+    const pureRestr = hb.pureRestrictions || {};
+    const rg = window.HATSU_DB && window.HATSU_DB.restricoes_gerais;
+    if (!rg) return 0;
+    let bonus = 0;
+    (rg.extremas || []).forEach(r => {
+        if (r.id === 'rg_e9') {
+            // Vida por Poder: P.N automático ao selecionar, equivale a extrema pura
+            if ((hb.rg||[]).includes(r.id)) bonus += 7;
+            return;
+        }
+        if ((hb.rg||[]).includes(r.id) && pureRestr[r.id]) bonus += 4;
+    });
+    return bonus;
+};
+
+// ── P.N gasto exclusivamente em compras duplicadas (2ª cópia em diante do mesmo efeito) ──
+window.calcDuplicatePNUsed = function(hb) {
+    if (!hb) return 0;
+    const allEffects = [...(hb.eg||[]), ...(hb.ec||[])];
+    const seenIds = new Set();
+    let dupPNUsed = 0;
+    const allEDB = [...((window.HATSU_DB && window.HATSU_DB.efeitos_gerais)||[])];
+    if (window.HATSU_DB && window.HATSU_DB.categorias) {
+        Object.values(window.HATSU_DB.categorias).forEach(cat => {
+            if (cat && cat.efeitos) cat.efeitos.forEach(e => { if (!allEDB.find(x=>x.id===e.id)) allEDB.push(e); });
+        });
+    }
+    allEffects.forEach(eid => {
+        if (seenIds.has(eid)) {
+            const effect = allEDB.find(x => x.id === eid);
+            if (effect) dupPNUsed += (effect.pn || 0);
+        } else {
+            seenIds.add(eid);
+        }
+    });
+    return dupPNUsed;
+};
+
+// ── Remove duplicatas de efeitos quando o P.N extremo disponível é insuficiente ──
+window._hCleanDuplicatesIfNeeded = function(hb) {
+    if (!hb) return;
+    const extremePurePN = window.calcPNFromExtremeRestr(hb);
+    let safety = 50;
+    while (safety-- > 0 && window.calcDuplicatePNUsed(hb) > extremePurePN) {
+        let removed = false;
+        for (let i = (hb.eg||[]).length - 1; i >= 0; i--) {
+            const id = hb.eg[i];
+            if ((hb.eg||[]).indexOf(id) !== i) { hb.eg.splice(i, 1); removed = true; break; }
+        }
+        if (!removed) {
+            for (let i = (hb.ec||[]).length - 1; i >= 0; i--) {
+                const id = hb.ec[i];
+                if ((hb.ec||[]).indexOf(id) !== i) { hb.ec.splice(i, 1); removed = true; break; }
+            }
+        }
+        if (!removed) break;
+    }
 };
 
 // Calcula o custo real de aura do Hatsu com base nas restrições e efeitos selecionados
@@ -2501,10 +2605,17 @@ function renderHatsuCreator(container) {
             if (e) { pnUsed += e.pn; break; }
         }
     });
-    // Consumo: primeiro esgota os bônus de restrições puras, depois o base
-    const pnBonusLeft = Math.max(0, pnBonus - pnUsed);
-    const pnBaseUsed = Math.max(0, pnUsed - pnBonus); // quanto do base foi consumido
-    const pnBaseLeft = Math.max(0, pnBaseAvail - pnBaseUsed); // base restante (nunca negativo)
+    // ── Breakdown por tipo de P.N ──
+    // Ordem de consumo: Extremo → Pura não-extrema → Base
+    const pnFromExtreme = window.calcPNFromExtremeRestr ? window.calcPNFromExtremeRestr(hb) : 0;
+    const pnFromPureNonExtreme = Math.max(0, pnBonus - pnFromExtreme);
+    const usedFromExtreme = Math.min(pnUsed, pnFromExtreme);
+    const usedFromPureNonExtreme = Math.min(Math.max(0, pnUsed - pnFromExtreme), pnFromPureNonExtreme);
+    const usedFromBase = Math.max(0, pnUsed - pnFromExtreme - pnFromPureNonExtreme);
+    const pnExtremeLeft = pnFromExtreme - usedFromExtreme;
+    const pnPureNonExtremeLeft = pnFromPureNonExtreme - usedFromPureNonExtreme;
+    const pnBonusLeft = pnExtremeLeft + pnPureNonExtremeLeft; // total restrições ainda não gastos
+    const pnBaseLeft = Math.max(0, pnBaseAvail - usedFromBase); // base restante (pode ser guardado)
     const pnLeft = pnBonusLeft + pnBaseLeft; // total disponível ainda
     const pnMax = pnBaseAvail + pnBonus; // total máximo deste hatsu
 
@@ -2565,9 +2676,13 @@ function renderHatsuCreator(container) {
                     + '<div style="display:flex;flex-direction:column;gap:4px">' + optBtns + '</div></div>';
             }
 
-            // Pure toggle button (only when selected AND it's a general restriction)
+            // Restrições com P.N automático: exibe badge fixo, sem toggle pura
+            var AUTO_PN = { 'rg_e9': 7, 'rg_p3': 3, 'ri_p3': 3 };
             var pureToggleHtml = '';
-            if (sel && tipo === 'rg') {
+            if (sel && AUTO_PN[item.id] !== undefined) {
+                pureToggleHtml = '<div style="margin-top:8px;padding:5px 10px;border-radius:7px;border:1.5px solid #4ade8055;background:#4ade8018;font-size:8px;font-weight:900;color:#4ade80;display:inline-block">⚡ +' + AUTO_PN[item.id] + ' P.N automático</div>';
+            } else if (sel && tipo === 'rg') {
+                // Pure toggle button (only for general restrictions without auto P.N)
                 pureToggleHtml = '<div style="margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">'
                     + '<button onclick="event.stopPropagation();window._hTogglePure(\'' + item.id + '\');return false"'
                     + ' style="padding:5px 10px;border-radius:7px;border:1.5px solid '
@@ -2773,9 +2888,17 @@ function renderHatsuCreator(container) {
             const peso = k === 'variaveis' ? 'variavel' : k.replace(/s$/,'');
             (rgCheck[k]||[]).forEach(r => allRDB_check.push({...r, peso}));
         });
-        const hasPureExtreme = [...(hb.rg||[]), ...(hb.rc||[])].some(id =>
-            pureRestr[id] && (allRDB_check.find(r => r.id === id) || {}).peso === 'extrema'
-        );
+        const hasPureExtreme =
+            // rg_e9 (Vida por Poder) equivale a extrema pura: P.N automático habilita duplicatas
+            (hb.rg||[]).includes('rg_e9') ||
+            [...(hb.rg||[]), ...(hb.rc||[])].some(id =>
+                pureRestr[id] && (allRDB_check.find(r => r.id === id) || {}).peso === 'extrema'
+            );
+
+        // P.N extremo disponível e quanto já foi gasto em duplicatas
+        const extremePurePN = window.calcPNFromExtremeRestr ? window.calcPNFromExtremeRestr(hb) : 0;
+        const dupPNUsed = window.calcDuplicatePNUsed ? window.calcDuplicatePNUsed(hb) : 0;
+        const extremePNLeft = extremePurePN - dupPNUsed;
 
         // Parses a req string and returns { ok: bool, reason: string, bypassedByReforco: bool }
         function checkReq(req) {
@@ -2878,16 +3001,16 @@ function renderHatsuCreator(container) {
                 clickAction = `alert('${msg.replace(/'/g, "\\'")}')`;
             } else if (!afford) {
                 clickAction = 'void(0)';
-            } else if (hasPureExtreme && sel) {
-                // Com Extrema Pura: permite adicionar cópias extras do mesmo efeito
-                clickAction = `window._hAddDuplicateE('${item.id}','${tipo}',${item.pn})`;
             } else {
+                // Sem extrema pura: toggle normal (sem duplicatas no mesmo nível)
                 clickAction = `window._hToggleE('${item.id}','${tipo}',${item.pn})`;
             }
 
             // Count duplicates for this effect
             const dupCount = hasPureExtreme ? (hb.ec||[]).concat(hb.eg||[]).filter(id => id === item.id).length : 0;
             const showDupControls = hasPureExtreme && sel && dupCount > 0;
+            // Botão + só ativo se há P.N extremo suficiente para mais uma cópia
+            const canAddDup = hasPureExtreme && extremePNLeft >= item.pn && afford;
 
             const lockBadge = blocked
                 ? levelCapBlocked
@@ -3267,9 +3390,9 @@ function renderHatsuCreator(container) {
                     <button onclick="window._hRemoveDuplicateE('${item.id}','${tipo}')"
                         style="width:22px;height:22px;border-radius:6px;background:#1f2937;border:1px solid #374151;color:#f87171;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">−</button>
                     <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;color:#fbbf24;min-width:16px;text-align:center">${dupCount}</span>
-                    <button onclick="window._hAddDuplicateE('${item.id}','${tipo}',${item.pn})"
-                        style="width:22px;height:22px;border-radius:6px;background:#fbbf2422;border:1px solid #fbbf2455;color:#fbbf24;font-size:14px;font-weight:900;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">+</button>
-                    <span style="font-size:8px;color:#6b7280">(${dupCount} × ${item.pn} P.N = ${dupCount * item.pn} P.N)</span>
+                    <button onclick="${canAddDup ? `window._hAddDuplicateE('${item.id}','${tipo}',${item.pn})` : 'void(0)'}"
+                        style="width:22px;height:22px;border-radius:6px;background:${canAddDup?'#fbbf2422':'#1f293755'};border:1px solid ${canAddDup?'#fbbf2455':'#374151'};color:${canAddDup?'#fbbf24':'#4b5563'};font-size:14px;font-weight:900;cursor:${canAddDup?'pointer':'not-allowed'};display:flex;align-items:center;justify-content:center;line-height:1">+</button>
+                    <span style="font-size:8px;color:#6b7280">(${dupCount} × ${item.pn} P.N = ${dupCount * item.pn} P.N${canAddDup?'':' — sem P.N ⚡'})</span>
                 </div>` : '';
 
             // Main card onclick: normal toggle unless showing dup controls (then clicking card does nothing extra)
@@ -3331,7 +3454,11 @@ function renderHatsuCreator(container) {
             <div style="background:#0f1117;border:1px solid #1f2937;border-radius:10px;padding:10px;text-align:center">
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
                 <div style="font-size:10px;font-weight:900;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:8px;color:#374151"> / ${pnMax}</span></div>
-                ${pnBonus>0?`<div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap"><span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#4ade8018;color:#4ade80">Base: ${pnBaseLeft}</span><span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#fbbf2418;color:#fbbf24">Puras: ${pnBonusLeft}</span></div>`:''}
+                <div style="display:flex;gap:4px;margin-top:3px;flex-wrap:wrap">
+                    <span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#6b728018;color:#9ca3af">Base: ${pnBaseLeft}</span>
+                    ${pnFromPureNonExtreme>0?`<span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#fbbf2418;color:#fbbf24">Puras: ${pnPureNonExtremeLeft}</span>`:''}
+                    ${pnFromExtreme>0?`<span style="font-size:7px;font-weight:700;padding:1px 5px;border-radius:4px;background:#f9731618;color:#fb923c">Extr.: ${pnExtremeLeft}</span>`:''}
+                </div>
                 ${pnSpentOthers>0?`<div style="font-size:7px;color:#f87171;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
         </div>`;
@@ -3517,10 +3644,11 @@ function renderHatsuCreator(container) {
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
                 <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
-                ${pnBonus>0?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
-                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
-                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24">Restr. <span style="color:#fff">${pnBonusLeft}</span>/${pnBonus}</span>
-                </div>`:''}
+                <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af" title="Pode ser guardado para outro hatsu">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
+                    ${pnFromPureNonExtreme>0?`<span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24" title="Deve ser gasto aqui">Puras <span style="color:#fff">${pnPureNonExtremeLeft}</span>/${pnFromPureNonExtreme}</span>`:''}
+                    ${pnFromExtreme>0?`<span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#f9731618;color:#fb923c" title="Deve ser gasto aqui">Extr. <span style="color:#fff">${pnExtremeLeft}</span>/${pnFromExtreme}</span>`:''}
+                </div>
                 ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
@@ -3679,10 +3807,11 @@ function renderHatsuCreator(container) {
             <div>
                 <div style="font-size:8px;color:#4b5563;text-transform:uppercase;font-weight:700;margin-bottom:4px">P.N Disponíveis</div>
                 <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:24px;color:${pnLeft<=0?'#f87171':'#fff'}">${pnLeft}<span style="font-size:12px;color:#374151;font-weight:400"> / ${pnMax}</span></div>
-                ${pnBonus>0?`<div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
-                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
-                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24">Restr. <span style="color:#fff">${pnBonusLeft}</span>/${pnBonus}</span>
-                </div>`:''}
+                <div style="display:flex;gap:5px;margin-top:5px;flex-wrap:wrap">
+                    <span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#1f2937;color:#9ca3af" title="Pode ser guardado para outro hatsu">Base <span style="color:#fff">${pnBaseLeft}</span>/${pnBaseAvail}</span>
+                    ${pnFromPureNonExtreme>0?`<span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fbbf2418;color:#fbbf24" title="Deve ser gasto aqui">Puras <span style="color:#fff">${pnPureNonExtremeLeft}</span>/${pnFromPureNonExtreme}</span>`:''}
+                    ${pnFromExtreme>0?`<span style="font-size:8px;font-weight:700;padding:2px 8px;border-radius:6px;background:#f9731618;color:#fb923c" title="Deve ser gasto aqui">Extr. <span style="color:#fff">${pnExtremeLeft}</span>/${pnFromExtreme}</span>`:''}
+                </div>
                 ${pnSpentOthers>0?`<div style="font-size:8px;color:#f87171;font-weight:700;margin-top:1px">−${pnSpentOthers} em outros Hatsus</div>`:''}
             </div>
             <div style="text-align:right">
@@ -3714,7 +3843,7 @@ function renderHatsuCreator(container) {
 
     // ETAPA 5 — RESUMO
     else if (hb.step === 5) {
-        canNext = hb.nome.trim().length > 0;
+        canNext = hb.nome.trim().length > 0 && pnBonusLeft === 0;
         const allRDB = [
             ...(window.HATSU_DB.restricoes_gerais.leves||[]).map(r=>({...r,peso:'leve'})),
             ...(window.HATSU_DB.restricoes_gerais.moderadas||[]).map(r=>({...r,peso:'moderada'})),
@@ -3739,6 +3868,13 @@ function renderHatsuCreator(container) {
     const tipoNames = new Proxy(_tipoLabels, { get(t,k) { if(k in t) return t[k]; const parts=(k||'').split('+'); return parts.map(p=>t[p]||p).join(' + '); } });
 
         content = `
+        ${pnBonusLeft > 0 ? `<div style="background:#7f1d1d22;border:2px solid #ef4444;border-radius:12px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px;flex-shrink:0">⚠️</span>
+            <div>
+                <div style="font-size:10px;font-weight:900;color:#f87171;text-transform:uppercase;letter-spacing:1px">P.N de restrições não gastos: ${pnBonusLeft}</div>
+                <div style="font-size:8px;color:#9ca3af;margin-top:3px">P.N de restrições puras e extremas não podem ser guardados. Volte e gaste ${pnBonusLeft} P.N de restrição antes de finalizar${pnBaseLeft > 0 ? ` (${pnBaseLeft} P.N de nível podem ser guardados para outro hatsu)` : ''}.</div>
+            </div>
+        </div>` : ''}
         <!-- Cabeçalho do Hatsu -->
         <div style="text-align:center;padding:20px;border-radius:16px;border:2px solid ${tc};background:${tc}0a;margin-bottom:16px">
             <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;letter-spacing:3px;color:${tc};text-transform:uppercase">${hb.nome||'SEM NOME'}</div>
@@ -3874,6 +4010,26 @@ window._hNext = function() {
         return; // usuário precisa selecionar um tipo de cada grupo
     }
     if (hb.step === 5) {
+        // Bloqueia se há P.N não gastos — P.N não podem ser guardados para outro nível
+        const _char5 = state.currentChar;
+        const _pnBase5 = window.calcularPHBase(_char5.level);
+        const _pnBonus5 = window.calcPNBonusFromRestr(hb);
+        const _pnSpentOth5 = window.calcPNSpentInOtherHatsus(_char5, hb.editingIdx);
+        const _pnDom5 = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(_char5) : 0;
+        const _pnBaseAvail5 = Math.max(0, _pnBase5 - _pnSpentOth5 - _pnDom5);
+        let _pnUsed5 = 0;
+        hb.eg.forEach(id => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===id); if(e) _pnUsed5+=e.pn; });
+        hb.ec.forEach(id => { for (const cat of Object.values(window.HATSU_DB.categorias||{})) { if (!cat||!cat.efeitos) continue; const e=cat.efeitos.find(x=>x.id===id); if(e){_pnUsed5+=e.pn;break;} } });
+        // Breakdown por tipo: restrições devem ser gastas, base pode ser guardada
+        const _pnFromExtreme5 = window.calcPNFromExtremeRestr ? window.calcPNFromExtremeRestr(hb) : 0;
+        const _pnFromPureNonExtreme5 = Math.max(0, _pnBonus5 - _pnFromExtreme5);
+        const _usedFromExtreme5 = Math.min(_pnUsed5, _pnFromExtreme5);
+        const _usedFromPureNonExtreme5 = Math.min(Math.max(0, _pnUsed5 - _pnFromExtreme5), _pnFromPureNonExtreme5);
+        const _pnExtremeLeft5 = _pnFromExtreme5 - _usedFromExtreme5;
+        const _pnPureNonExtremeLeft5 = _pnFromPureNonExtreme5 - _usedFromPureNonExtreme5;
+        const _pnBonusLeft5 = _pnExtremeLeft5 + _pnPureNonExtremeLeft5;
+        if (_pnBonusLeft5 > 0) return; // P.N de restrições devem ser todos gastos antes de finalizar
+
         // Salva o hatsu
         const char = state.currentChar;
         if (!char.hatsus) char.hatsus = [];
@@ -3979,7 +4135,10 @@ window._hRemoveDuplicateE = function(id, tipo) {
 
 window._hAddDuplicateE = function(id, tipo, pn) {
     const hb = state.hatsuBuilder; if (!hb) return;
-    // Add another copy of the same effect (allowed with pure extreme restriction)
+    // Apenas restrições EXTREMAS puras permitem comprar o mesmo efeito mais de uma vez
+    const _extremePN = window.calcPNFromExtremeRestr ? window.calcPNFromExtremeRestr(hb) : 0;
+    const _dupUsed = window.calcDuplicatePNUsed ? window.calcDuplicatePNUsed(hb) : 0;
+    if (_extremePN <= 0 || _extremePN - _dupUsed < pn) return;
     let used = 0;
     hb.eg.forEach(eid => { const e = window.HATSU_DB.efeitos_gerais.find(x=>x.id===eid); if(e) used+=e.pn; });
     hb.ec.forEach(eid => {
@@ -4033,6 +4192,8 @@ window._hTogglePure = function(id) {
     if (!hb.pureRestrictions) hb.pureRestrictions = {};
     if (hb.pureRestrictions[id]) {
         delete hb.pureRestrictions[id];
+        // Se era restrição extrema, limpa duplicatas que excedam o P.N extremo restante
+        window._hCleanDuplicatesIfNeeded && window._hCleanDuplicatesIfNeeded(hb);
     } else {
         hb.pureRestrictions[id] = true;
         // Pura não usa benefício escolhido
@@ -4049,6 +4210,11 @@ window._hToggleR = function(id, tipo) {
         arr.splice(idx, 1);
         // Remove benefício escolhido ao desselecionar
         if (hb.beneficioChoices) delete hb.beneficioChoices[id];
+        // Se a restrição removida era pura extrema, limpa duplicatas que excedam o P.N restante
+        if (hb.pureRestrictions && hb.pureRestrictions[id]) {
+            delete hb.pureRestrictions[id];
+            window._hCleanDuplicatesIfNeeded && window._hCleanDuplicatesIfNeeded(hb);
+        }
     } else {
         // Guarda final: restrições de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
         if (tipo === 'rc') {
@@ -7152,6 +7318,8 @@ function closeHatsuCreator() {
         };
 
         window.addEventListener('DOMContentLoaded', () => { initWebhooks(); loadCharacters(); setThemeColor('#00ff9d'); checkDiscordAuth(); });
+
+        void 0; // NPC generation removed
     </script>
 </body>
 </html>
