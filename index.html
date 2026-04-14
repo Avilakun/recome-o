@@ -3974,7 +3974,7 @@ function renderHatsuCreator(container) {
             var purePn = PURE_PN[pw] || 0;
 
             var choiceHtml = '';
-            if (sel && !isPure && hasAlt && item.id !== 'rma_m2' && !['rg_l9','rg_l10'].includes(item.id)) {
+            if (sel && !isPure && hasAlt && item.id !== 'rma_m2' && item.id !== 're_p1' && !['rg_l9','rg_l10'].includes(item.id)) {
                 var opts = item.bnf.split(/\s[Oo][Uu]\s/);
                 if (!window._hBnfOpts) window._hBnfOpts = {};
                 window._hBnfOpts[item.id] = opts.map(function(o){ return o.trim(); });
@@ -4113,6 +4113,63 @@ function renderHatsuCreator(container) {
                     + jurVal.replace(/</g,'&lt;').replace(/>/g,'&gt;')
                     + '</textarea>'
                     + (jurVal ? '<div style="font-size:8px;color:#fb923c;margin-top:4px;font-style:italic">"' + jurVal + '"</div>' : '<div style="font-size:8px;color:#f87171;margin-top:4px">⚠ O juramento deve ser escrito para ativar o bônus</div>')
+                    + '</div>';
+            }
+            // Special: re_p1 Inconsciente Após Uso — choose exactly 2 effects (general + category)
+            if (sel && item.id === 're_p1') {
+                var re1Chosen = (hb && hb.specialChoices && Array.isArray(hb.specialChoices['re_p1'])) ? hb.specialChoices['re_p1'] : [];
+                var re1CharLevel = parseInt(char.level) || 0;
+                var re1AllExtremas = [
+                    ...(window.HATSU_DB.restricoes_gerais.extremas||[]),
+                    ...(catDB && catDB.restricoes ? catDB.restricoes.filter(function(r){ return r.peso === 'extrema'; }) : [])
+                ];
+                var re1ExtremeCount = [...(hb.rg||[]), ...(hb.rc||[])].filter(function(rid){ return re1AllExtremas.some(function(r){ return r.id === rid; }); }).length;
+                var re1EffLevel = Math.min(12, re1CharLevel + re1ExtremeCount * 2);
+                var re1Gerais = (window.HATSU_DB.efeitos_gerais || []);
+                var re1CatEfs = (catDB && catDB.efeitos) ? catDB.efeitos : [];
+                function re1ReqLevel(req) {
+                    if (!req) return 0;
+                    var m = req.match(/N[ií]vel\s+(\d+)/i);
+                    return m ? parseInt(m[1]) : 0;
+                }
+                function re1CardHtml(eff, grp) {
+                    var isSelected = re1Chosen.includes(eff.id);
+                    var reqLvl = re1ReqLevel(eff.req);
+                    var locked = reqLvl > re1EffLevel;
+                    var maxed = !isSelected && re1Chosen.length >= 2;
+                    var disabled = locked || maxed;
+                    var color = grp === 'geral' ? '#9ca3af' : p.bs;
+                    return '<div onclick="event.stopPropagation();' + (disabled ? '' : 'window._hToggleReP1Effect(\'' + eff.id + '\')') + '"'
+                        + ' style="padding:7px 10px;border-radius:8px;border:1.5px solid '
+                        + (isSelected ? color : disabled ? '#1f293788' : '#1f2937')
+                        + ';background:' + (isSelected ? color + '22' : 'transparent')
+                        + ';cursor:' + (disabled ? 'not-allowed' : 'pointer')
+                        + ';opacity:' + (disabled && !isSelected ? '0.5' : '1')
+                        + ';margin-bottom:4px;transition:all .15s">'
+                        + '<div style="display:flex;align-items:center;gap:6px">'
+                        + '<span style="font-size:7px;font-weight:900;padding:2px 5px;border-radius:4px;background:' + color + '33;color:' + color + ';text-transform:uppercase;flex-shrink:0">'
+                        + (grp === 'geral' ? 'GER' : 'CAT') + '</span>'
+                        + '<div style="flex:1;min-width:0">'
+                        + '<div style="font-size:9px;font-weight:' + (isSelected ? '900' : '700') + ';color:' + (isSelected ? color : disabled ? '#374151' : '#d1d5db') + '">'
+                        + (isSelected ? '✓ ' : '') + eff.nome + '</div>'
+                        + (eff.req ? '<div style="font-size:7px;color:' + (locked ? '#f87171' : '#6b7280') + ';margin-top:1px">' + eff.req + (locked ? ' 🔒' : '') + '</div>' : '')
+                        + '</div></div></div>';
+                }
+                specialInputHtml += '<div style="margin-top:8px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:700;color:' + p.bs + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:2px">⚡ Escolha 2 Efeitos (' + re1Chosen.length + '/2)</div>'
+                    + '<div style="font-size:8px;color:#6b7280;margin-bottom:8px">Nível efetivo: ' + re1EffLevel + ' — efeitos bloqueados não satisfazem o requisito</div>'
+                    + '<div style="font-size:8px;font-weight:700;color:#9ca3af;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">🌐 Efeitos Gerais</div>'
+                    + re1Gerais.map(function(e){ return re1CardHtml(e, 'geral'); }).join('')
+                    + '<div style="font-size:8px;font-weight:700;color:' + p.bs + ';margin-top:8px;margin-bottom:5px;text-transform:uppercase;letter-spacing:1px">⚡ Efeitos de Categoria</div>'
+                    + re1CatEfs.map(function(e){ return re1CardHtml(e, 'cat'); }).join('')
+                    + (re1Chosen.length === 2
+                        ? '<div style="font-size:9px;font-weight:700;color:' + p.bs + ';padding:6px 10px;background:' + p.bs + '18;border-radius:8px;margin-top:6px">✓ '
+                          + re1Chosen.map(function(id){
+                              var ef = re1Gerais.find(function(e){ return e.id===id; }) || re1CatEfs.find(function(e){ return e.id===id; });
+                              return ef ? ef.nome : id;
+                            }).join(' + ')
+                          + '</div>'
+                        : '<div style="font-size:8px;color:#f87171;margin-top:6px">⚠ Selecione exatamente 2 efeitos</div>')
                     + '</div>';
             }
             // Special: rma_m2 Zetsu Interrompe — choose benefit
@@ -5470,13 +5527,13 @@ window._hAddDuplicateE = function(id, tipo, pn) {
     });
     const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
     const arr = tipo === 'eg' ? hb.eg : hb.ec;
-    // Guarda final: efeitos de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+    // Guarda final: efeitos de ESPECIALIZAÇÃO só para ESPECIALIZAÇÃO, MANIPULAÇÃO e MATERIALIZAÇÃO
     if (tipo === 'ec') {
         const _espCatDB2 = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
         const _espEfIds2 = new Set((_espCatDB2 && _espCatDB2.efeitos || []).map(e => e.id));
         if (_espEfIds2.has(id)) {
             const _charCls2 = state.currentChar && state.currentChar.class;
-            if (_charCls2 !== 'MANIPULAÇÃO' && _charCls2 !== 'MATERIALIZAÇÃO') return;
+            if (_charCls2 !== 'ESPECIALIZAÇÃO' && _charCls2 !== 'MANIPULAÇÃO' && _charCls2 !== 'MATERIALIZAÇÃO') return;
         }
     }
     arr.push(id);
@@ -5536,13 +5593,13 @@ window._hToggleR = function(id, tipo) {
             window._hCleanDuplicatesIfNeeded && window._hCleanDuplicatesIfNeeded(hb);
         }
     } else {
-        // Guarda final: restrições de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+        // Guarda final: restrições de ESPECIALIZAÇÃO só para ESPECIALIZAÇÃO, MANIPULAÇÃO e MATERIALIZAÇÃO
         if (tipo === 'rc') {
             const _espCatR = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
             const _espRIds = new Set((_espCatR && _espCatR.restricoes || []).map(r => r.id));
             if (_espRIds.has(id)) {
                 const _charClsR = state.currentChar && state.currentChar.class;
-                if (_charClsR !== 'MANIPULAÇÃO' && _charClsR !== 'MATERIALIZAÇÃO') return;
+                if (_charClsR !== 'ESPECIALIZAÇÃO' && _charClsR !== 'MANIPULAÇÃO' && _charClsR !== 'MATERIALIZAÇÃO') return;
             }
         }
         arr.push(id);
@@ -5572,6 +5629,20 @@ window._hSetBeneficioChoiceIdx = function(id, idx) {
     const opts = window._hBnfOpts && window._hBnfOpts[id];
     if (!opts || idx >= opts.length) return;
     window._hSetBeneficioChoice(id, opts[idx]);
+};
+window._hToggleReP1Effect = function(effId) {
+    const hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.specialChoices) hb.specialChoices = {};
+    const current = Array.isArray(hb.specialChoices['re_p1']) ? hb.specialChoices['re_p1'].slice() : [];
+    const idx = current.indexOf(effId);
+    if (idx > -1) {
+        current.splice(idx, 1);
+    } else {
+        if (current.length >= 2) return;
+        current.push(effId);
+    }
+    hb.specialChoices['re_p1'] = current;
+    renderHatsuInPlace();
 };
 window._hToggleE = function(id, tipo, pn) {
     const hb = state.hatsuBuilder; if (!hb) return;
@@ -5645,13 +5716,13 @@ window._hToggleE = function(id, tipo, pn) {
             }
         });
         const _pnSpentOth = window.calcPNSpentInOtherHatsus(state.currentChar, hb.editingIdx); const _pnDom = window.calcPNSpentInDominio ? window.calcPNSpentInDominio(state.currentChar) : 0; const _pnBaseAvail = Math.max(0, window.calcularPHBase(state.currentChar.level) - _pnSpentOth - _pnDom); const _pnBonus = window.calcPNBonusFromRestr(hb); const _pnBaseUsed = Math.max(0, used - _pnBonus); if (_pnBaseUsed + pn > _pnBaseAvail && used + pn > _pnBaseAvail + _pnBonus) return;
-        // Guarda final: efeitos de ESPECIALIZAÇÃO só para MANIPULAÇÃO e MATERIALIZAÇÃO
+        // Guarda final: efeitos de ESPECIALIZAÇÃO só para ESPECIALIZAÇÃO, MANIPULAÇÃO e MATERIALIZAÇÃO
         if (tipo === 'ec') {
             const _espCatDB = window.HATSU_DB && window.HATSU_DB.categorias['ESPECIALIZAÇÃO'];
             const _espEfIds = new Set((_espCatDB && _espCatDB.efeitos || []).map(e => e.id));
             if (_espEfIds.has(id)) {
                 const _charCls = state.currentChar && state.currentChar.class;
-                if (_charCls !== 'MANIPULAÇÃO' && _charCls !== 'MATERIALIZAÇÃO') return;
+                if (_charCls !== 'ESPECIALIZAÇÃO' && _charCls !== 'MANIPULAÇÃO' && _charCls !== 'MATERIALIZAÇÃO') return;
             }
         }
         arr.push(id);
