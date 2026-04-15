@@ -3715,20 +3715,42 @@ window.HATSU_DB = {
         { id:'rm_p3', peso:'pesada',  nome:"Componentes Materiais",       desc:"O Hatsu depende de componentes materiais que são consumidos ao conjurar", bnf:"A criatura tem +2 em CA e +10 PV ao ser criada" },
       ],
       efeitos: [
-        { id:'rm_e1',  nome:"Materialização Simples",    desc:"Conjura objeto simples de até 30cm. Pode atacar com ele (1d4 de dano)",               req:"Nível 1", pn:1 },
-        { id:'rm_e14', nome:"Golem de Aura",             desc:"Cria um constructo com material e tamanho escolhidos (PV = 5 + CON×2, 1 ação por rodada, 1 Característica de Invocação). CA = material + INT.", req:"Nível 1 + Acesso a Manipulação", pn:1 },
-        { id:'rm_e2',  nome:"Forma Evoluída 1",          desc:"Conjuração recebe +5 PV e +1 CA",                                                     req:"Nível 1", pn:1 },
-        { id:'rm_e3',  nome:"Propriedade Elemental",     desc:"A Conjuração recebe uma propriedade elemental básica (fogo, gelo, elétrico...)",       req:"Nível 2", pn:1 },
-        { id:'rm_e4',  nome:"Conjuração Independente",   desc:"O objeto conjurado pode se mover/agir por conta própria (movimento = SAB do usuário)", req:"Nível 3", pn:1 },
-        { id:'rm_e5',  nome:"Forma Evoluída 2",          desc:"+10 PV, +2 CA e uma Característica de Invocação adicional",                           req:"Nível 4 + Forma Evoluída 1", pn:1 },
-        { id:'rm_e6',  nome:"Escudo Material",           desc:"Conjuração pode interromper ataques (Reação): absorve dano até seus PV",              req:"Nível 4", pn:1 },
-        { id:'rm_e7',  nome:"Forma Evoluída 3",          desc:"+10 PV, +2 CA e Característica de Invocação adicional",                               req:"Nível 6 + Forma Evoluída 2", pn:1 },
-        { id:'rm_e8',  nome:"Ataque Independente",       desc:"A Conjuração realiza 1 Ataque por rodada usando INT do usuário",                      req:"Nível 6 + Conjuração Independente", pn:1 },
-        { id:'rm_e9',  nome:"Alteração Corporal",        desc:"Materializa membros/armas no próprio corpo (1d8 de dano)",                            req:"Nível 7", pn:1 },
-        { id:'rm_e10', nome:"Forma Evoluída 4",          desc:"+15 PV, +2 CA e duas Características de Invocação adicionais",                        req:"Nível 8 + Forma Evoluída 3", pn:1 },
-        { id:'rm_e11', nome:"Constructo Complexo",       desc:"Conjura criatura com atributos próprios baseados em INT do usuário",                  req:"Nível 9", pn:1 },
-        { id:'rm_e12', nome:"Espaço Dimensional",        desc:"Cria espaço dimensional simples para armazenamento ou armadilha",                     req:"Nível 10", pn:1 },
-        { id:'rm_e13', nome:"Forma Suprema",             desc:"+20 PV, +3 CA, 2 Ataques extras e Invulnerabilidade a 1 tipo de dano",                req:"Nível 12 + Forma Evoluída 4", pn:1 },
+        // ── Nível 1 ──────────────────────────────────────────────
+        { id:'rm_e1',  nome:"Forjar Objeto, Arma ou Equipamento Conjurada(o)", desc:"Cria um objeto, equipamento ou arma com as mesmas propriedades de um real, que pode ser \"alimentado\" por aura (ao usar munições). Causa 2d6 de dano ao escolher arma.", req:"Nível 1", pn:1 },
+        { id:'rm_e2',  nome:"Golem de Aura",             desc:"Cria um constructo pequeno com o material escolhido (PV = 5 + CON ×2, 1 ação por rodada e 1 Característica de Invocação).", req:"Nível 1 + Acesso a Manipulação", pn:1 },
+        { id:'rm_e3',  nome:"Características Básicas",   desc:"Adiciona uma Característica de Invocação.", req:"Nível 1", pn:1 },
+        { id:'rm_e4',  nome:"Dimensão de Bolso",         desc:"Envia até 3 objetos ou criaturas para a Dimensão em até o dobro de tamanho/peso do alvo (cada).", req:"Nível 1 — Característica Dimensão", pn:1 },
+        { id:'rm_e5',  nome:"Aparências Enganam",        desc:"Permite acessar a Tabela de Conjuração com Alterações Físicas.", req:"Nível 1", pn:1 },
+        // ── Nível 2 ──────────────────────────────────────────────
+        { id:'rm_e6',  nome:"Conjuração Modular",        desc:"O(s) Objeto(s), Arma(s) ou Equipamento(s) Conjurado(s) podem ser diferentes cada vez que conjura. Alternar entre eles depois de conjurados requer Ação bônus ou Reação.", req:"Nível 2 + Forjar Objeto, Arma ou Equipamento Conjurada(o)", pn:1 },
+        { id:'rm_e7',  nome:"Cópia Perfeita",            desc:"Permite copiar, através de conjuração, um objeto marcado ou tocado com todas as suas propriedades originais, mesmo sendo conjurações.", req:"Nível 2", pn:1 },
+        { id:'rm_e8',  nome:"Imbuir Conjuração",         desc:"Adiciona um efeito de qualquer categoria até seu nível que não possua pré-requisitos (como outro efeito dependente ou determinado valor de atributo). Não aplicável a efeitos de Especialização.", req:"Nível 2", pn:1 },
+        { id:'rm_e9',  nome:"Pesos e Medidas",           desc:"Permite reduzir e/ou aumentar o peso e/ou tamanho da conjuração na metade (reduzindo) ou no dobro (aumentando).", req:"Nível 2", pn:1 },
+        // ── Nível 4 ──────────────────────────────────────────────
+        { id:'rm_e10', nome:"Dano Complexo",             desc:"A criatura pode causar +1 dado de dano ao empurrar com sucesso inimigos.", req:"Nível 4", pn:1 },
+        { id:'rm_e11', nome:"Vínculo Sustentado",        desc:"O Hatsu dura enquanto o usuário mantiver concentração e gastar 5% de aura a cada 2 rodadas. Para compartilhar sentidos, o gasto passa a ser por rodada.", req:"Nível 4", pn:1 },
+        // ── Nível 5 ──────────────────────────────────────────────
+        { id:'rm_e12', nome:"Aura Condensada",           desc:"O item armazena até 10% da aura para liberar depois como impulso de dano +1d8 ou de defesa (1d8 RD).", req:"Nível 5", pn:1 },
+        { id:'rm_e13', nome:"Forja Avançada",            desc:"Ao gastar uma ação bônus, a arma ganha +1d8.", req:"Nível 5", pn:1 },
+        // ── Nível 6 ──────────────────────────────────────────────
+        { id:'rm_e14', nome:"Forma Evoluída",            desc:"10 PV, +2 CA e uma Característica de Invocação adicional.", req:"Nível 6", pn:1 },
+        { id:'rm_e15', nome:"Lugar Secreto / Pique Esconde", desc:"A Dimensão pode ser usada como um espaço de 12×12m com a composição (ambiente, aparência, mobília) que o usuário pré-definir.", req:"Nível 6 — Característica Dimensão", pn:1 },
+        { id:'rm_e16', nome:"Invencível",                desc:"Não pode ser destruída ou desfeita a não ser pelo usuário ou pela duração. Adiciona temporariamente o valor máximo natural em 2 atributos. Requer consciência. Req. especial: o Hatsu não pode causar dano direto pelo usuário. Requer 2 Restrições Pesadas OU 1 Restrição Extrema.", req:"Nível 6 + Restrições Específicas", pn:1 },
+        // ── Nível 7 ──────────────────────────────────────────────
+        { id:'rm_e17', nome:"Proativo",                  desc:"A conjuração pode realizar um ataque a mais no turno, consumindo reações do usuário.", req:"Nível 7", pn:1 },
+        // ── Nível 8 ──────────────────────────────────────────────
+        { id:'rm_e18', nome:"Encantamento Especializado", desc:"Escolhe uma das propriedades: Desarmar, Mortal ×3, Oculto/Finta.", req:"Nível 8", pn:1 },
+        { id:'rm_e19', nome:"Fusão ou Divisão de Constructos", desc:"Ao fundir duas criaturas conjuradas: +10 PV, unindo suas habilidades e +1 grau/passo em acerto ou dano. Ao dividir: -10 PV, -5 CA e -1 grau/passo em acerto ou dano.", req:"Nível 8 + Forjar Objeto, Arma ou Equipamento Conjurada(o) ou Golem de Aura", pn:1 },
+        // ── Nível 11 ─────────────────────────────────────────────
+        { id:'rm_e20', nome:"Constructo Apex",           desc:"Sua criatura ganha +1 Ação Principal e um efeito de outra categoria (respeitando a tabela de acesso).", req:"Nível 11", pn:1 },
+        // ── Nível 12 ─────────────────────────────────────────────
+        { id:'rm_e21', nome:"Relíquia Viva",             desc:"Artefato se torna permanente independente do tempo de duração ou concentração. Pode ser desfeito apenas ao ser destruído.", req:"Nível 12", pn:1 },
+        // ── Conjuração com Alterações Físicas (via Aparências Enganam) ──
+        { id:'rm_e22', nome:"Aparência por Partes",      desc:"Permite simular, imitar ou reproduzir até no máximo 3 características (voz, cor da pele, olhos, tamanho e peso da mesma categoria, cabelo, roupas e detalhes menores) de uma criatura qualquer ou objeto/material. Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 1 + Aparências Enganam + Interação Sensorial Simples sobre o alvo", pn:1 },
+        { id:'rm_e23', nome:"Aparência Completa",        desc:"Permite simular, imitar ou reproduzir completamente a aparência de uma criatura qualquer ou objeto/material (da mesma categoria de tamanho). Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 5 + Aparências Enganam + Interação Sensorial Simples + Conhecimento do Alvo", pn:1 },
+        { id:'rm_e24', nome:"Funções em Partes",         desc:"Permite simular, imitar ou reproduzir outras partes físicas (extras ou não) de uma criatura qualquer ou objeto/material por suas funções. Ex.: guelras para respirar embaixo d'água, asas para voar, braço que se transforma em corda. Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 1 + Aparências Enganam + conhecimento profundo das dimensões e propriedades (interações constantes/profundas ou algo específico como ferimento)", pn:1 },
+        { id:'rm_e25', nome:"Funções Completas",         desc:"Permite simular, imitar ou reproduzir completamente funções de uma criatura qualquer ou objeto/material. Normalmente requer alteração na categoria de tamanho. Ex.: transformar-se em moto ou pequeno avião. Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 5 + Aparências Enganam + conhecimento profundo com interações profundas/constantes ou pontuais mas importantes (como um trauma)", pn:1 },
+        { id:'rm_e26', nome:"Ben 10",                   desc:"A conjuração pode assumir os Atributos Físicos além das funções no caso de seres vivos.", req:"Nível 6 + Funções em Partes ou Funções Completas", pn:1 },
       ]
     },
 
@@ -4587,10 +4609,9 @@ function renderHatsuCreator(container) {
                         + '</div>';
                 }
 
-                // rm_e14: Golem de Aura — material picker + size picker
-                if (item.id === 'rm_e14') {
-                    const chosen = specialChoices['rm_e14'] || '';
-                    const [chosenMat, chosenSize] = chosen.split('|');
+                // rm_e2: Golem de Aura — material picker (tamanho fixo: Pequeno)
+                if (item.id === 'rm_e2') {
+                    const chosenMat = specialChoices['rm_e2'] || '';
                     const MATERIAIS = [
                         { nome:'Tecido/Papel',      ca:11, icon:'📄' },
                         { nome:'Cristal/Vidro',     ca:12, icon:'💎' },
@@ -4600,40 +4621,69 @@ function renderHatsuCreator(container) {
                         { nome:'Metal',             ca:15, icon:'⚙️' },
                         { nome:'Gasoso',            ca:'—', icon:'💨' },
                     ];
-                    const TAMANHOS = [
-                        { nome:'Minúsculo', pvBase:4  },
-                        { nome:'Pequeno',   pvBase:5  },
-                        { nome:'Médio',     pvBase:6  },
-                        { nome:'Grande',    pvBase:7  },
-                    ];
                     const matSel = MATERIAIS.find(function(m){ return m.nome === chosenMat; });
                     specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
                         + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🧱 Material do Constructo:</div>'
                         + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'
                         + MATERIAIS.map(function(m) {
                             var active = chosenMat === m.nome;
-                            var newVal = m.nome + '|' + (chosenSize || 'Pequeno');
-                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rm_e14\',\''+ newVal +'\')" '
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rm_e2\',\''+ m.nome +'\')" '
                                 + 'style="padding:5px 8px;border-radius:7px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#d1d5db') +';transition:all .15s">'
                                 + m.icon + ' ' + m.nome + ' <span style="opacity:.7;font-size:7px">CA '+ m.ca +'</span></button>';
                         }).join('')
                         + '</div>'
-                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📐 Tamanho:</div>'
-                        + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">'
-                        + TAMANHOS.map(function(t) {
-                            var active = (chosenSize || 'Pequeno') === t.nome;
-                            var newVal = (chosenMat || '') + '|' + t.nome;
-                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rm_e14\',\''+ newVal +'\')" '
-                                + 'style="flex:1;padding:5px 6px;border-radius:7px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#d1d5db') +';transition:all .15s;text-align:center">'
-                                + t.nome + '</button>';
-                        }).join('')
-                        + '</div>'
-                        + (chosenMat && chosenSize
+                        + '<div style="font-size:8px;color:#6b7280;margin-bottom:6px">📐 Tamanho: <strong style="color:#d1d5db">Pequeno</strong> (fixo)</div>'
+                        + (chosenMat
                             ? '<div style="background:#060d1a;border:1px solid '+ color +'33;border-radius:8px;padding:8px;font-size:8px;color:#9ca3af">'
-                                + '<span style="color:'+ color +';font-weight:700">✓ Constructo: '+ chosenMat +' · '+ chosenSize +'</span><br>'
+                                + '<span style="color:'+ color +';font-weight:700">✓ Constructo: '+ chosenMat +' · Pequeno</span><br>'
                                 + 'CA base: '+ (matSel ? matSel.ca : '—') +' + INT &nbsp;|&nbsp; PV = 5 + CON×2'
                               + '</div>'
-                            : '<div style="font-size:8px;color:#f87171;margin-top:2px">⚠ Escolha o material e o tamanho</div>')
+                            : '<div style="font-size:8px;color:#f87171;margin-top:2px">⚠ Escolha o material</div>')
+                        + '</div>';
+                }
+
+                // rm_e3: Características Básicas — picker de 1 Característica de Invocação
+                if (item.id === 'rm_e3') {
+                    const chosenCarac = specialChoices['rm_e3'] || '';
+                    const CARACTS = [
+                        { nome:'Atento',               icon:'👁',  desc:'Percepção/investigação de criaturas próximas (3m) +2 (escalável)' },
+                        { nome:'Carapaça/Armadura',    icon:'🛡',  desc:'Redução de Danos 2 (escalável até 5)' },
+                        { nome:'Curandeira',           icon:'💚',  desc:'Cura +1 por dado rolado. Req: Efeito de Cura' },
+                        { nome:'Defensor',             icon:'🔰',  desc:'CA +2 para criaturas adjacentes (escalável até 5)' },
+                        { nome:'Destruidor',           icon:'💥',  desc:'Ataque crítico causa 1 dado de dano adicional' },
+                        { nome:'Dimensão',             icon:'🌀',  desc:'Conjuração pode ser um ambiente/espaço independente onde se pode entrar' },
+                        { nome:'Enxame',               icon:'🐝',  desc:'3+ conjurações iguais formam um Enxame (mesma iniciativa, PVs/CAs/Atributos somados)' },
+                        { nome:'Furtivo',              icon:'🌑',  desc:'Bônus +2 em Furtividade (escalável até 5)' },
+                        { nome:'Grande',               icon:'⬆',   desc:'Tamanho +1 grau (Médio→Grande→Enorme→Colossal). Vantagem em TR de FOR/CON' },
+                        { nome:'Imparável',            icon:'🏃',  desc:'Ignora terreno difícil e não pode ter movimento reduzido' },
+                        { nome:'Investida',            icon:'⚡',  desc:'Após mover 4,5m em linha reta: TR de FOR ou derruba + 1 dado de dano extra' },
+                        { nome:'Montaria',             icon:'🐎',  desc:'Pode servir como montaria (deve ser pelo menos Médio)' },
+                        { nome:'Móvel/Veloz',          icon:'💨',  desc:'Movimento +3m (escalável: 4,5m, 6m, 7,5m, 9m)' },
+                        { nome:'Movimento Variável',   icon:'🌊',  desc:'Adquire voo, nado, escalada ou movimento subterrâneo (escalável)' },
+                        { nome:'Pequeno',              icon:'⬇',   desc:'Tamanho −1 grau (Médio→Pequeno→Minúsculo). Vantagem em Furtividade' },
+                        { nome:'Perito',               icon:'🎯',  desc:'Recebe 2 perícias adicionais' },
+                        { nome:'Perturbador',          icon:'😵',  desc:'Hostis próximos (3m) sofrem −2 em testes de perícia (escalável até 5)' },
+                        { nome:'Reativo',              icon:'⚔',   desc:'Possui reações = Prof do usuário. 1x/rodada pode usar reação independente' },
+                        { nome:'Robustez',             icon:'❤',   desc:'PV máximo +5 (escalável: 10, 15, 25)' },
+                        { nome:'Sangue Ruim',          icon:'🌵',  desc:'Ao receber ataque perfurante: criaturas adjacentes sofrem 1d6 de dano (ácido ou perfurante)' },
+                    ];
+                    const caracSel = CARACTS.find(function(c){ return c.nome === chosenCarac; });
+                    specialHtml = '<div style="margin-top:8px;background:#0a0f1a;border:1px solid '+ color +'33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                        + '<div style="font-size:8px;font-weight:900;color:'+ color +';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">✨ Característica de Invocação:</div>'
+                        + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">'
+                        + CARACTS.map(function(c) {
+                            var active = chosenCarac === c.nome;
+                            return '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'rm_e3\',\''+ c.nome +'\')" '
+                                + 'style="padding:4px 8px;border-radius:7px;font-size:8px;font-weight:900;cursor:pointer;border:1.5px solid '+ (active?color:'#1f2937') +';background:'+ (active?color+'22':'transparent') +';color:'+ (active?color:'#d1d5db') +';transition:all .15s">'
+                                + c.icon + ' ' + c.nome + '</button>';
+                        }).join('')
+                        + '</div>'
+                        + (caracSel
+                            ? '<div style="background:#060d1a;border:1px solid '+ color +'33;border-radius:8px;padding:8px;font-size:8px;color:#9ca3af">'
+                                + '<span style="color:'+ color +';font-weight:700">'+ caracSel.icon +' '+ caracSel.nome +'</span><br>'
+                                + caracSel.desc
+                              + '</div>'
+                            : '<div style="font-size:8px;color:#f87171;margin-top:2px">⚠ Escolha uma Característica</div>')
                         + '</div>';
                 }
 
@@ -4761,6 +4811,219 @@ function renderHatsuCreator(container) {
                         + '</div>';
                 }
             }
+            // rm_e5: Aparências Enganam — picker interativo (só quando selecionado)
+            if (item.id === 'rm_e5' && sel) {
+                var _chosen5 = (hb.specialChoices || {})['rm_e5'] || '';
+                var _cLvl = charLevel;
+                var _alt = [
+                    { id:'ap_partes',  nome:'Aparencia por Partes', lvl:1, icon:'🎭', desc:'Simula ate 3 caracteristicas fisicas (voz, cor, olhos, cabelo, roupas) de uma criatura ou objeto da mesma categoria de tamanho.', extra:'Interacao Sensorial Simples sobre o alvo' },
+                    { id:'fn_partes',  nome:'Funções em Partes',    lvl:1, icon:'🦾', desc:'Reproduz partes fisicas extras de uma criatura por suas funções. Ex.: guelras, asas, braco-corda.', extra:'Conhecimento profundo das dimensoes e propriedades do alvo' },
+                    { id:'ap_compl',   nome:'Aparencia Completa',   lvl:5, icon:'🪞', desc:'Reproduz completamente a aparencia de uma criatura ou objeto da mesma categoria de tamanho.', extra:'Interacao Sensorial Simples + Conhecimento do Alvo' },
+                    { id:'fn_compl',   nome:'Funções Completas',    lvl:5, icon:'🔄', desc:'Reproduz completamente as funções de uma criatura ou objeto. Requer alteracao de categoria de tamanho. Ex.: moto ou aviao.', extra:'Conhecimento profundo com interacoes profundas/constantes ou pontuais importantes' },
+                    { id:'ben10',      nome:'Ben 10',               lvl:6, icon:'🧬', desc:'A conjuracao assume os Atributos Fisicos alem das funções, no caso de seres vivos.', extra:'Funções em Partes ou Funções Completas' },
+                ];
+                var _altRows = '';
+                for (var _i = 0; _i < _alt.length; _i++) {
+                    var _a = _alt[_i];
+                    var _ok = _cLvl >= _a.lvl;
+                    var _act = _chosen5 === _a.id;
+                    var _bc = _act ? color : (_ok ? '#1f2937' : '#111827');
+                    var _tc2 = _act ? color : (_ok ? '#d1d5db' : '#374151');
+                    var _bg = _act ? (color + '22') : 'transparent';
+                    var _click = _ok
+                        ? 'event.stopPropagation();window._hSetSpecialChoice(\'rm_e5\',\'' + _a.id + '\')'
+                        : 'event.stopPropagation()';
+                    _altRows += '<div onclick="' + _click + '" style="border:1.5px solid ' + _bc + ';border-radius:8px;padding:8px;margin-bottom:6px;background:' + _bg + ';cursor:' + (_ok ? 'pointer' : 'not-allowed') + ';opacity:' + (_ok ? '1' : '0.4') + ';transition:all .15s">'
+                        + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:' + (_act ? '6' : '0') + 'px">'
+                        + '<span style="font-size:13px">' + _a.icon + '</span>'
+                        + '<span style="font-size:8px;font-weight:900;color:' + _tc2 + '">' + _a.nome + '</span>'
+                        + '<span style="margin-left:auto;font-size:7px;font-weight:700;color:' + (_ok ? color : '#4b5563') + ';background:' + (_ok ? color : '#374151') + '18;padding:2px 6px;border-radius:4px">Nivel ' + _a.lvl + '</span>'
+                        + (_act ? '<span style="font-size:7px;font-weight:900;padding:1px 5px;border-radius:4px;background:' + color + '33;color:' + color + '">✓</span>' : '')
+                        + '</div>'
+                        + (_act ? '<div style="font-size:7.5px;color:#9ca3af;line-height:1.4;margin-bottom:3px">' + _a.desc + '</div>'
+                               + '<div style="font-size:7px;color:#6b7280;font-style:italic">Req. extra: ' + _a.extra + '</div>' : '')
+                        + '</div>';
+                }
+                specialHtml += '<div style="margin-top:8px;background:#0a0f1a;border:1px solid ' + color + '33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">🎨 Conjuracao com Alteracoes Fisicas</div>'
+                    + '<div style="font-size:7px;color:#6b7280;margin-bottom:8px">+10% de aura por categoria de tamanho acima do usuario</div>'
+                    + _altRows
+                    + (!_chosen5 ? '<div style="font-size:8px;color:#f87171;margin-top:2px">Escolha uma alteracao para usar</div>' : '')
+                    + '</div>';
+            }
+            // ── re_e17: Oráculo — picker de Previsões e Clarividência ──────────────
+            if (item.id === 're_e17' && sel) {
+                var _re17c = (hb.specialChoices || {})['re_e17'] || '';
+                var _re17lvl = charLevel;
+                var _re17opts = [
+                    { id:'vidente',   nome:'Vidente (Sharingan)', lvl:0,  icon:'👁',  desc:'Preveja por milissegundos acoes dos oponentes. +3 em todas as rolagens pela duracao do Hatsu.', extra:'Req: Hatsu com duracao nao Instantanea' },
+                    { id:'profeta',   nome:'Profeta',             lvl:4,  icon:'📜',  desc:'Preveja em segredo a proxima acao de um alvo. Com sucesso, o obrigue a seguir essa linha de acao pela duracao. Deve prever 2 acoes por turno.', extra:'Req: Nivel 4' },
+                    { id:'cego',      nome:'Cego de Tebas',       lvl:6,  icon:'🔮',  desc:'1x/dia o Mestre concede uma informacao relevante (aliado, alvo, missao, objeto). Minimo 1, maximo = metade do nivel do personagem.', extra:'Req: Nivel 6' },
+                    { id:'joia',      nome:'Joia do Tempo',       lvl:8,  icon:'💎',  desc:'Fora de combate, ao se concentrar por 1 rodada, veja possibilidades para superar um desafio (Teste ou TR). Role com vantagem.', extra:'Req: Nivel 8' },
+                    { id:'olho',      nome:'Olho de Agamoto',     lvl:10, icon:'🌀',  desc:'Abra a percepcao temporal. Pela duracao, use Reacoes contra qualquer acao (principal, movimento ou bonus) sem limite, mas sofre 1 nivel de exaustao ao usar 3+ por rodada.', extra:'Req: Nivel 10' },
+                ];
+                var _re17rows = '';
+                for (var _ri = 0; _ri < _re17opts.length; _ri++) {
+                    var _ro = _re17opts[_ri];
+                    var _rok = _re17lvl >= _ro.lvl;
+                    var _ract = _re17c === _ro.id;
+                    _re17rows += '<div onclick="event.stopPropagation();' + (_rok ? 'window._hSetSpecialChoice(\'re_e17\',\'' + _ro.id + '\')' : '') + '"'
+                        + ' style="border:1.5px solid ' + (_ract ? color : (_rok ? '#1f2937' : '#111827')) + ';border-radius:8px;padding:8px;margin-bottom:5px;background:' + (_ract ? color + '22' : 'transparent') + ';cursor:' + (_rok ? 'pointer' : 'not-allowed') + ';opacity:' + (_rok ? '1' : '0.4') + ';transition:all .15s">'
+                        + '<div style="display:flex;align-items:center;gap:6px">'
+                        + '<span style="font-size:13px">' + _ro.icon + '</span>'
+                        + '<span style="font-size:8px;font-weight:900;color:' + (_ract ? color : (_rok ? '#d1d5db' : '#374151')) + '">' + (_ract ? '✓ ' : '') + _ro.nome + '</span>'
+                        + (_ro.lvl > 0 ? '<span style="margin-left:auto;font-size:7px;font-weight:700;color:' + (_rok ? color : '#4b5563') + ';background:' + (_rok ? color : '#374151') + '18;padding:2px 6px;border-radius:4px">Nivel ' + _ro.lvl + '</span>' : '')
+                        + '</div>'
+                        + (_ract ? '<div style="font-size:7.5px;color:#9ca3af;margin-top:5px;line-height:1.4">' + _ro.desc + '</div><div style="font-size:7px;color:#6b7280;font-style:italic;margin-top:2px">' + _ro.extra + '</div>' : '')
+                        + '</div>';
+                }
+                specialHtml += '<div style="margin-top:8px;background:#0a0f1a;border:1px solid ' + color + '33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">🔮 Previsoes e Clarividencia</div>'
+                    + _re17rows
+                    + (!_re17c ? '<div style="font-size:8px;color:#f87171;margin-top:4px">Escolha um efeito</div>' : '')
+                    + '</div>';
+            }
+
+            // ── re_e16: Controle do Tempo — picker de Fluxo Temporal ou Tempo de Vida ──
+            if (item.id === 're_e16' && sel) {
+                var _re16c = (hb.specialChoices || {})['re_e16'] || '';
+                var _re16lvl = charLevel;
+                var _re16flux = [
+                    { id:'ft_raven',  nome:'Visoes da Raven',    lvl:0,  icon:'⏪', desc:'Volte ao fim do seu ultimo turno. Eventos continuam os mesmos, mas ha nova chance de superar recebendo-os e refazendo testes.', extra:'Req: Hatsu com duracao Instantanea' },
+                    { id:'ft_cronos', nome:'Cronos',             lvl:4,  icon:'⏺', desc:'O beneficio de Visoes da Raven pode ser expandido a um alvo escolhido com toque ou na area do Nen Expandido.', extra:'Req: Nivel 4 + Visoes da Raven' },
+                    { id:'ft_senhor', nome:'Senhor do Tempo',    lvl:6,  icon:'⏱', desc:'Rebobine um evento (Golpe/Hatsu/Efeito) que ocorreria na rodada atual e adicione ou subtraia 2d6 ao resultado.', extra:'Req: Nivel 6' },
+                    { id:'ft_kairos', nome:'Kairos',             lvl:8,  icon:'🌀', desc:'Volte ao inicio do seu ultimo turno. Aliados com vantagem, inimigos com desvantagem. Usos = proficiencia por dia.', extra:'Req: Nivel 8 + 2 Restricoes Pesadas' },
+                    { id:'ft_futuro', nome:'De volta pro Futuro',lvl:10, icon:'⏩', desc:'Remove um alvo do combate ou cena por 3 rodadas (combate) ou 1 minuto (cena).', extra:'Req: Nivel 10' },
+                    { id:'ft_tictac', nome:'Tic Tac',            lvl:12, icon:'⏰', desc:'Pause o tempo por 1 rodada (ganha um novo turno). Nao pode interagir com pessoas, mas pode com tudo ao redor. Todos ao redor ficam Atordoados. +1 rodada por Restricao Pesada adicional.', extra:'Req: Nivel 12' },
+                ];
+                var _re16vida = [
+                    { id:'tv_envelhece', nome:'Envelhecimento / Rejuvenescimento', lvl:0, icon:'🕰', desc:'Role 1d10. O resultado x2 e a quantidade em anos que um alvo altera seu tempo de vida pela duracao.', extra:'Req: Controle de Tempo + TR' },
+                    { id:'tv_deterio',   nome:'Deteriorar',                        lvl:0, icon:'💀', desc:'Ao falhar em um TR, o alvo tem envelhecida determinada caracteristica fisica, cognitiva ou sensorial.', extra:'Req: Envelhecimento + TR' },
+                ];
+                var _re16rows = '';
+                for (var _rfi = 0; _rfi < _re16flux.length; _rfi++) {
+                    var _rf = _re16flux[_rfi];
+                    var _rfok = _re16lvl >= _rf.lvl;
+                    var _rfact = _re16c === _rf.id;
+                    _re16rows += '<div onclick="event.stopPropagation();' + (_rfok ? 'window._hSetSpecialChoice(\'re_e16\',\'' + _rf.id + '\')' : '') + '"'
+                        + ' style="border:1.5px solid ' + (_rfact ? color : (_rfok ? '#1f2937' : '#111827')) + ';border-radius:8px;padding:7px;margin-bottom:5px;background:' + (_rfact ? color + '22' : 'transparent') + ';cursor:' + (_rfok ? 'pointer' : 'not-allowed') + ';opacity:' + (_rfok ? '1' : '0.4') + ';transition:all .15s">'
+                        + '<div style="display:flex;align-items:center;gap:6px">'
+                        + '<span style="font-size:12px">' + _rf.icon + '</span>'
+                        + '<span style="font-size:8px;font-weight:900;color:' + (_rfact ? color : (_rfok ? '#d1d5db' : '#374151')) + '">' + (_rfact ? '✓ ' : '') + _rf.nome + '</span>'
+                        + (_rf.lvl > 0 ? '<span style="margin-left:auto;font-size:7px;font-weight:700;color:' + (_rfok ? color : '#4b5563') + ';background:' + (_rfok ? color : '#374151') + '18;padding:2px 6px;border-radius:4px">Nivel ' + _rf.lvl + '</span>' : '')
+                        + '</div>'
+                        + (_rfact ? '<div style="font-size:7.5px;color:#9ca3af;margin-top:5px;line-height:1.4">' + _rf.desc + '</div><div style="font-size:7px;color:#6b7280;font-style:italic;margin-top:2px">' + _rf.extra + '</div>' : '')
+                        + '</div>';
+                }
+                var _re16vrows = '';
+                for (var _rvi = 0; _rvi < _re16vida.length; _rvi++) {
+                    var _rv = _re16vida[_rvi];
+                    var _rvact = _re16c === _rv.id;
+                    _re16vrows += '<div onclick="event.stopPropagation();window._hSetSpecialChoice(\'re_e16\',\'' + _rv.id + '\')"'
+                        + ' style="border:1.5px solid ' + (_rvact ? color : '#1f2937') + ';border-radius:8px;padding:7px;margin-bottom:5px;background:' + (_rvact ? color + '22' : 'transparent') + ';cursor:pointer;transition:all .15s">'
+                        + '<div style="display:flex;align-items:center;gap:6px">'
+                        + '<span style="font-size:12px">' + _rv.icon + '</span>'
+                        + '<span style="font-size:8px;font-weight:900;color:' + (_rvact ? color : '#d1d5db') + '">' + (_rvact ? '✓ ' : '') + _rv.nome + '</span>'
+                        + '</div>'
+                        + (_rvact ? '<div style="font-size:7.5px;color:#9ca3af;margin-top:5px;line-height:1.4">' + _rv.desc + '</div><div style="font-size:7px;color:#6b7280;font-style:italic;margin-top:2px">' + _rv.extra + '</div>' : '')
+                        + '</div>';
+                }
+                specialHtml += '<div style="margin-top:8px;background:#0a0f1a;border:1px solid ' + color + '33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                    + '<div style="font-size:8px;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">⏱ Fluxo Temporal</div>'
+                    + '<div style="font-size:7px;color:#6b7280;margin-bottom:8px">Escolha um efeito para usar neste Hatsu</div>'
+                    + _re16rows
+                    + '<div style="font-size:8px;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px;margin:10px 0 8px">🕰 Tempo de Vida Longo</div>'
+                    + _re16vrows
+                    + (!_re16c ? '<div style="font-size:8px;color:#f87171;margin-top:4px">Escolha um efeito</div>' : '')
+                    + '</div>';
+            }
+
+            // ── re_e2: Combinação Perigosa — picker multi-categoria (até 3 efeitos) ──
+            if (item.id === 're_e2' && sel) {
+                var _re2sc = hb.specialChoices || {};
+                var _re2chosen = Array.isArray(_re2sc['re_e2']) ? _re2sc['re_e2'] : [];
+                var _re2lvl = charLevel;
+                // Numero de vezes que re_e2 esta em ec determina o maximo de slots
+                var _re2count = (hb.ec || []).filter(function(id){ return id === 're_e2'; }).length;
+                var _re2max = 3 + (_re2count - 1);
+                // Categoria filtrada atual
+                var _re2cat = (_re2sc['re_e2_cat'] || '');
+                var _re2cats = Object.keys(window.HATSU_DB.categorias || {}).filter(function(c){ return c !== 'ESPECIALIZAÇÃO'; });
+                var _re2ger = window.HATSU_DB.efeitos_gerais || [];
+                // Coleta efeitos da categoria selecionada
+                var _re2effList = _re2cat === 'GERAL' ? _re2ger : (_re2cat && window.HATSU_DB.categorias[_re2cat] ? window.HATSU_DB.categorias[_re2cat].efeitos || [] : []);
+                // Verifica categorias ja usadas
+                var _re2usedCats = {};
+                for (var _r2ci = 0; _r2ci < _re2chosen.length; _r2ci++) {
+                    var _r2cid = _re2chosen[_r2ci];
+                    if (_re2ger.find(function(e){ return e.id === _r2cid; })) { _re2usedCats['GERAL'] = true; continue; }
+                    var _foundCat = '';
+                    var _catKeys = Object.keys(window.HATSU_DB.categorias || {});
+                    for (var _cki = 0; _cki < _catKeys.length; _cki++) {
+                        var _ck = _catKeys[_cki];
+                        var _catEfs = window.HATSU_DB.categorias[_ck].efeitos || [];
+                        if (_catEfs.find(function(e){ return e.id === _r2cid; })) { _foundCat = _ck; break; }
+                    }
+                    if (_foundCat) _re2usedCats[_foundCat] = true;
+                }
+                var _re2catButtons = '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'re_e2_cat\',\'GERAL\')" style="padding:3px 7px;border-radius:5px;font-size:7px;font-weight:700;cursor:pointer;border:1px solid ' + (_re2cat==='GERAL'?color:'#1f2937') + ';background:' + (_re2cat==='GERAL'?color+'22':'transparent') + ';color:' + (_re2cat==='GERAL'?color:'#9ca3af') + '">GERAL</button>';
+                for (var _r2bi = 0; _r2bi < _re2cats.length; _r2bi++) {
+                    var _r2b = _re2cats[_r2bi];
+                    var _r2bActive = _re2cat === _r2b;
+                    _re2catButtons += '<button onclick="event.stopPropagation();window._hSetSpecialChoice(\'re_e2_cat\',\'' + _r2b + '\')" style="padding:3px 7px;border-radius:5px;font-size:7px;font-weight:700;cursor:pointer;border:1px solid ' + (_r2bActive?color:'#1f2937') + ';background:' + (_r2bActive?color+'22':'transparent') + ';color:' + (_r2bActive?color:'#9ca3af') + '">' + _r2b.substring(0,5) + '</button>';
+                }
+                // Lista de efeitos da categoria selecionada
+                var _re2effRows = '';
+                if (_re2cat) {
+                    for (var _r2ei = 0; _r2ei < _re2effList.length; _r2ei++) {
+                        var _r2e = _re2effList[_r2ei];
+                        var _r2eAct = _re2chosen.indexOf(_r2e.id) > -1;
+                        var _r2eLvlM = (_r2e.req || '').match(/N[ií]vel\s*(\d+)/i);
+                        var _r2eLvl = _r2eLvlM ? parseInt(_r2eLvlM[1]) : 0;
+                        var _r2eOk = _re2lvl >= _r2eLvl;
+                        var _r2eMaxed = !_r2eAct && _re2chosen.length >= _re2max;
+                        var _r2eDis = !_r2eOk || _r2eMaxed;
+                        var _r2eClick = _r2eDis ? '' : 'window._hToggleRe2Effect(\'' + _r2e.id + '\')';
+                        _re2effRows += '<div onclick="event.stopPropagation();' + _r2eClick + '" style="border:1px solid ' + (_r2eAct?color:(_r2eDis?'#111827':'#1f2937')) + ';border-radius:7px;padding:6px 8px;margin-bottom:4px;background:' + (_r2eAct?color+'15':'transparent') + ';cursor:' + (_r2eDis?'not-allowed':'pointer') + ';opacity:' + ((_r2eDis&&!_r2eAct)?'0.4':'1') + ';transition:all .15s">'
+                            + '<div style="display:flex;align-items:center;gap:5px">'
+                            + '<span style="font-size:8px;font-weight:900;color:' + (_r2eAct?color:(_r2eOk?'#d1d5db':'#374151')) + '">' + (_r2eAct ? '✓ ' : '') + _r2e.nome + '</span>'
+                            + (_r2e.req ? '<span style="margin-left:auto;font-size:7px;color:' + (_r2eOk?'#6b7280':'#f87171') + ';flex-shrink:0">' + _r2e.req + '</span>' : '')
+                            + '</div>'
+                            + (_r2eAct || !_r2eDis ? '<div style="font-size:7px;color:#6b7280;margin-top:2px;line-height:1.3">' + (_r2e.desc || '') + '</div>' : '')
+                            + '</div>';
+                    }
+                }
+                // Efeitos ja escolhidos
+                var _re2selNames = [];
+                for (var _r2si = 0; _r2si < _re2chosen.length; _r2si++) {
+                    var _r2sid = _re2chosen[_r2si];
+                    var _r2sef = _re2ger.find(function(e){ return e.id===_r2sid; });
+                    if (!_r2sef) {
+                        var _catKeys2 = Object.keys(window.HATSU_DB.categorias || {});
+                        for (var _ck2i = 0; _ck2i < _catKeys2.length; _ck2i++) {
+                            var _ck2efs = (window.HATSU_DB.categorias[_catKeys2[_ck2i]].efeitos||[]);
+                            _r2sef = _ck2efs.find(function(e){ return e.id===_r2sid; });
+                            if (_r2sef) break;
+                        }
+                    }
+                    if (_r2sef) _re2selNames.push(_r2sef.nome);
+                }
+                specialHtml += '<div style="margin-top:8px;background:#0a0f1a;border:1px solid ' + color + '33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">'
+                    + '<div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">'
+                    + '<div style="font-size:8px;font-weight:900;color:' + color + ';text-transform:uppercase;letter-spacing:1px">⚗ Combinacao Perigosa</div>'
+                    + '<span style="margin-left:auto;font-size:8px;font-weight:700;color:' + (_re2chosen.length>=_re2max?'#f87171':color) + '">' + _re2chosen.length + ' / ' + _re2max + '</span>'
+                    + '</div>'
+                    + (_re2selNames.length ? '<div style="background:#060d1a;border:1px solid ' + color + '33;border-radius:7px;padding:6px 8px;font-size:8px;color:#9ca3af;margin-bottom:8px">'
+                        + _re2selNames.map(function(n){ return '<span style="color:' + color + ';font-weight:700">' + n + '</span>'; }).join(' + ')
+                        + '</div>' : '')
+                    + '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px">' + _re2catButtons + '</div>'
+                    + (_re2cat
+                        ? (_re2effList.length ? _re2effRows : '<div style="font-size:8px;color:#4b5563">Sem efeitos disponiveis</div>')
+                        : '<div style="font-size:8px;color:#6b7280">Escolha uma categoria acima para ver os efeitos</div>')
+                    + (!_re2cat && _re2chosen.length === 0 ? '<div style="font-size:8px;color:#f87171;margin-top:4px">Escolha ate ' + _re2max + ' efeitos de até ' + _re2max + ' categorias diferentes</div>' : '')
+                    + '</div>';
+            }
+
             const dupControlsHtml = showDupControls ? `
                 <div style="display:flex;align-items:center;gap:6px;margin-top:6px" onclick="event.stopPropagation()">
                     <span style="font-size:8px;color:#fbbf24;font-weight:700">Cópias:</span>
@@ -5629,6 +5892,22 @@ window._hSetBeneficioChoiceIdx = function(id, idx) {
     const opts = window._hBnfOpts && window._hBnfOpts[id];
     if (!opts || idx >= opts.length) return;
     window._hSetBeneficioChoice(id, opts[idx]);
+};
+window._hToggleRe2Effect = function(effId) {
+    var hb = state.hatsuBuilder; if (!hb) return;
+    if (!hb.specialChoices) hb.specialChoices = {};
+    var current = Array.isArray(hb.specialChoices['re_e2']) ? hb.specialChoices['re_e2'].slice() : [];
+    var re2count = (hb.ec || []).filter(function(id){ return id === 're_e2'; }).length;
+    var re2max = 3 + (re2count - 1);
+    var idx = current.indexOf(effId);
+    if (idx > -1) {
+        current.splice(idx, 1);
+    } else {
+        if (current.length >= re2max) return;
+        current.push(effId);
+    }
+    hb.specialChoices['re_e2'] = current;
+    renderHatsuInPlace();
 };
 window._hToggleReP1Effect = function(effId) {
     const hb = state.hatsuBuilder; if (!hb) return;
@@ -7375,8 +7654,7 @@ function renderHatsuDetail(container) {
         'ri_e11': { dado: '+ 1d8',    tipo: 'Extra',      desc: 'Golpe Reforçado' },
         'ri_e13': { dado: '+ 1d(maior)',tipo:'Bloquear',   desc: 'Onda Surda' },
         'ri_e20': { dado: '+ 1d6',    tipo: 'Extra',      desc: 'Fúria Potencializada' },
-        'rm_e1':  { dado: '1d4',      tipo: 'Objeto',     desc: 'Materialização Simples' },
-        'rm_e9':  { dado: '1d8',      tipo: 'Corporal',   desc: 'Alteração Corporal' },
+        'rm_e1':  { dado: '2d6',      tipo: 'Arma/Objeto', desc: 'Forjar Objeto/Arma Conjurada' },
         'rc_e1':  { dado: '1d6',      tipo: 'Criatura',   desc: 'Invocar Criatura' },
         'rc_e9':  { dado: '1d8',      tipo: 'Corporal',   desc: 'Metamorfose Corporal' },
         'em_e1':  { dado: '1d8',      tipo: 'Projétil',   desc: 'Projétil de Aura' },
@@ -7969,7 +8247,16 @@ function renderHatsuDetail(container) {
             if (e.id === 'eg3' && sc.eg3) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🩸 Condição: ${sc.eg3}</div>`;
             if (e.id === 'eg4' && sc.eg4) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🔀 Efeito Alternativo → ${sc.eg4}</div>`;
             if (e.id === 'eg6' && sc.eg6) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🎯 Poder é Intenção: ${sc.eg6}</div>`;
-            if (e.id === 'rm_e14' && sc.rm_e14) { const [mat14,tam14] = (sc.rm_e14||'').split('|'); if (mat14 && tam14) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🧱 ${tam14} · ${mat14} &nbsp;|&nbsp; PV = 5 + CON×2</div>`; }
+            if (e.id === 'rm_e2' && sc.rm_e2) { specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🧱 Pequeno · ${sc.rm_e2} &nbsp;|&nbsp; PV = 5 + CON×2</div>`; }
+            if (e.id === 'rm_e3' && sc.rm_e3) { specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">✨ Característica: ${sc.rm_e3}</div>`; }
+            if (e.id === 'rm_e5' && sc.rm_e5) { const _e5Names = {'ap_partes':'Aparência por Partes','fn_partes':'Funções em Partes','ap_compl':'Aparência Completa','fn_compl':'Funções Completas','ben10':'Ben 10'}; specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🎭 Alteração: ${_e5Names[sc.rm_e5] || sc.rm_e5}</div>`; }
+            if (e.id === 're_e17' && sc.re_e17) { const _e17n = {'vidente':'Vidente (Sharingan)','profeta':'Profeta','cego':'Cego de Tebas','joia':'Joia do Tempo','olho':'Olho de Agamoto'}; specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">🔮 Previsão: ${_e17n[sc.re_e17] || sc.re_e17}</div>`; }
+            if (e.id === 're_e16' && sc.re_e16) { const _e16n = {'ft_raven':'Visões da Raven','ft_cronos':'Cronos','ft_senhor':'Senhor do Tempo','ft_kairos':'Kairós','ft_futuro':'De volta pro Futuro','ft_tictac':'Tic Tac','tv_envelhece':'Envelhecimento/Rejuvenescimento','tv_deterio':'Deteriorar'}; specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">⏱ Tempo: ${_e16n[sc.re_e16] || sc.re_e16}</div>`; }
+            if (e.id === 're_e2' && Array.isArray(sc.re_e2) && sc.re_e2.length) {
+                const _re2db = [...(window.HATSU_DB.efeitos_gerais||[]), ...Object.values(window.HATSU_DB.categorias||{}).flatMap(c=>c.efeitos||[])];
+                const _re2names = sc.re_e2.map(id => { const ef = _re2db.find(e=>e.id===id); return ef ? ef.nome : id; }).join(' + ');
+                specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">⚗ Combinação: ${_re2names}</div>`;
+            }
             if (e.id === 'eg17' && sc.eg17) specialDetail = `<div style="margin-top:6px;font-size:9px;font-weight:700;color:${ec};padding:4px 8px;background:${ec}18;border-radius:6px">⚡ Consequência: ${sc.eg17 === 'Reduz Duração' ? '⏱ −1/3 da duração total' : '🎲 −5 no TR de Concentração'}</div>`;
             if (e.id === 'rt_e4' && sc.rt_e4) {
                 const db4 = window.TRANSMUTACAO_DB && window.TRANSMUTACAO_DB.elemental.find(x=>x.id===sc.rt_e4);
