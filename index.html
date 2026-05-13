@@ -3149,18 +3149,18 @@ window.calcAuraCost = function(hb) {
 };
 
 // Hexágono de afinidade entre categorias (padrão HxH)
-// Posições no hexágono (sentido horário): Intensificação → Transmutação → Especialização → Manipulação → Conjuração → Materialização
+// Posições no hexágono (sentido horário, baseado nos ângulos de SYSTEM_DB):
+//   INTENSIFICAÇÃO(270°) → TRANSMUTAÇÃO(330°) → MATERIALIZAÇÃO(30°) → ESPECIALIZAÇÃO(90°) → MANIPULAÇÃO(150°) → EMISSÃO(210°)
 // Adjacentes (1 posição) = 80% | 2 posições = 60% | Opostos (3 posições) = 40%
 // Especialização é excluída do acesso cruzado padrão — regra especial para Manipulação/Materialização
 window.CATEGORY_AFFINITY = {
-    'INTENSIFICAÇÃO': { 'TRANSMUTAÇÃO':80, 'MATERIALIZAÇÃO':80, 'EMISSÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
-    'TRANSMUTAÇÃO':   { 'INTENSIFICAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
-    'MATERIALIZAÇÃO': { 'INTENSIFICAÇÃO':80, 'CONJURAÇÃO':80, 'TRANSMUTAÇÃO':60, 'MANIPULAÇÃO':60, 'EMISSÃO':40 },
-    'CONJURAÇÃO':     { 'MATERIALIZAÇÃO':80, 'MANIPULAÇÃO':80, 'INTENSIFICAÇÃO':60, 'TRANSMUTAÇÃO':60, 'EMISSÃO':40 },
-    'MANIPULAÇÃO':    { 'CONJURAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'INTENSIFICAÇÃO':60, 'TRANSMUTAÇÃO':40 },
-    'EMISSÃO':        { 'MANIPULAÇÃO':80, 'TRANSMUTAÇÃO':80, 'CONJURAÇÃO':60, 'INTENSIFICAÇÃO':60, 'MATERIALIZAÇÃO':40 },
-    'ESPECIALIZAÇÃO': { 'TRANSMUTAÇÃO':80, 'MANIPULAÇÃO':80, 'CONJURAÇÃO':60, 'EMISSÃO':60, 'INTENSIFICAÇÃO':40 },
-    'REFORÇO':        { 'TRANSMUTAÇÃO':80, 'MATERIALIZAÇÃO':80, 'EMISSÃO':60, 'CONJURAÇÃO':60, 'MANIPULAÇÃO':40 },
+    'INTENSIFICAÇÃO': { 'TRANSMUTAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'MANIPULAÇÃO':60 },
+    'TRANSMUTAÇÃO':   { 'INTENSIFICAÇÃO':80, 'MATERIALIZAÇÃO':80, 'EMISSÃO':60, 'MANIPULAÇÃO':40 },
+    'MATERIALIZAÇÃO': { 'TRANSMUTAÇÃO':80, 'INTENSIFICAÇÃO':60, 'MANIPULAÇÃO':60, 'EMISSÃO':40 },
+    'MANIPULAÇÃO':    { 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'INTENSIFICAÇÃO':60, 'TRANSMUTAÇÃO':40 },
+    'EMISSÃO':        { 'MANIPULAÇÃO':80, 'INTENSIFICAÇÃO':80, 'TRANSMUTAÇÃO':60, 'MATERIALIZAÇÃO':40 },
+    'ESPECIALIZAÇÃO': { 'MATERIALIZAÇÃO':80, 'MANIPULAÇÃO':80, 'TRANSMUTAÇÃO':60, 'EMISSÃO':60, 'INTENSIFICAÇÃO':40 },
+    'REFORÇO':        { 'TRANSMUTAÇÃO':80, 'EMISSÃO':80, 'MATERIALIZAÇÃO':60, 'MANIPULAÇÃO':60 },
 };
 
 // Dado um nível efetivo (ajustado por restrições extremas), retorna o nível máximo de efeitos acessível por afinidade
@@ -3605,7 +3605,7 @@ window.HATSU_DB = {
 
     // ─── INTENSIFICAÇÃO / REFORÇO ────────────────────────
     'INTENSIFICAÇÃO': {
-      cor: '#22c55e',
+      cor: '#00ff9d',
       attr_princ: 'FORÇA',
       attr_sec: 'DES / SAB / CON',
       graus: 'Acerto | Atributos e Perícias | Redução de Custo',
@@ -3659,7 +3659,7 @@ window.HATSU_DB = {
 
     // ─── TRANSMUTAÇÃO ────────────────────────────────────
     'TRANSMUTAÇÃO': {
-      cor: '#3b82f6',
+      cor: '#d946ef',
       attr_princ: 'SAB / INT',
       attr_sec: 'FOR / PRE',
       graus: 'Dano | Redução de Custo',
@@ -3698,7 +3698,7 @@ window.HATSU_DB = {
 
     // ─── MATERIALIZAÇÃO ──────────────────────────────────
     'MATERIALIZAÇÃO': {
-      cor: '#a855f7',
+      cor: '#ff0055',
       attr_princ: 'INT',
       attr_sec: 'SAB / FOR',
       graus: 'Alcance/Área | Duração | Redução de Custo',
@@ -3713,6 +3713,15 @@ window.HATSU_DB = {
         { id:'rm_p1', peso:'pesada',  nome:"Perde Ação Principal",        desc:"Perde Ação Principal enquanto a Conjuração estiver ativa",           bnf:"A criatura age com +4 em testes ofensivos" },
         { id:'rm_p2', peso:'pesada',  nome:"Conjuração Controlável",      desc:"Conjuração pode ser manipulada/usada por outros contra a vontade do usuário (reverter: 1 teste SAB CD 15)", bnf:"Dado de dano máximo ou alcance dobra ou custo -15% ou dura +2 rodadas" },
         { id:'rm_p3', peso:'pesada',  nome:"Componentes Materiais",       desc:"O Hatsu depende de componentes materiais que são consumidos ao conjurar", bnf:"A criatura tem +2 em CA e +10 PV ao ser criada" },
+        { id:'rc_l1', peso:'leve',    nome:"Vínculo de Alcance",          desc:"A criatura conjurada não pode se afastar mais de 6 metros do conjurador",                              bnf:"A criatura recebe +1 na CA" },
+        { id:'rc_l2', peso:'leve',    nome:"Criatura Pacífica",           desc:"A criatura conjurada não causa dano direto",                                                            bnf:"+2 bônus em suporte (cura, sensor, defesa)" },
+        { id:'rc_l3', peso:'leve',    nome:"Uma Invocação por Combate",   desc:"Só pode conjurar 1 criatura do mesmo tipo por combate",                                                 bnf:"A criatura ganha +2 rodadas de duração" },
+        { id:'rc_m1', peso:'moderada',nome:"Sustento de Aura",            desc:"A criatura conjurada consome 5% de aura por rodada",                                                    bnf:"Pode realizar 1 ação bônus extra em seu turno" },
+        { id:'rc_m2', peso:'moderada',nome:"Vínculo de Alma",             desc:"Usuário sofre dano = metade da vida da criatura se ela for destruída",                                  bnf:"A criatura explode ao morrer causando 1d6 em 3m de área (círculo)" },
+        { id:'rc_m3', peso:'moderada',nome:"Ritual de Invocação",         desc:"Só pode conjurar em local fixo ou calmo predeterminado (ex: em casa/carro ou fora de combate)",        bnf:"Conjurador ganha vantagem no primeiro teste que realizar" },
+        { id:'rc_p1', peso:'pesada',  nome:"Concentração Total",          desc:"Perde Ação Principal enquanto a criatura conjurada estiver ativa",                                      bnf:"A criatura age com +4 em testes ofensivos" },
+        { id:'rc_p2', peso:'pesada',  nome:"Criatura Incontrolável",      desc:"A criatura pode ser manipulada/usada por outros contra a vontade do usuário (reverter: 1 teste SAB CD 15)", bnf:"Um dos dados de dano se torna máx. ou alcance dobra ou custo -15% ou dura +2 rodadas" },
+        { id:'rc_p3', peso:'pesada',  nome:"Sacrifício Ritual",           desc:"O Hatsu depende de componentes materiais que são consumidos ao conjurar",                               bnf:"A criatura tem +2 em CA e +10 PV ao ser criada" },
       ],
       efeitos: [
         // ── Nível 1 ──────────────────────────────────────────────
@@ -3751,28 +3760,6 @@ window.HATSU_DB = {
         { id:'rm_e24', nome:"Funções em Partes",         desc:"Permite simular, imitar ou reproduzir outras partes físicas (extras ou não) de uma criatura qualquer ou objeto/material por suas funções. Ex.: guelras para respirar embaixo d'água, asas para voar, braço que se transforma em corda. Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 1 + Aparências Enganam + conhecimento profundo das dimensões e propriedades (interações constantes/profundas ou algo específico como ferimento)", pn:1 },
         { id:'rm_e25', nome:"Funções Completas",         desc:"Permite simular, imitar ou reproduzir completamente funções de uma criatura qualquer ou objeto/material. Normalmente requer alteração na categoria de tamanho. Ex.: transformar-se em moto ou pequeno avião. Custo de aura +10% por categoria de tamanho acima do usuário.", req:"Nível 5 + Aparências Enganam + conhecimento profundo com interações profundas/constantes ou pontuais mas importantes (como um trauma)", pn:1 },
         { id:'rm_e26', nome:"Ben 10",                   desc:"A conjuração pode assumir os Atributos Físicos além das funções no caso de seres vivos.", req:"Nível 6 + Funções em Partes ou Funções Completas", pn:1 },
-      ]
-    },
-
-    // ─── CONJURAÇÃO ──────────────────────────────────────
-    'CONJURAÇÃO': {
-      cor: '#fb923c',
-      attr_princ: 'INT',
-      attr_sec: 'SAB / PRE',
-      graus: 'Alcance/Área | Duração | Redução de Custo',
-      desc: 'Invocar criaturas e seres de aura. Conjuradores constroem vínculos profundos com suas invocações.',
-      restricoes: [
-        { id:'rc_l1', peso:'leve',    nome:"Vínculo de Alcance",          desc:"A criatura conjurada não pode se afastar mais de 6 metros do conjurador",                              bnf:"A criatura recebe +1 na CA" },
-        { id:'rc_l2', peso:'leve',    nome:"Criatura Pacífica",           desc:"A criatura conjurada não causa dano direto",                                                            bnf:"+2 bônus em suporte (cura, sensor, defesa)" },
-        { id:'rc_l3', peso:'leve',    nome:"Uma Invocação por Combate",   desc:"Só pode conjurar 1 criatura do mesmo tipo por combate",                                                 bnf:"A criatura ganha +2 rodadas de duração" },
-        { id:'rc_m1', peso:'moderada',nome:"Sustento de Aura",            desc:"A criatura conjurada consome 5% de aura por rodada",                                                    bnf:"Pode realizar 1 ação bônus extra em seu turno" },
-        { id:'rc_m2', peso:'moderada',nome:"Vínculo de Alma",             desc:"Usuário sofre dano = metade da vida da criatura se ela for destruída",                                  bnf:"A criatura explode ao morrer causando 1d6 em 3m de área (círculo)" },
-        { id:'rc_m3', peso:'moderada',nome:"Ritual de Invocação",         desc:"Só pode conjurar em local fixo ou calmo predeterminado (ex: em casa/carro ou fora de combate)",        bnf:"Conjurador ganha vantagem no primeiro teste que realizar" },
-        { id:'rc_p1', peso:'pesada',  nome:"Concentração Total",          desc:"Perde Ação Principal enquanto a criatura conjurada estiver ativa",                                      bnf:"A criatura age com +4 em testes ofensivos" },
-        { id:'rc_p2', peso:'pesada',  nome:"Criatura Incontrolável",      desc:"A criatura pode ser manipulada/usada por outros contra a vontade do usuário (reverter: 1 teste SAB CD 15)", bnf:"Um dos dados de dano se torna máx. ou alcance dobra ou custo -15% ou dura +2 rodadas" },
-        { id:'rc_p3', peso:'pesada',  nome:"Sacrifício Ritual",           desc:"O Hatsu depende de componentes materiais que são consumidos ao conjurar",                               bnf:"A criatura tem +2 em CA e +10 PV ao ser criada" },
-      ],
-      efeitos: [
         { id:'rc_e1',  nome:"Invocar Criatura",        desc:"Invoca uma criatura pequena de aura (PV = 5 + CON, ataque 1d6). Controla com 1 ação por rodada",                       req:"Nível 1",  pn:1 },
         { id:'rc_e2',  nome:"Corpo Evoluído 1",        desc:"A criatura conjurada recebe +5 PV e +1 CA",                                                                              req:"Nível 1",  pn:1 },
         { id:'rc_e3',  nome:"Propriedade Natural",     desc:"A criatura recebe uma propriedade natural (veneno, fogo, gelo, elétrico...)",                                             req:"Nível 2",  pn:1 },
@@ -3791,7 +3778,7 @@ window.HATSU_DB = {
 
     // ─── ESPECIALIZAÇÃO ──────────────────────────────────
     'ESPECIALIZAÇÃO': {
-      cor: '#f59e0b',
+      cor: '#00f0ff',
       attr_princ: '(PRE+INT+1)/2',
       attr_sec: 'SAB',
       graus: 'Alcance/Área | Dano | Duração | CD do TR | Redução de Custo',
@@ -3833,7 +3820,7 @@ window.HATSU_DB = {
 
     // ─── MANIPULAÇÃO ─────────────────────────────────────
     'MANIPULAÇÃO': {
-      cor: '#06b6d4',
+      cor: '#9ca3af',
       attr_princ: 'PRE (pessoas) / INT (objetos)',
       attr_sec: 'DES',
       graus: 'Alcance/Área | Número de Alvos | Duração | CD do TR | Redução de Custo',
@@ -3873,7 +3860,7 @@ window.HATSU_DB = {
 
     // ─── EMISSÃO ─────────────────────────────────────────
     'EMISSÃO': {
-      cor: '#ef4444',
+      cor: '#ffe600',
       attr_princ: 'DES',
       attr_sec: 'FOR / INT',
       graus: 'Acerto | Alcance/Área | Dano | Duração | Redução de Custo',
@@ -3916,6 +3903,8 @@ window.HATSU_DB = {
 
   } // fim categorias
 }; // fim HATSU_DB
+// Alias para compatibilidade retroativa: hatsus salvos com classe='CONJURAÇÃO' usam MATERIALIZAÇÃO
+window.HATSU_DB.categorias['CONJURAÇÃO'] = window.HATSU_DB.categorias['MATERIALIZAÇÃO'];
 
 
 // ══════════════════════════════════════════════════════════
@@ -4447,7 +4436,6 @@ function renderHatsuCreator(container) {
                         'TRANSMUTAÇÃO': ['Envenenado','Sangramento Leve (2d4)','Lento (−3m)'],
                         'INTENSIFICAÇÃO': ['Caído','Atordoado','Fragilizado'],
                         'MATERIALIZAÇÃO': ['Agarrado','Imobilizado','Paralisado'],
-                        'CONJURAÇÃO': ['Agarrado','Amedrontado','Paralisado'],
                     };
                     const suggestions = catSuggestions[char.class] || [];
                     specialHtml = `<div style="margin-top:8px;background:#0a0f1a;border:1px solid ${color}33;border-radius:10px;padding:10px" onclick="event.stopPropagation()">
@@ -5315,10 +5303,10 @@ function renderHatsuCreator(container) {
         const access = window.calcCategoryAccess(charLevel, extremeCount);
 
         // Todas as categorias disponíveis no HATSU_DB
-        const ALL_CATS = ['INTENSIFICAÇÃO','TRANSMUTAÇÃO','MATERIALIZAÇÃO','CONJURAÇÃO','MANIPULAÇÃO','EMISSÃO','ESPECIALIZAÇÃO'];
+        const ALL_CATS = ['INTENSIFICAÇÃO','TRANSMUTAÇÃO','MATERIALIZAÇÃO','MANIPULAÇÃO','EMISSÃO','ESPECIALIZAÇÃO'];
         const CAT_COLORS = {
-            'INTENSIFICAÇÃO':'#00ff9d','TRANSMUTAÇÃO':'#d946ef','MATERIALIZAÇÃO':'#60a5fa',
-            'CONJURAÇÃO':'#fb923c','MANIPULAÇÃO':'#f43f5e','EMISSÃO':'#facc15','ESPECIALIZAÇÃO':'#a78bfa'
+            'INTENSIFICAÇÃO':'#00ff9d','TRANSMUTAÇÃO':'#d946ef','MATERIALIZAÇÃO':'#ff0055',
+            'MANIPULAÇÃO':'#9ca3af','EMISSÃO':'#ffe600','ESPECIALIZAÇÃO':'#00f0ff'
         };
         const affinityMap = window.CATEGORY_AFFINITY[cls] || {};
         const pctLabel = { 80:'80%', 60:'60%', 40:'40%', 1:'1%' };
@@ -7320,7 +7308,6 @@ function renderCard(item, color) {
             'TRANSMUTAÇÃO':    { dado: 'd10', faces: 10, media: 6 },
             'EMISSÃO':         { dado: 'd10', faces: 10, media: 6 },
             'MATERIALIZAÇÃO':  { dado: 'd8',  faces: 8,  media: 5 },
-            'CONJURAÇÃO':      { dado: 'd8',  faces: 8,  media: 5 },
             'MANIPULAÇÃO':     { dado: 'd8',  faces: 8,  media: 5 },
             'ESPECIALIZAÇÃO':  { dado: 'd6',  faces: 6,  media: 4 },
         };
@@ -7748,7 +7735,7 @@ function renderHatsuDetail(container) {
     const attrMap = {
         'INTENSIFICAÇÃO':'FOR','REFORÇO':'FOR',
         'TRANSMUTAÇÃO':'DES','EMISSÃO':'INT',
-        'MATERIALIZAÇÃO':'INT','CONJURAÇÃO':'INT',
+        'MATERIALIZAÇÃO':'INT',
         'ESPECIALIZAÇÃO':'PRE',
     };
 
@@ -7769,7 +7756,6 @@ function renderHatsuDetail(container) {
         'REFORÇO':        ['FOR','DES'],
         'TRANSMUTAÇÃO':   ['DES','SAB','INT'],
         'MATERIALIZAÇÃO': ['INT','FOR'],
-        'CONJURAÇÃO':     ['INT','SAB'],
         'ESPECIALIZAÇÃO': ['PRE','INT'],
         'MANIPULAÇÃO':    ['PRE','INT'],
         'EMISSÃO':        ['DES','INT'],
@@ -7782,7 +7768,7 @@ function renderHatsuDetail(container) {
     const baseAttr = ALL_ATTRS.includes(rawBaseAttr) ? rawBaseAttr : modSugest[0];
 
     // Categorias que usam CD (definido aqui pois é usado no modPickerHtml também)
-    const catTemCD = ['MANIPULAÇÃO','MATERIALIZAÇÃO','CONJURAÇÃO','ESPECIALIZAÇÃO'];
+    const catTemCD = ['MANIPULAÇÃO','MATERIALIZAÇÃO','ESPECIALIZAÇÃO'];
     const hasCDCategory = catTemCD.some(c => c === (h.classe||char.class));
 
     // Modifier picker — todos os atributos disponíveis, sugeridos destacados com estrela
