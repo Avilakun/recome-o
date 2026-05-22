@@ -5698,11 +5698,11 @@ window._hNext = function() {
         state.activeTab = 'NEN';
         render();
 
-        // Bônus de talento — só no PRIMEIRO hatsu criado (não edições)
+        // Primeiro Hatsu — distribuição de 5 Graus de Potência
         const isFirstHatsu = hb.editingIdx === undefined && char.hatsus.length === 1;
         const genTier = char.genialidade;
-        if (isFirstHatsu && (genTier === 'Talentoso' || genTier === 'Excelente' || genTier === 'Gênio' || genTier === 'Ultimate')) {
-            window._showTalentBonusModal(char, genTier, hatsuData);
+        if (isFirstHatsu) {
+            window._showPrimeiroHatsuModal(char, 0, hatsuData, genTier);
         }
         return;
     }
@@ -7729,6 +7729,11 @@ function renderHatsuDetail(container) {
         totalGraus += h.bonusGraus.valor;
         grauSources.push({ nome: '💠 Bônus Talentoso', graus: h.bonusGraus.valor });
     }
+    // 5 Graus do 1º Hatsu — dano
+    if (idx === 0 && h.primeiroHatsuGraus && h.primeiroHatsuGraus.dano) {
+        totalGraus += h.primeiroHatsuGraus.dano;
+        grauSources.push({ nome: '⭐ 1º Hatsu (Dano)', graus: h.primeiroHatsuGraus.dano });
+    }
 
     // Atributo base pelo tipo/categoria
     // MANIPULAÇÃO: INT para C.S.O (objetos), PRE para C.S.C (criaturas/pessoas)
@@ -8004,6 +8009,11 @@ function renderHatsuDetail(container) {
             cdBonusSources.push({ nome: item.nome, bonus });
         }
     });
+    // 5 Graus do 1º Hatsu — CD
+    if (idx === 0 && h.primeiroHatsuGraus && h.primeiroHatsuGraus.cd) {
+        cdBonusTotal += h.primeiroHatsuGraus.cd;
+        cdBonusSources.push({ nome: '⭐ 1º Hatsu', bonus: h.primeiroHatsuGraus.cd });
+    }
 
     // Determina se exibir o bloco de CD:
     // - categoria que usa CD, OU
@@ -8055,6 +8065,13 @@ function renderHatsuDetail(container) {
     let duracaoBonus = [];
     let alcanceDobrado = false;
     let duracaoDobrada = false;
+    // 5 Graus do 1º Hatsu — alcance, área, duração
+    if (idx === 0 && h.primeiroHatsuGraus) {
+        const _phg = h.primeiroHatsuGraus;
+        if (_phg.alcance) alcanceBonus.push({ valor: _phg.alcance * 3, fonte: '⭐ 1º Hatsu (Alcance)' });
+        if (_phg.area)    areaBonus.push({ valor: _phg.area * 1.5, fonte: '⭐ 1º Hatsu (Área)' });
+        if (_phg.duracao) duracaoBonus.push({ valor: _phg.duracao, fonte: '⭐ 1º Hatsu (Duração)', unidade: 'rodada' });
+    }
 
     // Efeitos Gerais
     const eg1Count = (h.efeitos||[]).filter(id => id === 'eg1').length;
@@ -8282,6 +8299,47 @@ function renderHatsuDetail(container) {
           }).join('')
         : `<div style="text-align:center;color:#374151;font-style:italic;font-size:11px;padding:20px">Nenhum efeito selecionado.</div>`;
 
+    // ── Seção 5 Graus do 1º Hatsu ─────────────────────────────────────────────
+    const _PH_LABELS = {
+        acerto:    { icon:'⚔️', label:'Acerto',           desc:'+1 ataque' },
+        atributos: { icon:'💪', label:'Atributos',         desc:'+1 atrib./perícia' },
+        dano:      { icon:'🔥', label:'Dano',              desc:'+1 passo de dano' },
+        alcance:   { icon:'📏', label:'Alcance',           desc:'+3m por grau' },
+        area:      { icon:'🔵', label:'Área',              desc:'+1,5m por grau' },
+        duracao:   { icon:'⏱',  label:'Duração',           desc:'+1 rodada' },
+        cd:        { icon:'🎯', label:'CD do TR',          desc:'+1 CD' },
+        alvos:     { icon:'👥', label:'Nº de Alvos',      desc:'+1 alvo' },
+        custo:     { icon:'💨', label:'Redução de Custo',  desc:'-5% custo' },
+    };
+    let primeiroHatsuSection = '';
+    if (idx === 0) {
+        const _phg = h.primeiroHatsuGraus;
+        const _phgEntries = _phg ? Object.entries(_phg).filter(([,v]) => v > 0) : [];
+        const _phgRows = _phgEntries.length > 0
+            ? _phgEntries.map(([k,v]) => {
+                const info = _PH_LABELS[k] || { icon:'⭐', label:k, desc:'' };
+                return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #1f2937">
+                    <span style="font-size:9px;color:#9ca3af">${info.icon} ${info.label} <span style="font-size:8px;color:#4b5563">(${info.desc})</span></span>
+                    <span style="font-size:11px;font-weight:900;color:${tc}">+${v}</span>
+                </div>`;
+              }).join('')
+            : `<div style="font-size:9px;color:#4b5563;text-align:center;padding:6px 0">Graus ainda não distribuídos.</div>`;
+        const _phgLocked = !!_phg && !state.isAdmin;
+        const _phgBtnHtml = _phg
+            ? (_phgLocked
+                ? `<span style="font-size:8px;padding:4px 10px;border-radius:8px;background:#1f2937;border:1px solid #374151;color:#4b5563;font-family:'Orbitron',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.5px">🔒 Bloqueado</span>`
+                : `<button onclick="window._openPrimeiroHatsuModal()" style="font-size:8px;padding:4px 10px;border-radius:8px;background:#f9731622;border:1px solid #f9731655;color:#fb923c;cursor:pointer;font-family:'Orbitron',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.5px">⚙️ Editar (Admin)</button>`)
+            : `<button onclick="window._openPrimeiroHatsuModal()" style="font-size:8px;padding:4px 10px;border-radius:8px;background:${tc}22;border:1px solid ${tc}55;color:${tc};cursor:pointer;font-family:'Orbitron',sans-serif;font-weight:900;text-transform:uppercase;letter-spacing:.5px">⭐ Distribuir</button>`;
+        primeiroHatsuSection = `
+        <div style="background:#0d1117;border:2px solid ${tc}33;border-radius:12px;padding:14px;margin-bottom:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+                <div style="font-size:8px;font-weight:900;color:${tc};text-transform:uppercase;letter-spacing:2px">⭐ 5 Graus do 1º Hatsu</div>
+                ${_phgBtnHtml}
+            </div>
+            ${_phgRows}
+        </div>`;
+    }
+
     container.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%;background:#030712;color:#d1d5db;font-family:'Rajdhani',sans-serif">
         <!-- HEADER -->
@@ -8339,7 +8397,7 @@ function renderHatsuDetail(container) {
                     </div>
                     <div>
                         <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Custo Base</div>
-                        <div style="font-size:10px;color:#d1d5db;font-weight:600">${(() => { if (!window.calcAuraCost) return '50% de Aura'; const fakeHb = { rg: (h.restricoes||[]).filter(id=>id.startsWith('rg_')), rc: (h.restricoes||[]).filter(id=>!id.startsWith('rg_')), eg: (h.efeitos||[]).filter(id=>id.startsWith('eg')), ec: (h.efeitos||[]).filter(id=>!id.startsWith('eg')) }; const cc = window.calcAuraCost(fakeHb); return cc.label + (cc.pct < 50 ? ' ✓' : ''); })()}</div>
+                        <div style="font-size:10px;font-weight:600">${(() => { if (!window.calcAuraCost) return '<span style="color:#d1d5db">50% de Aura</span>'; const fakeHb = { rg: (h.restricoes||[]).filter(id=>id.startsWith('rg_')), rc: (h.restricoes||[]).filter(id=>!id.startsWith('rg_')), eg: (h.efeitos||[]).filter(id=>id.startsWith('eg')), ec: (h.efeitos||[]).filter(id=>!id.startsWith('eg')) }; const cc = window.calcAuraCost(fakeHb); const phgCusto = (idx===0 && h.primeiroHatsuGraus && h.primeiroHatsuGraus.custo) ? h.primeiroHatsuGraus.custo : 0; const finalPct = Math.max(10, cc.pct - phgCusto * 5); const reduced = finalPct < 50; const color = reduced ? '#4ade80' : '#d1d5db'; const extra = phgCusto > 0 ? ` <span style="font-size:8px;color:#4b5563">(−${phgCusto*5}% 1º Hatsu)</span>` : ''; return '<span style="color:'+color+'">' + finalPct + '% de Aura' + (reduced?' ✓':'') + '</span>' + extra; })()}</div>
                     </div>
                     <div>
                         <div style="font-size:8px;color:#374151;text-transform:uppercase;font-weight:700;margin-bottom:2px">Alcance</div>
@@ -8362,6 +8420,8 @@ function renderHatsuDetail(container) {
                 ${calcCDHtml}
                 ${calcRangeDurHtml}
             </div>
+
+            ${primeiroHatsuSection}
 
             <!-- Restrições -->
             <div style="margin-bottom:20px">
@@ -8713,6 +8773,122 @@ function closeHatsuCreator() {
             saveCharacter(char);
             overlay.remove();
             render(true);
+        };
+
+        // ── Modal de distribuição dos 5 Graus do Primeiro Hatsu ───────────────
+        window._showPrimeiroHatsuModal = function(char, hatsuIdx, hatsuData, genTier) {
+            const h = char.hatsus[hatsuIdx];
+            const hatsuClasse = (h && h.classe) || char.class || '';
+            const catDB = (window.HATSU_DB && window.HATSU_DB.categorias[hatsuClasse]) || {};
+            const tc = catDB.cor || '#00ff88';
+            const TOTAL = 5;
+
+            const GRAUS_POR_CAT = {
+                'INTENSIFICAÇÃO': ['acerto', 'atributos', 'dano', 'custo'],
+                'TRANSMUTAÇÃO':   ['dano', 'custo'],
+                'MATERIALIZAÇÃO': ['alcance', 'area', 'duracao', 'custo'],
+                'CONJURAÇÃO':     ['alcance', 'area', 'duracao', 'custo'],
+                'ESPECIALIZAÇÃO': ['alcance', 'area', 'dano', 'duracao', 'cd', 'custo'],
+                'MANIPULAÇÃO':    ['alcance', 'area', 'alvos', 'duracao', 'cd', 'custo'],
+                'EMISSÃO':        ['acerto', 'alcance', 'area', 'custo'],
+            };
+            const GRAU_INFO = {
+                acerto:    { label:'⚔️ Acerto',           desc:'+1 na jogada de ataque' },
+                atributos: { label:'💪 Atributos',         desc:'+1 em atributo ou perícia' },
+                dano:      { label:'🔥 Dano',              desc:'+1 passo na tabela de dano' },
+                alcance:   { label:'📏 Alcance',           desc:'+3m de alcance' },
+                area:      { label:'🔵 Área',              desc:'+1,5m de raio/área' },
+                duracao:   { label:'⏱ Duração',            desc:'+1 rodada de duração' },
+                cd:        { label:'🎯 CD do TR',           desc:'+1 na CD do Teste de Resistência' },
+                alvos:     { label:'👥 Nº de Alvos',       desc:'+1 alvo adicional' },
+                custo:     { label:'💨 Redução de Custo',   desc:'-5% do custo de aura' },
+            };
+
+            const available = GRAUS_POR_CAT[hatsuClasse] || ['dano', 'custo'];
+            const existing = h.primeiroHatsuGraus || {};
+            const alloc = {};
+            available.forEach(k => alloc[k] = existing[k] || 0);
+
+            const overlay = document.createElement('div');
+            overlay.id = 'primeiro-hatsu-overlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:#000000dd;display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;font-family:Rajdhani,sans-serif';
+
+            function rebuild() {
+                const total = Object.values(alloc).reduce((s,v) => s+v, 0);
+                const remaining = TOTAL - total;
+                const done = total === TOTAL;
+                const rowsHtml = available.map(k => {
+                    const info = GRAU_INFO[k] || { label: k, desc: '' };
+                    const val = alloc[k] || 0;
+                    const canAdd = remaining > 0;
+                    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#0a0f1a;border-radius:10px;border:1px solid ${val>0?tc+'44':'#1f2937'}">
+                        <div>
+                            <div style="font-size:11px;font-weight:700;color:${val>0?tc:'#d1d5db'}">${info.label}</div>
+                            <div style="font-size:8px;color:#6b7280">${info.desc}</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <button onclick="window._phGrauDecr('${k}')"
+                                style="width:28px;height:28px;border-radius:7px;background:${val>0?tc+'22':'#1f2937'};border:1px solid ${val>0?tc+'44':'#374151'};color:${val>0?tc:'#4b5563'};font-size:16px;font-weight:900;cursor:${val>0?'pointer':'default'};line-height:1">−</button>
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:14px;color:${val>0?tc:'#4b5563'};min-width:18px;text-align:center">${val}</span>
+                            <button onclick="window._phGrauIncr('${k}')"
+                                style="width:28px;height:28px;border-radius:7px;background:${canAdd?tc+'22':'#1f2937'};border:1px solid ${canAdd?tc+'44':'#374151'};color:${canAdd?tc:'#4b5563'};font-size:16px;font-weight:900;cursor:${canAdd?'pointer':'default'};line-height:1">+</button>
+                        </div>
+                    </div>`;
+                }).join('');
+                overlay.innerHTML = `
+                <div style="background:#0d1117;border:2px solid ${tc};border-radius:20px;padding:24px;width:100%;max-width:380px;box-shadow:0 0 40px ${tc}44;max-height:90vh;overflow-y:auto">
+                    <div style="text-align:center;margin-bottom:16px">
+                        <div style="font-size:24px;margin-bottom:6px">⭐</div>
+                        <div style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:13px;color:${tc};text-transform:uppercase;letter-spacing:2px">5 Graus do 1º Hatsu</div>
+                        <div style="font-size:9px;color:#9ca3af;margin-top:6px;line-height:1.5">
+                            Distribua <b style="color:${tc}">5 Graus de Potência</b> entre as características permitidas pela categoria <b style="color:${tc}">${hatsuClasse}</b>.
+                        </div>
+                        <div style="margin-top:10px;display:inline-flex;align-items:center;gap:8px;padding:6px 16px;border-radius:20px;background:${done?tc+'22':'#1f2937'};border:1px solid ${done?tc+'55':'#374151'}">
+                            <span style="font-family:'Orbitron',sans-serif;font-weight:900;font-size:18px;color:${done?tc:'#9ca3af'}">${total}/5</span>
+                            <span style="font-size:9px;color:#6b7280">${remaining>0?remaining+' restante'+(remaining>1?'s':''):'Completo ✓'}</span>
+                        </div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">${rowsHtml}</div>
+                    <button onclick="window._confirmPrimeiroHatsu()" ${done?'':'disabled'}
+                        style="width:100%;padding:13px;border-radius:10px;background:${done?tc:'#374151'};border:none;color:${done?'#000':'#6b7280'};font-family:'Orbitron',sans-serif;font-weight:900;font-size:11px;text-transform:uppercase;cursor:${done?'pointer':'not-allowed'};letter-spacing:1px;box-shadow:${done?'0 0 16px '+tc+'55':'none'};transition:all .2s">
+                        Confirmar
+                    </button>
+                </div>`;
+            }
+
+            window._phGrauIncr = function(k) {
+                const total = Object.values(alloc).reduce((s,v) => s+v, 0);
+                if (total >= TOTAL) return;
+                alloc[k] = (alloc[k]||0) + 1;
+                rebuild();
+            };
+            window._phGrauDecr = function(k) {
+                if ((alloc[k]||0) <= 0) return;
+                alloc[k]--;
+                rebuild();
+            };
+            window._confirmPrimeiroHatsu = function() {
+                const total = Object.values(alloc).reduce((s,v) => s+v, 0);
+                if (total !== TOTAL) return;
+                char.hatsus[hatsuIdx].primeiroHatsuGraus = Object.assign({}, alloc);
+                saveCharacter(char);
+                overlay.remove();
+                render(true);
+                if (genTier && ['Talentoso','Excelente','Gênio','Ultimate'].includes(genTier)) {
+                    window._showTalentBonusModal(char, genTier, hatsuData);
+                }
+            };
+
+            document.body.appendChild(overlay);
+            rebuild();
+        };
+
+        window._openPrimeiroHatsuModal = function() {
+            const char = state.currentChar;
+            const idx = state.hatsuDetailIdx || 0;
+            const h = char.hatsus[idx];
+            if (!h) return;
+            window._showPrimeiroHatsuModal(char, idx, h, char.genialidade);
         };
 
         window._showSanityModal = function(char, threshold, currentPct) {
