@@ -12,6 +12,9 @@
     
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -255,6 +258,16 @@
         const ADMIN_USERS = [
             "833442072174264351",
             "513323323355037717"
+        ];
+
+        // --- CONFIGURAÇÃO GOOGLE ---
+        const GOOGLE_CONFIG = {
+            clientId: '440879807821-j3fik1fmkreqnbpmovo4vgm0p1v3seu5.apps.googleusercontent.com'
+        };
+
+        // Emails Google autorizados (equivalente ao PAID_USERS para login via Google)
+        const PAID_GOOGLE_EMAILS = [
+            // Adicione os emails autorizados aqui, ex: "usuario@gmail.com"
         ];
 
         // --- DADOS DO SISTEMA ---
@@ -722,6 +735,7 @@
             data.forEach(row => {
                 const rc = row.data;
                 if (!rc || !rc.id) return;
+                rc.userId = state.user.id;
                 const localKey = 'hxhrpg_' + rc.id;
                 const localRaw = localStorage.getItem(localKey);
                 if (!localRaw) {
@@ -756,11 +770,13 @@
 
         function loadCharacters() {
             const chars = [];
+            const currentUserId = state.user ? state.user.id : '000000';
             for(let i=0; i<localStorage.length; i++) {
                 const key = localStorage.key(i);
                 if(key && key.startsWith('hxhrpg_') && !key.startsWith('hxhrpg_cloud')) {
                     try {
                         const char = JSON.parse(localStorage.getItem(key));
+                        if ((char.userId || '000000') !== currentUserId) continue;
                         // Migrate TRANSFORMAÇÃO → TRANSMUTAÇÃO (typo fix)
                         if (char.class === 'TRANSFORMAÇÃO') {
                             char.class = 'TRANSMUTAÇÃO';
@@ -787,6 +803,7 @@
                 saveViewingChar(char);
                 return;
             }
+            char.userId = state.user ? state.user.id : '000000';
             localStorage.setItem('hxhrpg_' + char.id, JSON.stringify(char));
             loadCharacters();
             if (state.user) sbUpsert('characters', { id: char.id, user_id: state.user.id, data: char, last_mod: char.lastMod });
@@ -1045,7 +1062,110 @@
             render();
         }
 
+        function loginGoogle() {
+            if (typeof google === 'undefined') {
+                alert('Biblioteca do Google ainda carregando. Tente novamente em instantes.');
+                return;
+            }
+            const client = google.accounts.oauth2.initTokenClient({
+                client_id: GOOGLE_CONFIG.clientId,
+                scope: 'openid profile email',
+                callback: async (response) => {
+                    if (response.error) {
+                        alert('Erro ao autenticar com Google: ' + response.error);
+                        return;
+                    }
+                    try {
+                        const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                            headers: { Authorization: `Bearer ${response.access_token}` }
+                        });
+                        if (!profileRes.ok) throw new Error('Falha ao buscar perfil');
+                        const profile = await profileRes.json();
+
+                        localStorage.setItem('google_access_token', response.access_token);
+                        state.user = {
+                            id: 'google_' + profile.sub,
+                            username: profile.name,
+                            email: profile.email,
+                            avatar: profile.picture,
+                            loginProvider: 'google'
+                        };
+                        state.authorized = true;
+                        state.view = 'LIST';
+                        loadAdminRegistry().then(registry => {
+                            state.adminRegistry = registry;
+                            const roles = checkUserRoles(state.user.id, registry);
+                            state.isAdmin = roles.isAdmin;
+                            state.isMestre = roles.isMestre;
+                            state.assignedPlayers = roles.assignedPlayers;
+                            render(true);
+                        });
+                        render();
+                        syncFromCloud().then(() => { loadCharacters(); saveToCloudNow(); registerUserInRegistry(); render(true); });
+                    } catch (e) {
+                        console.error('Google Auth Error', e);
+                        alert('Erro ao buscar perfil do Google. Tente novamente.');
+                    }
+                }
+            });
+            client.requestAccessToken();
+        }
+
+        function logoutGoogle() {
+            const token = localStorage.getItem('google_access_token');
+            if (token && typeof google !== 'undefined') {
+                google.accounts.oauth2.revoke(token, () => {});
+            }
+            localStorage.removeItem('google_access_token');
+            state.user = null;
+            state.authorized = false;
+            state.view = 'LOGIN';
+            render();
+        }
+
+        function logout() {
+            if (state.user && state.user.loginProvider === 'google') {
+                logoutGoogle();
+            } else {
+                logoutDiscord();
+            }
+        }
+
         async function checkDiscordAuth() {
+            // Verifica se há sessão Google ativa
+            const googleToken = localStorage.getItem('google_access_token');
+            if (googleToken) {
+                try {
+                    const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                        headers: { Authorization: `Bearer ${googleToken}` }
+                    });
+                    if (profileRes.ok) {
+                        const profile = await profileRes.json();
+                        state.user = {
+                            id: 'google_' + profile.sub,
+                            username: profile.name,
+                            email: profile.email,
+                            avatar: profile.picture,
+                            loginProvider: 'google'
+                        };
+                        state.authorized = true;
+                        state.view = 'LIST';
+                        loadAdminRegistry().then(registry => {
+                            state.adminRegistry = registry;
+                            const roles = checkUserRoles(state.user.id, registry);
+                            state.isAdmin = roles.isAdmin;
+                            state.isMestre = roles.isMestre;
+                            state.assignedPlayers = roles.assignedPlayers;
+                            render(true);
+                        });
+                        render();
+                        syncFromCloud().then(() => { loadCharacters(); render(true); });
+                        return;
+                    }
+                } catch (e) { /* token expirado, continua para Discord */ }
+                localStorage.removeItem('google_access_token');
+            }
+
             // Check for token in URL hash (Callback from Discord)
             const fragment = new URLSearchParams(window.location.hash.slice(1));
             let accessToken = fragment.get('access_token');
@@ -1242,6 +1362,10 @@
                                 <i data-lucide="gamepad-2" class="group-hover:rotate-12 transition-transform"></i>
                                 LOGIN COM DISCORD
                             </button>
+                            <button onclick="loginGoogle()" class="w-full py-4 bg-white hover:bg-gray-100 text-gray-800 font-black font-display tracking-wider rounded-xl transition-all shadow-[0_0_20px_rgba(255,255,255,0.15)] flex items-center justify-center gap-3 group">
+                                <svg width="20" height="20" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/><path fill="none" d="M0 0h48v48H0z"/></svg>
+                                LOGIN COM GOOGLE
+                            </button>
                             <button onclick="bypassLogin()" class="w-full py-3 bg-transparent border border-gray-700 text-gray-500 font-bold uppercase tracking-wider rounded-xl hover:text-white hover:border-gray-500 transition-all text-[10px]">
                                 Modo de Teste (Sem Login)
                             </button>
@@ -1361,7 +1485,7 @@
                             ${state.isMestre ? `<button onclick="state.view='MESTRE_PLAYERS';render()" style="padding:6px 12px;background:#7c3aed22;border:1px solid #7c3aed55;border-radius:8px;color:#a78bfa;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;font-family:'Orbitron',sans-serif">⚔️ Jogadores</button>` : ''}
                             ${(state.isMestre || state.isAdmin) ? `<button onclick="state.view='BESTIARIO';render()" style="padding:6px 12px;background:#b4530022;border:1px solid #b4530055;border-radius:8px;color:#fb923c;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;font-family:'Orbitron',sans-serif">🐲 Bestiário</button>` : ''}
                             ${state.isAdmin ? `<button onclick="state.view='ADMIN';render()" style="padding:6px 12px;background:#dc262622;border:1px solid #dc262655;border-radius:8px;color:#f87171;font-size:9px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;cursor:pointer;font-family:'Orbitron',sans-serif">🛡 Admin</button>` : ''}
-                            <button onclick="logoutDiscord()" class="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-lg border border-transparent hover:border-red-900/30 hover:bg-red-900/10">
+                            <button onclick="logout()" class="text-gray-600 hover:text-red-500 transition-colors p-2 rounded-lg border border-transparent hover:border-red-900/30 hover:bg-red-900/10">
                                 <i data-lucide="log-out" size="18"></i>
                             </button>
                         </div>
